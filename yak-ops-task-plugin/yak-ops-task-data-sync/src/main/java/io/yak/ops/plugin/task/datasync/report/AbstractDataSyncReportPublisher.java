@@ -24,7 +24,7 @@ public abstract class AbstractDataSyncReportPublisher implements DataSyncReportP
                 return ack;
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
-                throw exception;
+                return onDeliveryFailure(request, exception);
             } catch (Exception exception) {
                 lastException = exception;
                 if (attempt == MAX_ATTEMPTS) {
@@ -36,7 +36,7 @@ public abstract class AbstractDataSyncReportPublisher implements DataSyncReportP
                     Thread.sleep(RETRY_INTERVAL_MILLIS);
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
-                    throw interrupted;
+                    return onDeliveryFailure(request, lastException);
                 }
             }
         }
