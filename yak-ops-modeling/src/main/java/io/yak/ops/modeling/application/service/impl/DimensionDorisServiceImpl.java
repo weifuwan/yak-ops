@@ -27,7 +27,7 @@ import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
 import io.yak.ops.modeling.ddl.doris.model.ReplicationPlan;
 import io.yak.ops.modeling.ddl.api.DdlEngine;
 import io.yak.ops.modeling.ddl.api.DdlSessionFactory;
-import io.yak.ops.modeling.ddl.model.DdlConnectionInfo;
+import io.yak.ops.modeling.ddl.session.DdlConnectionInfo;
 import io.yak.ops.modeling.ddl.model.DdlDataType;
 import io.yak.ops.modeling.ddl.model.DdlFieldTypeOption;
 import io.yak.ops.modeling.ddl.model.DdlPublishMode;
