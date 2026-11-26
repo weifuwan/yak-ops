@@ -9,6 +9,7 @@ import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.model.WorkflowDefinitionCountDto;
 
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.Collection;
@@ -38,6 +39,10 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
      * @return task definition
      */
     TaskDefinition queryByCode(@Param("code") long code);
+
+    /** Locks the task definition as the serialization point for instance actions of one task. */
+    @Select("SELECT * FROM t_yak_ops_task_definition WHERE code = #{taskCode} FOR UPDATE")
+    TaskDefinition queryByCodeForUpdate(@Param("taskCode") long taskCode);
 
     @Update("UPDATE t_yak_ops_task_definition SET version = #{nextRevision} "
             + "WHERE code = #{taskCode} AND project_code = #{projectCode} "

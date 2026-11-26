@@ -71,6 +71,15 @@ public interface ExecutorService {
     void forceStartTaskInstance(User loginUser, int queueId);
 
     /**
+     * Start a new data-sync workflow from the source instance's pinned workflow version.
+     */
+    Integer triggerDataSyncWorkflowInstance(User loginUser,
+                                            long projectCode,
+                                            WorkflowInstance sourceWorkflowInstance,
+                                            WorkflowDefinition workflowDefinition,
+                                            Map<String, String> startParams);
+
+    /**
      * execute stream task instance
      *
      * @param loginUser       login user
