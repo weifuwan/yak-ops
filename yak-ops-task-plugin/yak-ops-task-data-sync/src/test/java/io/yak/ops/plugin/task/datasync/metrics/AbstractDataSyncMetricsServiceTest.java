@@ -44,6 +44,7 @@ class AbstractDataSyncMetricsServiceTest {
         assertEquals("db.orders", table.getSinkTable());
         assertEquals(100L, table.getReadRecords());
         assertEquals(80L, table.getCommittedRecords());
+        assertEquals("AVAILABLE", table.getMetricsState());
     }
 
     @Test
