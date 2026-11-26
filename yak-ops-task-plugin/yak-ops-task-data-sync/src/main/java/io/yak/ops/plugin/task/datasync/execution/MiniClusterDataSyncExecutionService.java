@@ -109,11 +109,14 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
 
     private String savepointDirectory() {
         String configured = System.getProperty("yak.ops.data-sync.savepoint-directory");
+        if (configured == null || configured.trim().isEmpty()) {
+            configured = System.getenv("YAK_OPS_DATA_SYNC_SAVEPOINT_DIRECTORY");
+        }
         if (configured != null && !configured.trim().isEmpty()) {
             return configured.trim();
         }
-        return new File(new File(System.getProperty("java.io.tmpdir"), "yak-ops"),
-                "data-sync/savepoints").toURI().toString();
+        return new File(new File(System.getProperty("user.dir"), "data"),
+                "yak-ops/data-sync/savepoints").toURI().toString();
     }
 
     @Override
