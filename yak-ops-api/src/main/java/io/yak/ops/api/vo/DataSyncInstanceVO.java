@@ -1,9 +1,12 @@
 package io.yak.ops.api.vo;
 
+import io.yak.ops.api.enums.DataSyncInstanceAction;
 import io.yak.ops.common.enums.TaskExecuteType;
+import io.yak.ops.common.enums.WorkflowExecutionStatus;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 
 import java.util.Date;
+import java.util.List;
 
 import lombok.Builder;
 import lombok.Data;
@@ -20,6 +23,11 @@ public class DataSyncInstanceVO {
     private TaskExecuteType executeType;
     private String triggerType;
     private TaskExecutionStatus status;
+    private WorkflowExecutionStatus workflowStatus;
+    private List<DataSyncInstanceAction> availableActions;
+    private boolean recoveryPointAvailable;
+    private Date recoveryPointTime;
+    private String recoveryUnavailableReason;
     private Date startTime;
     private Date endTime;
     private Date createTime;
