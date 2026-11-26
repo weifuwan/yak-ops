@@ -171,9 +171,12 @@ class DataSyncExecutionReportServiceImplTest {
 
         service.acceptReport(request(2L, "SNAPSHOT"));
 
-        verify(tableReportDao).updateById(org.mockito.ArgumentMatchers.argThat(table ->
-                table.getId().equals(9L) && table.getLatestMetricsJson() == null
-                        && table.getLatestSequence().equals(2L)));
+        verify(tableReportDao).clearSnapshotFields(
+                org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.Date.class),
+                org.mockito.ArgumentMatchers.eq(false));
     }
 
     private static DataSyncReportRequest request(long sequence, String reportType) {
