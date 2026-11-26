@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -133,6 +134,84 @@ public class DorisSchemaInspector {
         }
     }
 
+    /**
+     * Verifies the live table with a mode-specific policy. Recreate verification checks the
+     * table model, Key columns and physical field names/types; incremental verification also
+     * checks nullability because it must protect an existing table from silent drift.
+     */
+    public VerificationResult verify(
+            Connection connection,
+            DataSourceCatalog catalog,
+            DdlTableDefinition table,
+            DorisDataModelEnum expectedModel,
+            List<String> expectedKeyFields,
+            DorisDdlGenerator generator,
+            boolean strictNullability) {
+        String physicalSchema = null;
+        List<String> mismatches = new ArrayList<>();
+        try {
+            if (!tableExists(connection, catalog, table.getDatabase(), table.getTableName())) {
+                mismatches.add("目标表不存在: " + table.getDatabase() + "." + table.getTableName());
+                return new VerificationResult(false, mismatches, null);
+            }
+
+            physicalSchema = readCreateTableDdl(
+                    connection, table.getDatabase(), table.getTableName());
+            Map<String, DorisColumnMetadata> actualColumns = readColumns(
+                    connection, catalog, table.getDatabase(), table.getTableName());
+            if (actualColumns.isEmpty()) {
+                mismatches.add("Doris 已返回目标表，但暂时无法读取字段元数据");
+                return new VerificationResult(false, mismatches, physicalSchema);
+            }
+
+            Matcher modelMatcher = TABLE_MODEL_PATTERN.matcher(physicalSchema);
+            if (!modelMatcher.find()) {
+                mismatches.add("无法从 SHOW CREATE TABLE 识别 Doris Key 模型");
+            } else {
+                String actualModel = modelMatcher.group(1).toUpperCase(Locale.ROOT);
+                if (!expectedModel.name().equals(actualModel)) {
+                    mismatches.add("表模型不一致：模型期望 " + expectedModel
+                            + "，Doris 实际为 " + actualModel);
+                }
+                List<String> actualKeyFields = parseIdentifiers(modelMatcher.group(2));
+                if (!sameIdentifiers(actualKeyFields, expectedKeyFields)) {
+                    mismatches.add("Key 字段不一致：模型期望 " + expectedKeyFields
+                            + "，Doris 实际为 " + actualKeyFields);
+                }
+            }
+
+            Map<String, DdlColumnDefinition> expectedColumns = new LinkedHashMap<>();
+            for (DdlColumnDefinition expected : table.getColumns()) {
+                expectedColumns.put(expected.getName().toLowerCase(Locale.ROOT), expected);
+                DorisColumnMetadata actual = actualColumns.get(
+                        expected.getName().toLowerCase(Locale.ROOT));
+                if (actual == null) {
+                    mismatches.add("缺少字段: " + expected.getName());
+                    continue;
+                }
+                if (!generator.matchesType(actual, expected)) {
+                    mismatches.add("字段类型不一致: " + expected.getName()
+                            + "（模型期望 " + generator.toDorisType(expected)
+                            + "，Doris 实际为 " + actual.getTypeName() + "）");
+                } else if (strictNullability && !generator.matches(actual, expected)) {
+                    mismatches.add("字段 NULL 属性不一致: " + expected.getName()
+                            + "（模型期望 " + nullabilityLabel(expected.getNullable())
+                            + "，Doris 实际为 " + nullabilityLabel(actual.getNullable()) + "）");
+                }
+            }
+
+            for (Map.Entry<String, DorisColumnMetadata> actual : actualColumns.entrySet()) {
+                if (!expectedColumns.containsKey(actual.getKey())) {
+                    mismatches.add("存在模型中未定义的字段: " + actual.getValue().getName());
+                }
+            }
+        } catch (RuntimeException ex) {
+            mismatches.add("读取物理结构失败: " + errorMessage(ex));
+        }
+        return new VerificationResult(mismatches.isEmpty(), mismatches, physicalSchema);
+    }
+
+    /** Backward-compatible strict comparison used by existing callers and tests. */
     public boolean matches(
             Connection connection,
             DataSourceCatalog catalog,
@@ -140,23 +219,49 @@ public class DorisSchemaInspector {
             DorisDataModelEnum expectedModel,
             List<String> expectedKeyFields,
             DorisDdlGenerator generator) {
-        DorisPhysicalTableMetadata actual = inspect(
-                connection, catalog, table.getDatabase(), table.getTableName());
-        if (actual == null || actual.getTableModel() != expectedModel
-                || !sameIdentifiers(actual.getKeyFields(), expectedKeyFields)) {
-            return false;
+        return verify(connection, catalog, table, expectedModel, expectedKeyFields, generator, true)
+                .isMatched();
+    }
+
+    private String nullabilityLabel(Boolean nullable) {
+        return nullable == null ? "未知" : nullable ? "NULL" : "NOT NULL";
+    }
+
+    private String errorMessage(Throwable exception) {
+        String message = exception == null ? null : exception.getMessage();
+        return message == null || message.trim().isEmpty()
+                ? exception == null ? "未知异常" : exception.getClass().getSimpleName()
+                : message;
+    }
+
+    public static final class VerificationResult {
+        private final boolean matched;
+        private final List<String> mismatches;
+        private final String physicalSchema;
+
+        public VerificationResult(boolean matched, List<String> mismatches, String physicalSchema) {
+            this.matched = matched;
+            this.mismatches = mismatches == null
+                    ? Collections.<String>emptyList()
+                    : Collections.unmodifiableList(new ArrayList<>(mismatches));
+            this.physicalSchema = physicalSchema;
         }
-        if (table.getColumns().isEmpty() || table.getColumns().size() != actual.getColumns().size()) {
-            return false;
+
+        public boolean isMatched() {
+            return matched;
         }
-        for (DdlColumnDefinition expected : table.getColumns()) {
-            DorisColumnMetadata actualColumn =
-                    actual.getColumns().get(expected.getName().toLowerCase(Locale.ROOT));
-            if (actualColumn == null || !generator.matches(actualColumn, expected)) {
-                return false;
-            }
+
+        public List<String> getMismatches() {
+            return mismatches;
         }
-        return true;
+
+        public String getPhysicalSchema() {
+            return physicalSchema;
+        }
+
+        public String getSummary() {
+            return mismatches.isEmpty() ? "未发现具体差异" : String.join("；", mismatches);
+        }
     }
 
     private String extractClause(String ddl, String keyword, String lookAhead) {
