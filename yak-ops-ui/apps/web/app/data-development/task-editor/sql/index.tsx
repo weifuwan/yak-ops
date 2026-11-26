@@ -329,7 +329,6 @@ function SqlTaskWorkspace({
         <CollapseSection
           id="sql-script"
           title="SQL 脚本"
-          extra={<span className="text-[11px] text-[var(--yak-components-muted-text)]">{form.sqlSource === "SCRIPT" ? "SCRIPT" : "FILE"}</span>}
           triggerClassName="!h-8 rounded-sm px-3"
           contentClassName="space-y-3 pt-3"
         >

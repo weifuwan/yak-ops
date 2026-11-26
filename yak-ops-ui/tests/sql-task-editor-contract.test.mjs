@@ -153,6 +153,12 @@ test("SQL task editor uses datasource, resource, local params, common settings a
   assert.ok(editor.includes("legacyDatasourceId > 0"));
 });
 
+test("SQL script section does not repeat the selected source mode as a header badge", () => {
+  assert.match(editor, /id="sql-script"\s+title="SQL 脚本"/);
+  assert.doesNotMatch(editor, /extra=\{<span[^>]*>\{form\.sqlSource === "SCRIPT" \? "SCRIPT" : "FILE"\}<\/span>\}/);
+  assert.match(editor, /items=\{\{ SCRIPT: "自定义 SQL", FILE: "资源文件" \}\}/);
+});
+
 test("SQL editor keeps space input native to Monaco and preserves database type for the backend", () => {
   assert.match(codeEditor, /className="nokey h-full/);
   assert.match(codeEditor, /className="nokey flex/);
