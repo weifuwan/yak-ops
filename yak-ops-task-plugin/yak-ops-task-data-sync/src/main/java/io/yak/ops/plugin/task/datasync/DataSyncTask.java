@@ -40,7 +40,11 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
                     ? null
                     : taskRequest.getPrepareParamsMap().get(DataSyncRuntimeOptions.RESTORE_PATH);
             String restorePath = restorePathParameter == null ? null : restorePathParameter.getValue();
-            jobRunner.execute(parameters, restorePath);
+            Property recoveryPointIdParameter = taskRequest.getPrepareParamsMap() == null
+                    ? null
+                    : taskRequest.getPrepareParamsMap().get(DataSyncRuntimeOptions.RECOVERY_POINT_ID);
+            String recoveryPointId = recoveryPointIdParameter == null ? null : recoveryPointIdParameter.getValue();
+            jobRunner.execute(parameters, restorePath, recoveryPointId);
             setExitStatusCode(jobRunner.isCancellationConfirmed()
                     ? TaskConstants.EXIT_CODE_KILL
                     : TaskConstants.EXIT_CODE_SUCCESS);

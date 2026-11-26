@@ -7,6 +7,7 @@ import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
 
 import org.apache.flink.cdc.cli.utils.YamlParserUtils;
 
+import java.io.File;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -78,7 +79,45 @@ public final class DataSyncPipelineBuilder {
         if (!pipeline.has("parallelism")) {
             pipeline.put("parallelism", 1);
         }
+        configureCheckpointing(pipeline);
         return JSONUtils.toJsonString(definition);
+    }
+
+    private static void configureCheckpointing(ObjectNode pipeline) {
+        JsonNode configured = pipeline.get("flink-conf");
+        ObjectNode flinkConf;
+        if (configured == null || configured.isNull()) {
+            flinkConf = pipeline.putObject("flink-conf");
+        } else if (configured.isObject()) {
+            flinkConf = (ObjectNode) configured;
+        } else {
+            throw new IllegalArgumentException("pipeline.flink-conf must be an object");
+        }
+
+        if (!flinkConf.has("execution.checkpointing.interval")) {
+            flinkConf.put("execution.checkpointing.interval", "30s");
+        }
+        if (!flinkConf.has("execution.checkpointing.num-retained")) {
+            flinkConf.put("execution.checkpointing.num-retained", 1);
+        }
+        if (!flinkConf.has("execution.checkpointing.externalized-checkpoint-retention")) {
+            flinkConf.put("execution.checkpointing.externalized-checkpoint-retention", "RETAIN_ON_CANCELLATION");
+        }
+        if (!flinkConf.has("state.checkpoints.dir")) {
+            flinkConf.put("state.checkpoints.dir", checkpointDirectory());
+        }
+    }
+
+    private static String checkpointDirectory() {
+        String configured = System.getProperty("yak.ops.data-sync.checkpoint-directory");
+        if (configured == null || configured.trim().isEmpty()) {
+            configured = System.getenv("YAK_OPS_DATA_SYNC_CHECKPOINT_DIRECTORY");
+        }
+        if (configured != null && !configured.trim().isEmpty()) {
+            return configured.trim();
+        }
+        return new File(new File(System.getProperty("user.dir"), "data"),
+                "yak-ops/data-sync/checkpoints").toURI().toString();
     }
 
     private static void maskPassword(ObjectNode endpoint) {
