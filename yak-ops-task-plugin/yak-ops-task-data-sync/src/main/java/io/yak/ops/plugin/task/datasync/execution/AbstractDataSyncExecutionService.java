@@ -48,7 +48,12 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
         if (handle == null || !releasedExecutions.add(handle.getExecutionId())) {
             return;
         }
-        doRelease(handle);
+        try {
+            doRelease(handle);
+        } catch (Exception exception) {
+            releasedExecutions.remove(handle.getExecutionId());
+            throw exception;
+        }
     }
 
     protected abstract DataSyncExecutionHandle doSubmit(
