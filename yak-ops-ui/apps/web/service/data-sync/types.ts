@@ -224,7 +224,24 @@ export interface DataSyncDefinitionSnapshot {
   target: DataSyncEndpointSnapshot;
 }
 
-export interface DataSyncInstanceRecord {
+export type DataSyncInstanceAction = "STOP" | "RESUME" | "RECOVER_FAILURE" | "RERUN";
+
+export interface DataSyncInstanceActionMetadata {
+  workflowStatus?: string | null;
+  availableActions?: DataSyncInstanceAction[];
+  recoveryPointAvailable?: boolean;
+  recoveryPointTime?: string | null;
+  recoveryPointUsedByWorkflowInstanceId?: number | null;
+  recoveryUnavailableReason?: string | null;
+}
+
+export interface DataSyncInstanceActionResult {
+  action: DataSyncInstanceAction;
+  sourceInstanceId: number;
+  newWorkflowInstanceId?: number | null;
+}
+
+export interface DataSyncInstanceRecord extends DataSyncInstanceActionMetadata {
   executionReport?: DataSyncExecutionReport;
   workflowInstanceId?: number;
   id: string;
@@ -253,7 +270,7 @@ export interface DataSyncInstanceRecord {
   updateTime?: string;
 }
 
-export interface DataSyncInstanceSummary {
+export interface DataSyncInstanceSummary extends DataSyncInstanceActionMetadata {
   id: string;
   workflowInstanceId?: number;
   taskId: string;
