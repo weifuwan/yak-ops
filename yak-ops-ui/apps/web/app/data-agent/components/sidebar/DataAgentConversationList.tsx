@@ -97,7 +97,7 @@ export function DataAgentConversationList({
   const [renameTitle, setRenameTitle] = useState("");
   const [dialogPending, setDialogPending] = useState(false);
   const [dialogError, setDialogError] = useState("");
-  const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
   const contextRequestRef = useRef<AbortController | null>(null);
 
   const groups = useMemo<ConversationGroup[]>(() => {
