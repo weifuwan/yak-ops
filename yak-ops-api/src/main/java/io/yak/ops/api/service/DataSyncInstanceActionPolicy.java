@@ -20,7 +20,7 @@ public final class DataSyncInstanceActionPolicy {
     }
 
     public static List<DataSyncInstanceAction> availableActions(
-            TaskInstance instance, WorkflowInstance workflow) {
+            TaskInstance instance, WorkflowInstance workflow, boolean recoveryPointAvailable) {
         if (instance == null || instance.getState() == null
                 || workflow == null || workflow.getState() == null
                 || workflow.getState() == WorkflowExecutionStatus.FAILOVER) {
@@ -30,7 +30,7 @@ public final class DataSyncInstanceActionPolicy {
         List<DataSyncInstanceAction> actions = new ArrayList<>();
         WorkflowExecutionStatus workflowState = workflow.getState();
         if (instance.getTaskExecuteType() == TaskExecuteType.STREAM) {
-            appendStreamActions(instance, workflowState, actions);
+            appendStreamActions(instance, workflowState, recoveryPointAvailable, actions);
             return actions;
         }
 
@@ -58,6 +58,7 @@ public final class DataSyncInstanceActionPolicy {
     private static void appendStreamActions(
             TaskInstance instance,
             WorkflowExecutionStatus workflowState,
+            boolean recoveryPointAvailable,
             List<DataSyncInstanceAction> actions) {
         TaskExecutionStatus status = instance.getState();
         if (isActive(status)) {
@@ -68,13 +69,19 @@ public final class DataSyncInstanceActionPolicy {
         }
 
         if (status.isKill() && workflowState.isStopped()) {
-            actions.add(DataSyncInstanceAction.RESUME);
+            if (recoveryPointAvailable) {
+                actions.add(DataSyncInstanceAction.RESUME);
+            }
             actions.add(DataSyncInstanceAction.RERUN);
         } else if (status.isPause() && workflowState.isPaused()) {
-            actions.add(DataSyncInstanceAction.RESUME);
+            if (recoveryPointAvailable) {
+                actions.add(DataSyncInstanceAction.RESUME);
+            }
             actions.add(DataSyncInstanceAction.RERUN);
         } else if (status.isFailure() && workflowState.isFailure()) {
-            actions.add(DataSyncInstanceAction.RECOVER_FAILURE);
+            if (recoveryPointAvailable) {
+                actions.add(DataSyncInstanceAction.RECOVER_FAILURE);
+            }
             actions.add(DataSyncInstanceAction.RERUN);
         } else if ((status.isSuccess() || status.isForceSuccess()) && workflowState.isSuccess()) {
             actions.add(DataSyncInstanceAction.RERUN);
