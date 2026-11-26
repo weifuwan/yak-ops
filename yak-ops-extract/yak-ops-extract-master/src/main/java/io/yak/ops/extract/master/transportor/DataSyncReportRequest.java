@@ -28,6 +28,8 @@ public class DataSyncReportRequest {
 
     private Long sequence;
 
+    private Long submittedAt;
+
     /** SNAPSHOT or FINAL. */
     private String reportType;
 
