@@ -55,6 +55,7 @@ public class DorisDialect extends AbstractDdlDialect {
 
     @Override
     public void validate(DdlRequest request) {
+        requireOptions(request, DorisOptions.class);
         validator.validate(request);
     }
 
