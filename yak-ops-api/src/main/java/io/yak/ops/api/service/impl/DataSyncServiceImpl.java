@@ -503,8 +503,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 TaskExecutionStatus.SUBMITTED_SUCCESS.getCode(),
                 TaskExecutionStatus.DISPATCH.getCode(),
                 TaskExecutionStatus.RUNNING_EXECUTION.getCode(),
-                TaskExecutionStatus.DELAY_EXECUTION.getCode(),
-                TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()} : null;
+                TaskExecutionStatus.DELAY_EXECUTION.getCode()} : null;
         return toInstanceVOs(taskInstanceDao.queryLatestByTaskCodes(
                 projectCode, TASK_TYPE, new ArrayList<>(requested), states));
     }
