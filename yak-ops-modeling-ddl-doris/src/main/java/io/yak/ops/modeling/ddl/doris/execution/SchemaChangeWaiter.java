@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SchemaChangeWaiter {
 
-    private static final Logger log = LoggerFactory.getLogger(DorisSchemaChangeWaiter.class);
+    private static final Logger log = LoggerFactory.getLogger(SchemaChangeWaiter.class);
     private static final long TIMEOUT_MILLIS = 10L * 60L * 1000L;
     private static final long NO_JOB_GRACE_MILLIS = 3000L;
     private static final long POLL_INTERVAL_MILLIS = 1000L;
