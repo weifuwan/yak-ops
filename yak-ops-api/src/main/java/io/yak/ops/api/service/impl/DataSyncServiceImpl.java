@@ -570,6 +570,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         return DataSyncTableReportVO.builder()
                 .sourceTable(metrics.getSourceTable())
                 .sinkTable(metrics.getSinkTable())
+                .metricsState(metrics.getMetricsState())
                 .readRecords(metrics.getReadRecords())
                 .snapshotRecords(metrics.getSnapshotRecords())
                 .incrementalRecords(metrics.getIncrementalRecords())
