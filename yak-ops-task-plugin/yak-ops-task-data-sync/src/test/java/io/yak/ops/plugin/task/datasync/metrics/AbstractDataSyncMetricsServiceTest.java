@@ -2,6 +2,7 @@ package io.yak.ops.plugin.task.datasync.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionHandle;
 
@@ -70,6 +71,7 @@ class AbstractDataSyncMetricsServiceTest {
         assertEquals(18L, snapshot.getCommittedRecords());
         assertEquals("AVAILABLE", snapshot.getMetricsState());
     }
+
     @Test
     void marksTableMetricsPartialWhenOnlyOneSideIsAvailable() throws Exception {
         Map<String, Long> rawMetrics = new LinkedHashMap<>();
@@ -89,7 +91,6 @@ class AbstractDataSyncMetricsServiceTest {
         assertEquals("PARTIAL", snapshot.getMetricsState());
         assertEquals(1, snapshot.getTables().size());
         assertEquals("PARTIAL", snapshot.getTables().get(0).getMetricsState());
-        assertEquals(null, snapshot.getTables().get(0).getCommittedRecords());
+        assertNull(snapshot.getTables().get(0).getCommittedRecords());
     }
-
 }
