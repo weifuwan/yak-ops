@@ -60,3 +60,14 @@ test("Context categories use the reference palette while keeping the backend bre
   assert.ok(contextUsage.includes("item.label"));
   assert.ok(contextUsage.includes("item.ratio"));
 });
+
+test("Context usage details stay anchored to the trigger and use a compact card", () => {
+  assert.ok(contextUsage.includes("const width = Math.min(320, window.innerWidth - margin * 2)"));
+  assert.ok(contextUsage.includes("const availableAbove"));
+  assert.ok(contextUsage.includes("const availableBelow"));
+  assert.ok(contextUsage.includes("window.innerHeight - rect.top + gap"));
+  assert.ok(contextUsage.includes("{ bottom: position.offset }"));
+  assert.ok(contextUsage.includes("maxHeight: position.maxHeight"));
+  assert.ok(contextUsage.includes("px-4 pb-4 pt-1"));
+  assert.ok(contextUsage.includes("mt-4 flex flex-col gap-2.5"));
+});
