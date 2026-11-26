@@ -25,7 +25,7 @@ public class DataSyncExecutionCoordinator {
     private static final long METRICS_POLL_INTERVAL_MILLIS = 5_000L;
 
     private final TaskExecutionContext context;
-    private final DataSyncExecutionService executionService;
+    private final DataSyncExecutionServiceFactory executionServiceFactory;
     private final DataSyncMetricsService metricsService;
     private final DataSyncReportPublisher reportPublisher;
     private final AtomicBoolean cancelRequested = new AtomicBoolean();
@@ -33,22 +33,31 @@ public class DataSyncExecutionCoordinator {
     private final AtomicBoolean executionStarted = new AtomicBoolean();
 
     private volatile DataSyncExecutionHandle handle;
+    private volatile DataSyncExecutionService activeExecutionService;
     private volatile boolean cancellationConfirmed;
 
     public DataSyncExecutionCoordinator(TaskExecutionContext context) {
         this(context,
-                new MiniClusterDataSyncExecutionService(),
+                new MiniClusterDataSyncExecutionServiceFactory(),
                 new io.yak.ops.plugin.task.datasync.metrics.FlinkRestDataSyncMetricsService(),
                 new io.yak.ops.plugin.task.datasync.report.RpcDataSyncReportPublisher(context));
     }
 
     public DataSyncExecutionCoordinator(
-                                        TaskExecutionContext context,
-                                        DataSyncExecutionService executionService,
-                                        DataSyncMetricsService metricsService,
-                                        DataSyncReportPublisher reportPublisher) {
+            TaskExecutionContext context,
+            DataSyncExecutionService executionService,
+            DataSyncMetricsService metricsService,
+            DataSyncReportPublisher reportPublisher) {
+        this(context, () -> executionService, metricsService, reportPublisher);
+    }
+
+    public DataSyncExecutionCoordinator(
+            TaskExecutionContext context,
+            DataSyncExecutionServiceFactory executionServiceFactory,
+            DataSyncMetricsService metricsService,
+            DataSyncReportPublisher reportPublisher) {
         this.context = context;
-        this.executionService = executionService;
+        this.executionServiceFactory = executionServiceFactory;
         this.metricsService = metricsService;
         this.reportPublisher = reportPublisher;
     }
@@ -69,6 +78,11 @@ public class DataSyncExecutionCoordinator {
         long sequence = 0L;
         long nextMetricsTime = 0L;
         DataSyncExecutionState finalState = DataSyncExecutionState.CREATED;
+        DataSyncExecutionService executionService = executionServiceFactory.create();
+        if (executionService == null) {
+            throw new IllegalStateException("DataSync execution service factory returned null");
+        }
+        activeExecutionService = executionService;
         try {
             handle = executionService.submit(execution, executionId, context.getTaskInstanceId());
             if (cancelRequested.get()) {
@@ -111,7 +125,10 @@ public class DataSyncExecutionCoordinator {
                     log.warn("Failed to release MiniCluster, executionId={}", current.getExecutionId(), exception);
                 } finally {
                     handle = null;
+                    activeExecutionService = null;
                 }
+            } else {
+                activeExecutionService = null;
             }
         }
     }
@@ -142,7 +159,8 @@ public class DataSyncExecutionCoordinator {
 
     private void dispatchCancellation() throws Exception {
         DataSyncExecutionHandle current = handle;
-        if (current != null && cancelDispatched.compareAndSet(false, true)) {
+        DataSyncExecutionService executionService = activeExecutionService;
+        if (current != null && executionService != null && cancelDispatched.compareAndSet(false, true)) {
             try {
                 executionService.cancel(current);
             } catch (Exception exception) {
@@ -164,27 +182,16 @@ public class DataSyncExecutionCoordinator {
                 return collected;
             }
             if ("UNAVAILABLE".equals(collected.getMetricsState())) {
+                // Keep the timestamp of the last successful sample; a failed poll must not
+                // make old counters look freshly collected.
                 return previous.toBuilder()
                         .metricsState("STALE")
                         .errorMessage(collected.getErrorMessage())
-                        .collectedAt(System.currentTimeMillis())
                         .build();
             }
-            return collected.toBuilder()
-                    .readRecords(firstNonNull(collected.getReadRecords(), previous.getReadRecords()))
-                    .snapshotRecords(firstNonNull(collected.getSnapshotRecords(), previous.getSnapshotRecords()))
-                    .incrementalRecords(
-                            firstNonNull(collected.getIncrementalRecords(), previous.getIncrementalRecords()))
-                    .insertRecords(firstNonNull(collected.getInsertRecords(), previous.getInsertRecords()))
-                    .updateRecords(firstNonNull(collected.getUpdateRecords(), previous.getUpdateRecords()))
-                    .deleteRecords(firstNonNull(collected.getDeleteRecords(), previous.getDeleteRecords()))
-                    .committedRecords(firstNonNull(collected.getCommittedRecords(), previous.getCommittedRecords()))
-                    .ddlEvents(firstNonNull(collected.getDdlEvents(), previous.getDdlEvents()))
-                    .errorRecords(firstNonNull(collected.getErrorRecords(), previous.getErrorRecords()))
-                    .tables(collected.getTables() == null || collected.getTables().isEmpty()
-                            ? previous.getTables()
-                            : collected.getTables())
-                    .build();
+            // A partial response is still a point-in-time snapshot. Do not fill missing
+            // counters or tables with values from an older sample.
+            return collected;
         } catch (Exception exception) {
             log.warn("Failed to collect Flink CDC metrics, executionId={}",
                     current.getExecutionId(), exception);
@@ -192,7 +199,6 @@ public class DataSyncExecutionCoordinator {
                 return previous.toBuilder()
                         .metricsState("STALE")
                         .errorMessage(exception.getMessage())
-                        .collectedAt(System.currentTimeMillis())
                         .build();
             }
             return DataSyncExecutionSnapshot.builder()
@@ -201,10 +207,6 @@ public class DataSyncExecutionCoordinator {
                     .collectedAt(System.currentTimeMillis())
                     .build();
         }
-    }
-
-    private static Long firstNonNull(Long value, Long fallback) {
-        return value == null ? fallback : value;
     }
 
     private void publish(
@@ -229,6 +231,11 @@ public class DataSyncExecutionCoordinator {
                 .map(table -> DataSyncTableMetrics.builder()
                         .sourceTable(table.getSourceTable())
                         .sinkTable(table.getSinkTable())
+                        .metricsState("STALE".equals(snapshot.getMetricsState())
+                                ? "STALE"
+                                : (table.getMetricsState() == null
+                                        ? snapshot.getMetricsState()
+                                        : table.getMetricsState()))
                         .readRecords(table.getReadRecords())
                         .snapshotRecords(table.getSnapshotRecords())
                         .incrementalRecords(table.getIncrementalRecords())
