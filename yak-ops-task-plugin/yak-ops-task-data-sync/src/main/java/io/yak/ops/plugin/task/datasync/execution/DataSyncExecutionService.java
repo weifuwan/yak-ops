@@ -5,13 +5,22 @@ import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 /** Owns the lifecycle of one Flink CDC execution. */
 public interface DataSyncExecutionService {
 
+    default DataSyncExecutionHandle submit(
+            FlinkPipelineExecution execution, String executionId, int taskInstanceId) throws Exception {
+        return submit(execution, executionId, taskInstanceId, null);
+    }
+
     DataSyncExecutionHandle submit(
-                                   FlinkPipelineExecution execution, String executionId,
-                                   int taskInstanceId) throws Exception;
+            FlinkPipelineExecution execution, String executionId,
+            int taskInstanceId, String restorePath) throws Exception;
 
     DataSyncExecutionState queryState(DataSyncExecutionHandle handle) throws Exception;
 
     void cancel(DataSyncExecutionHandle handle) throws Exception;
+
+    String triggerSavepoint(DataSyncExecutionHandle handle) throws Exception;
+
+    String stopWithSavepoint(DataSyncExecutionHandle handle) throws Exception;
 
     void release(DataSyncExecutionHandle handle) throws Exception;
 }
