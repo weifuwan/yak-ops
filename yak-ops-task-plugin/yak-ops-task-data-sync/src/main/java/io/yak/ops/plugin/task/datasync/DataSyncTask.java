@@ -6,6 +6,7 @@ import io.yak.ops.plugin.task.api.TaskCallBack;
 import io.yak.ops.plugin.task.api.TaskConstants;
 import io.yak.ops.plugin.task.api.TaskException;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.plugin.task.api.model.Property;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.stream.StreamTask;
 
@@ -35,9 +36,10 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
     @Override
     public void handle(TaskCallBack callback) throws TaskException {
         try {
-            String restorePath = taskRequest.getRuntimeOptions() == null
+            Property restorePathParameter = taskRequest.getPrepareParamsMap() == null
                     ? null
-                    : taskRequest.getRuntimeOptions().get("__yak_data_sync_restore_path");
+                    : taskRequest.getPrepareParamsMap().get(DataSyncRuntimeOptions.RESTORE_PATH);
+            String restorePath = restorePathParameter == null ? null : restorePathParameter.getValue();
             jobRunner.execute(parameters, restorePath);
             setExitStatusCode(jobRunner.isCancellationConfirmed()
                     ? TaskConstants.EXIT_CODE_KILL
