@@ -469,7 +469,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     if (item.kind === "workflow") {
       openWorkflow(item.workflow);
     } else {
-      openTask(item.workflow.code, item.task);
+      openTask(item.workflow.code, item.task, String(item.task.code), item.workflow.releaseState, item.workflow);
     }
   };
 
@@ -716,7 +716,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
               if (item.kind === "workflow") {
                 openWorkflow(item.workflow);
               } else if (item.kind === "task") {
-                openTask(item.workflow.code, item.task);
+                openTask(item.workflow.code, item.task, String(item.task.code), item.workflow.releaseState, item.workflow);
               }
             }}
             isItemInteractive={(item) => item.kind !== "message"}
