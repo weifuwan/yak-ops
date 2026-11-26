@@ -23,7 +23,7 @@ function statusLabel(status?: string) {
 function statusClassName(status?: string) {
   if (status === "SUCCESS") return "text-[var(--yak-color-success)]";
   if (status === "FAILED" || status === "CONFLICT") return "text-[var(--yak-components-danger-text)]";
-  if (status === "VERIFY_FAILED") return "text-[var(--yak-color-warning)]";
+  if (status === "VERIFY_FAILED") return "text-amber-700";
   if (status === "RUNNING" || status === "PENDING") return "text-[var(--yak-color-primary)]";
   return "text-[var(--yak-components-muted-text)]";
 }
@@ -91,7 +91,7 @@ export function DorisPublishHistoryPanel({ projectCode, tableId, onClose }: Prop
                 {item.executionDurationMs != null ? <span>{item.executionDurationMs} ms</span> : null}
               </div>
               {item.status === "VERIFY_FAILED" ? (
-                <p className="mb-0 mt-2 break-words text-xs text-[var(--yak-color-warning)]">
+                <p className="mb-0 mt-2 break-words text-xs text-amber-700">
                   DDL 已执行，物理结构校验未通过。请先检查实际结构，不要直接重复删除重建。
                 </p>
               ) : null}
