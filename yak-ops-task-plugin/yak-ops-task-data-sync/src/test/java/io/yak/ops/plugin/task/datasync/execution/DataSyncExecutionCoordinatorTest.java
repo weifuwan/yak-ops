@@ -16,9 +16,9 @@ import io.yak.ops.plugin.task.datasync.metrics.DataSyncMetricsService;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncTableMetrics;
 import io.yak.ops.plugin.task.datasync.report.DataSyncReportPublisher;
 
-import java.util.Collections;
-
 import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
+
+import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
