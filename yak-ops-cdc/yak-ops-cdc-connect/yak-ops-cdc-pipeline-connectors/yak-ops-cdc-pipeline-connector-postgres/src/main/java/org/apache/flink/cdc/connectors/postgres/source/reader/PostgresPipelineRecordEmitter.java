@@ -1,0 +1,235 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.flink.cdc.connectors.postgres.source.reader;
+
+import org.apache.flink.api.connector.source.SourceOutput;
+import org.apache.flink.cdc.common.event.CreateTableEvent;
+import org.apache.flink.cdc.common.event.SchemaChangeEvent;
+import org.apache.flink.cdc.common.schema.Schema;
+import org.apache.flink.cdc.connectors.base.source.meta.offset.OffsetFactory;
+import org.apache.flink.cdc.connectors.base.source.meta.split.SourceSplitState;
+import org.apache.flink.cdc.connectors.base.source.metrics.SourceReaderMetrics;
+import org.apache.flink.cdc.connectors.postgres.source.PostgresDialect;
+import org.apache.flink.cdc.connectors.postgres.source.config.PostgresSourceConfig;
+import org.apache.flink.cdc.connectors.postgres.source.schema.PostgresSchemaRecord;
+import org.apache.flink.cdc.connectors.postgres.utils.PostgresSchemaUtils;
+import org.apache.flink.cdc.debezium.DebeziumDeserializationSchema;
+import org.apache.flink.cdc.debezium.event.DebeziumEventDeserializationSchema;
+import org.apache.flink.connector.base.source.reader.RecordEmitter;
+
+import io.debezium.connector.postgresql.TypeRegistry;
+import io.debezium.connector.postgresql.connection.PostgresConnection;
+import io.debezium.data.Envelope;
+import io.debezium.relational.Table;
+import io.debezium.relational.TableId;
+import io.debezium.relational.history.TableChanges;
+import io.debezium.relational.history.TableChanges.TableChange;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static io.debezium.connector.AbstractSourceInfo.SCHEMA_NAME_KEY;
+import static io.debezium.connector.AbstractSourceInfo.TABLE_NAME_KEY;
+import static org.apache.flink.cdc.connectors.base.source.meta.wartermark.WatermarkEvent.isLowWatermarkEvent;
+import static org.apache.flink.cdc.connectors.base.utils.SourceRecordUtils.isSchemaChangeEvent;
+import static org.apache.flink.cdc.connectors.postgres.utils.PostgresSchemaUtils.toCdcTableId;
+import static org.apache.flink.cdc.connectors.postgres.utils.SchemaChangeUtil.inferSchemaChangeEvent;
+
+/** The {@link RecordEmitter} implementation for PostgreSQL pipeline connector. */
+public class PostgresPipelineRecordEmitter<T> extends PostgresSourceRecordEmitter<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(PostgresPipelineRecordEmitter.class);
+    private final PostgresDialect postgresDialect;
+
+    // Used when startup mode is initial
+    private final Set<TableId> alreadySendCreateTableTables;
+    private final boolean includeDatabaseInTableId;
+    private final Map<TableId, CreateTableEvent> createTableEventCache;
+
+    private TypeRegistry typeRegistry;
+
+    public PostgresPipelineRecordEmitter(
+            DebeziumDeserializationSchema<T> debeziumDeserializationSchema,
+            SourceReaderMetrics sourceReaderMetrics,
+            PostgresSourceConfig sourceConfig,
+            OffsetFactory offsetFactory,
+            PostgresDialect postgresDialect) {
+        super(
+                debeziumDeserializationSchema,
+                sourceReaderMetrics,
+                sourceConfig.isIncludeSchemaChanges(),
+                offsetFactory,
+                sourceConfig);
+        this.includeDatabaseInTableId = sourceConfig.isIncludeDatabaseInTableId();
+        this.postgresDialect = postgresDialect;
+        this.alreadySendCreateTableTables = new HashSet<>();
+        this.createTableEventCache =
+                ((DebeziumEventDeserializationSchema) debeziumDeserializationSchema)
+                        .getCreateTableEventCache();
+    }
+
+    @Override
+    protected void processElement(
+            SourceRecord element, SourceOutput<T> output, SourceSplitState splitState)
+            throws Exception {
+        if (isLowWatermarkEvent(element) && splitState.isSnapshotSplitState()) {
+            TableId tableId = splitState.asSnapshotSplitState().toSourceSplit().getTableId();
+            sendCreateTableEventIfNeeded(tableId, output, splitState);
+        } else if (isDataChangeRecord(element)) {
+            handleDataChangeRecord(element, output, splitState);
+        } else if (isSchemaChangeEvent(element) && sourceConfig.isIncludeSchemaChanges()) {
+            handleSchemaChangeRecord(element, output, splitState);
+        }
+        super.processElement(element, output, splitState);
+    }
+
+    private void handleDataChangeRecord(
+            SourceRecord element, SourceOutput<T> output, SourceSplitState splitState) {
+        TableId tableId = getTableId(element);
+        sendCreateTableEventIfNeeded(tableId, output, splitState);
+    }
+
+    private void handleSchemaChangeRecord(
+            SourceRecord element, SourceOutput<T> output, SourceSplitState splitState) {
+        if (!(element instanceof PostgresSchemaRecord)) {
+            // Ignore non-Postgres schema change records; they may represent non-relation
+            // schema changes that are not handled via PostgresSchemaRecord.
+            LOG.warn("Ignoring non-PostgresSchemaRecord schema change event: {}", element);
+            return;
+        }
+        Map<TableId, TableChanges.TableChange> existedTableSchemas =
+                splitState.toSourceSplit().getTableSchemas();
+        PostgresSchemaRecord schemaRecord = (PostgresSchemaRecord) element;
+        Table schemaAfter = schemaRecord.getTable();
+        Table schemaBefore = null;
+        if (existedTableSchemas.containsKey(schemaAfter.id())) {
+            schemaBefore = existedTableSchemas.get(schemaAfter.id()).getTable();
+        }
+        if (schemaBefore != null) {
+            sendCreateTableEventIfNeeded(schemaAfter.id(), output, splitState);
+        }
+        List<SchemaChangeEvent> schemaChangeEvents =
+                inferSchemaChangeEvent(
+                        schemaAfter.id(),
+                        schemaBefore,
+                        schemaAfter,
+                        sourceConfig,
+                        getTypeRegistry());
+        LOG.info("Inferred Schema change events: {}", schemaChangeEvents);
+        schemaChangeEvents.forEach(
+                schemaChangeEvent -> {
+                    output.collect((T) schemaChangeEvent);
+                    if (schemaChangeEvent instanceof CreateTableEvent) {
+                        cacheCreateTableEvent(
+                                schemaAfter.id(), (CreateTableEvent) schemaChangeEvent);
+                        alreadySendCreateTableTables.add(schemaAfter.id());
+                    }
+                });
+    }
+
+    private void sendCreateTableEventIfNeeded(
+            TableId tableId, SourceOutput<T> output, SourceSplitState splitState) {
+        if (alreadySendCreateTableTables.contains(tableId)) {
+            return;
+        }
+
+        CreateTableEvent createTableEvent = getOrCreateCreateTableEvent(tableId, splitState);
+        sendCreateTableEvent(createTableEvent, output);
+        alreadySendCreateTableTables.add(tableId);
+    }
+
+    private void sendCreateTableEvent(CreateTableEvent createTableEvent, SourceOutput<T> output) {
+        output.collect((T) createTableEvent);
+    }
+
+    private CreateTableEvent getOrCreateCreateTableEvent(
+            TableId tableId, SourceSplitState splitState) {
+        CreateTableEvent createTableEvent = createTableEventCache.get(tableId);
+        if (createTableEvent == null) {
+            createTableEvent = getCreateTableEventFromSplit(tableId, splitState);
+        }
+        if (createTableEvent == null) {
+            createTableEvent = getCreateTableEvent(sourceConfig, tableId);
+        }
+        cacheCreateTableEvent(tableId, createTableEvent);
+        return createTableEvent;
+    }
+
+    private CreateTableEvent getCreateTableEventFromSplit(
+            TableId tableId, SourceSplitState splitState) {
+        TableChange tableChange = splitState.toSourceSplit().getTableSchemas().get(tableId);
+        if (tableChange == null || tableChange.getTable() == null) {
+            return null;
+        }
+        try (PostgresConnection jdbc = postgresDialect.openJdbcConnection()) {
+            return new CreateTableEvent(
+                    toCdcTableId(
+                            tableId,
+                            sourceConfig.getDatabaseList().get(0),
+                            includeDatabaseInTableId),
+                    PostgresSchemaUtils.toSchema(
+                            tableChange.getTable(),
+                            sourceConfig.getDbzConnectorConfig(),
+                            jdbc.getTypeRegistry()));
+        }
+    }
+
+    private void cacheCreateTableEvent(TableId tableId, CreateTableEvent createTableEvent) {
+        createTableEventCache.put(tableId, createTableEvent);
+    }
+
+    private CreateTableEvent getCreateTableEvent(
+            PostgresSourceConfig sourceConfig, TableId tableId) {
+        try (PostgresConnection jdbc = postgresDialect.openJdbcConnection()) {
+            Schema schema = PostgresSchemaUtils.getTableSchema(tableId, sourceConfig, jdbc);
+            return new CreateTableEvent(
+                    toCdcTableId(
+                            tableId,
+                            sourceConfig.getDatabaseList().get(0),
+                            includeDatabaseInTableId),
+                    schema);
+        }
+    }
+
+    private TypeRegistry getTypeRegistry() {
+        if (typeRegistry == null) {
+            try (PostgresConnection jdbc = postgresDialect.openJdbcConnection()) {
+                typeRegistry = jdbc.getTypeRegistry();
+            }
+        }
+        return typeRegistry;
+    }
+
+    private TableId getTableId(SourceRecord dataRecord) {
+        Struct value = (Struct) dataRecord.value();
+        Struct source = value.getStruct(Envelope.FieldName.SOURCE);
+        Field field = source.schema().field(SCHEMA_NAME_KEY);
+        String schemaName = null;
+        if (field != null) {
+            schemaName = source.getString(SCHEMA_NAME_KEY);
+        }
+        String tableName = source.getString(TABLE_NAME_KEY);
+        return new TableId(null, schemaName, tableName);
+    }
+}
