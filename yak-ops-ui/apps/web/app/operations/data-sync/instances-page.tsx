@@ -201,7 +201,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
             <Button
               size="sm"
               variant="ghost"
-              className="px-2 text-xs font-medium text-[var(--yak-color-primary)]"
+              className="px-2 text-xs font-medium !text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]"
               onClick={() => navigate(`/data-sync/${r.taskId}/detail?executionId=${r.id}`)}
             >
               详情
@@ -210,7 +210,7 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
               <Button
                 size="sm"
                 variant="ghost"
-                className="px-2 text-xs text-[var(--yak-color-danger)]"
+                className="px-2 text-xs !text-[var(--yak-color-danger)] hover:!text-[var(--yak-color-danger)]"
                 isPending={stopMutation.isPending}
                 onClick={() => stopMutation.mutate(r.workflowInstanceId!)}
               >
