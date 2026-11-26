@@ -1,12 +1,14 @@
 package io.yak.ops.modeling.ddl.doris;
 
+import io.yak.ops.modeling.ddl.doris.schema.DdlFormatter;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-class DorisDdlFormatterTest {
+class DdlFormatterTest {
 
-    private final DorisDdlFormatter formatter = new DorisDdlFormatter();
+    private final DdlFormatter formatter = new DdlFormatter();
 
     @Test
     void formatsCreateTableColumnsAndClausesWithoutSplittingQuotedCommasOrNestedTypes() {
