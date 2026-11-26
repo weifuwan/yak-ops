@@ -112,7 +112,7 @@ const STATUS_LABELS: Record<string, string> = {
   FAILOVER: "恢复中",
 };
 
-function StatusGlyph({ shape, size }: { shape: StatusShape; size: number }) {
+function StatusGlyph({ shape }: { shape: StatusShape }) {
   switch (shape) {
     case "circle-outline":
       return (
@@ -313,7 +313,7 @@ export function ExecutionStatusIndicator({
         focusable="false"
         className={`shrink-0 ${visual.colorClassName} ${visual.pulse ? "motion-safe:animate-pulse" : ""}`}
       >
-        <StatusGlyph shape={visual.shape} size={size} />
+        <StatusGlyph shape={visual.shape} />
       </svg>
       {showLabel ? (
         <span className="text-xs text-[var(--yak-components-tab-text-hover)]">
