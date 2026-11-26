@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useMemo, useState } from "react";
 import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import {
   Button,
@@ -12,16 +11,11 @@ import {
   Modal,
 } from "@yak-ops/yak-ui";
 
-import type { AgentSessionContext } from "@/service/data-agent";
-
-import { DataAgentSessionContextCard } from "./DataAgentSessionContextCard";
-
 type SidebarConversation = {
   id: string;
   title: string;
   preview?: string;
   updatedAt: string;
-  contextTokens?: number;
 };
 
 type DataAgentConversationListProps = {
@@ -31,7 +25,6 @@ type DataAgentConversationListProps = {
   onSelectConversation: (id: string) => void;
   onRenameConversation: (id: string, title: string) => Promise<void>;
   onDeleteConversation: (id: string) => Promise<void>;
-  onLoadSessionContext: (id: string, signal?: AbortSignal) => Promise<AgentSessionContext | null>;
 };
 
 type ConversationGroup = {
@@ -58,22 +51,6 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "操作失败，请稍后重试";
 }
 
-function contextCardPosition(rect: DOMRect) {
-  const width = 360;
-  const height = 380;
-  const margin = 12;
-  const gap = 12;
-  const fitsRight = rect.right + gap + width <= window.innerWidth - margin;
-  const left = fitsRight
-    ? rect.right + gap
-    : Math.max(margin, rect.left - width - gap);
-  const top = Math.max(
-    margin,
-    Math.min(rect.top - 4, window.innerHeight - height - margin),
-  );
-  return { top, left };
-}
-
 export function DataAgentConversationList({
   conversations,
   activeConversationId,
@@ -81,14 +58,8 @@ export function DataAgentConversationList({
   onSelectConversation,
   onRenameConversation,
   onDeleteConversation,
-  onLoadSessionContext,
 }: DataAgentConversationListProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
-  const [contextPosition, setContextPosition] = useState<{ top: number; left: number } | null>(null);
-  const [contextBySession, setContextBySession] = useState<Record<string, AgentSessionContext | null>>({});
-  const [contextLoadingId, setContextLoadingId] = useState<string | null>(null);
-  const [contextError, setContextError] = useState("");
   const [dialog, setDialog] = useState<
     | { type: "rename"; conversation: SidebarConversation }
     | { type: "delete"; conversation: SidebarConversation }
@@ -97,9 +68,6 @@ export function DataAgentConversationList({
   const [renameTitle, setRenameTitle] = useState("");
   const [dialogPending, setDialogPending] = useState(false);
   const [dialogError, setDialogError] = useState("");
-  const closeTimerRef = useRef<number | null>(null);
-  const contextRequestRef = useRef<AbortController | null>(null);
-
   const groups = useMemo<ConversationGroup[]>(() => {
     const definitions: ConversationGroup[] = [
       { id: "today", label: "Today", conversations: [] },
@@ -114,80 +82,7 @@ export function DataAgentConversationList({
     return definitions.filter((group) => group.conversations.length > 0);
   }, [conversations]);
 
-  const hoveredConversation = useMemo(
-    () => conversations.find((conversation) => conversation.id === hoveredConversationId) ?? null,
-    [conversations, hoveredConversationId],
-  );
-
-  const clearCloseTimer = useCallback(() => {
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }, []);
-
-  const closeContextPreview = useCallback(() => {
-    clearCloseTimer();
-    contextRequestRef.current?.abort();
-    contextRequestRef.current = null;
-    setHoveredConversationId(null);
-    setContextPosition(null);
-    setContextLoadingId(null);
-    setContextError("");
-  }, [clearCloseTimer]);
-
-  const scheduleContextClose = useCallback(() => {
-    clearCloseTimer();
-    closeTimerRef.current = window.setTimeout(() => {
-      contextRequestRef.current?.abort();
-      contextRequestRef.current = null;
-      setHoveredConversationId(null);
-      setContextPosition(null);
-      setContextLoadingId(null);
-    }, 140);
-  }, [clearCloseTimer]);
-
-  const openContextPreview = useCallback((id: string, element: HTMLElement) => {
-    if (openMenuId) return;
-    clearCloseTimer();
-    setContextPosition(contextCardPosition(element.getBoundingClientRect()));
-    setHoveredConversationId(id);
-  }, [clearCloseTimer, openMenuId]);
-
-  const loadContextPreview = useCallback(async (id: string) => {
-    contextRequestRef.current?.abort();
-    const controller = new AbortController();
-    contextRequestRef.current = controller;
-    setContextLoadingId(id);
-    setContextError("");
-
-    try {
-      const context = await onLoadSessionContext(id, controller.signal);
-      if (!controller.signal.aborted) {
-        setContextBySession((current) => ({ ...current, [id]: context }));
-      }
-    } catch (error) {
-      if (!controller.signal.aborted) setContextError(errorMessage(error));
-    } finally {
-      if (!controller.signal.aborted) {
-        setContextLoadingId((current) => current === id ? null : current);
-      }
-    }
-  }, [onLoadSessionContext]);
-
-  useEffect(() => {
-    if (!hoveredConversationId) return;
-    void loadContextPreview(hoveredConversationId);
-    return () => contextRequestRef.current?.abort();
-  }, [hoveredConversationId, hoveredConversation?.contextTokens, loadContextPreview]);
-
-  useEffect(() => () => {
-    clearCloseTimer();
-    contextRequestRef.current?.abort();
-  }, [clearCloseTimer]);
-
   function openRenameDialog(conversation: SidebarConversation) {
-    closeContextPreview();
     setOpenMenuId(null);
     setRenameTitle(conversation.title);
     setDialogError("");
@@ -195,7 +90,6 @@ export function DataAgentConversationList({
   }
 
   function openDeleteDialog(conversation: SidebarConversation) {
-    closeContextPreview();
     setOpenMenuId(null);
     setDialogError("");
     setDialog({ type: "delete", conversation });
@@ -249,18 +143,10 @@ export function DataAgentConversationList({
     }
   }
 
-  const previewContext = hoveredConversationId
-    ? contextBySession[hoveredConversationId] ?? null
-    : null;
-  const hasPreviewContext = hoveredConversationId
-    ? Object.prototype.hasOwnProperty.call(contextBySession, hoveredConversationId)
-    : false;
-
   return (
     <div
       className="mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-3 [scrollbar-width:thin]"
       style={{ scrollbarColor: "var(--yak-color-scrollbar) transparent" }}
-      onScroll={closeContextPreview}
     >
       <section aria-label="Recent conversations">
         <div
@@ -284,10 +170,6 @@ export function DataAgentConversationList({
                       <div
                         key={conversation.id}
                         className="group relative"
-                        onMouseEnter={(event) => openContextPreview(conversation.id, event.currentTarget)}
-                        onMouseLeave={scheduleContextClose}
-                        onFocusCapture={(event) => openContextPreview(conversation.id, event.currentTarget)}
-                        onBlurCapture={scheduleContextClose}
                       >
                         <button
                           type="button"
@@ -302,8 +184,7 @@ export function DataAgentConversationList({
                             " disabled:cursor-not-allowed disabled:opacity-50"
                           }
                           onClick={() => {
-                            closeContextPreview();
-                            setOpenMenuId(null);
+                                                    setOpenMenuId(null);
                             onSelectConversation(conversation.id);
                           }}
                         >
@@ -317,7 +198,6 @@ export function DataAgentConversationList({
                           open={menuOpen}
                           onOpenChange={(open) => {
                             setOpenMenuId(open ? conversation.id : null);
-                            if (open) closeContextPreview();
                           }}
                         >
                           <DropdownMenuTrigger
@@ -373,20 +253,6 @@ export function DataAgentConversationList({
           </p>
         )}
       </section>
-
-      {hoveredConversationId && contextPosition && typeof document !== "undefined"
-        ? createPortal(
-            <DataAgentSessionContextCard
-              context={previewContext}
-              loading={contextLoadingId === hoveredConversationId || (!hasPreviewContext && !contextError)}
-              error={contextError}
-              position={contextPosition}
-              onMouseEnter={clearCloseTimer}
-              onMouseLeave={scheduleContextClose}
-            />,
-            document.body,
-          )
-        : null}
 
       <Modal
         open={dialog?.type === "rename"}

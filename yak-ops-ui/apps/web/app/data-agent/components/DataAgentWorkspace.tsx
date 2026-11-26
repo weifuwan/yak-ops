@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { PanelLeft } from "lucide-react";
 
 import { useDataAgentConversation } from "@/hooks/useDataAgentConversation";
+import type { AgentSessionContext } from "@/service/data-agent";
 
 import { DataAgentSidebar } from "./DataAgentSidebar";
 import { DataAgentSidebarResizer } from "./DataAgentSidebarResizer";
@@ -10,6 +11,7 @@ import { DataAgentSessionLoading } from "./workspace/DataAgentSessionLoading";
 import { DataAgentEmptyState } from "./workspace/DataAgentEmptyState";
 import { DataAgentLoading } from "./workspace/DataAgentLoading";
 import { ModelSelector } from "./workspace/ModelSelector";
+import { DataAgentContextUsage } from "./workspace/DataAgentContextUsage";
 import MagicPatternsParticleTransition, {
   type MagicPatternsParticleTransitionHandle,
 } from "./MagicPatternsParticleTransition";
@@ -62,6 +64,18 @@ export function DataAgentWorkspace({
   const [sidebarResizing, setSidebarResizing] = useState(false);
   const [composerKey, setComposerKey] = useState(0);
   const [initialDraft, setInitialDraft] = useState(initialPrompt);
+  const [sessionContextSnapshot, setSessionContextSnapshot] = useState<{
+    sessionId: string;
+    context: AgentSessionContext | null;
+  }>({ sessionId: "", context: null });
+  const [sessionContextLoading, setSessionContextLoading] = useState(false);
+  const [sessionContextError, setSessionContextError] = useState("");
+  const activeSessionContextTokens =
+    conversations.find((conversation) => conversation.id === activeConversationId)?.contextTokens ?? 0;
+  const sessionContext =
+    sessionContextSnapshot.sessionId === activeConversationId
+      ? sessionContextSnapshot.context
+      : null;
   const messageScrollRef = useRef<HTMLDivElement>(null);
   const particleTransitionRef = useRef<MagicPatternsParticleTransitionHandle | null>(null);
   const particleSourceRef = useRef<HTMLDivElement>(null);
@@ -76,6 +90,37 @@ export function DataAgentWorkspace({
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(shouldShowInitialLoading);
   const isLoadingOverlayVisible = shouldShowInitialLoading || showLoadingOverlay;
   const [loadingOverlayExiting, setLoadingOverlayExiting] = useState(false);
+
+  useEffect(() => {
+    if (!activeConversationId) {
+      setSessionContextLoading(false);
+      setSessionContextError("");
+      return;
+    }
+
+    const controller = new AbortController();
+    setSessionContextLoading(true);
+    setSessionContextError("");
+
+    void loadSessionContext(activeConversationId, controller.signal)
+      .then((context) => {
+        if (!controller.signal.aborted) {
+          setSessionContextSnapshot({ sessionId: activeConversationId, context });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setSessionContextError(
+            error instanceof Error ? error.message : "获取上下文用量失败",
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setSessionContextLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [activeConversationId, activeSessionContextTokens, loadSessionContext]);
 
   useEffect(() => {
     if (!isLoading) setInitialLoadComplete(true);
@@ -178,6 +223,18 @@ export function DataAgentWorkspace({
     />
   );
 
+  const composerActions = (
+    <div className="flex items-center gap-1.5">
+      <DataAgentContextUsage
+        context={sessionContext}
+        loading={sessionContextLoading}
+        error={sessionContextError}
+        hasSession={Boolean(activeConversationId)}
+      />
+      {modelSelector}
+    </div>
+  );
+
   return (
     <>
       {showInitialParticleTransition ? (
@@ -230,7 +287,6 @@ export function DataAgentWorkspace({
               conversations={conversations}
               activeConversationId={activeConversationId}
               busy={isSending}
-              onLoadSessionContext={loadSessionContext}
               onNewConversation={handleNewConversation}
               onSelectConversation={handleSelectConversation}
               onRenameConversation={renameConversation}
@@ -290,7 +346,7 @@ export function DataAgentWorkspace({
                   onSubmit={handlePromptSubmit}
                   onStop={stopCurrentTurn}
                   onQuickAction={handleQuickAction}
-                  trailingActions={modelSelector}
+                  trailingActions={composerActions}
                   transitionSourceRef={
                     showInitialParticleTransition ? particleSourceRef : undefined
                   }
@@ -317,7 +373,7 @@ export function DataAgentWorkspace({
                 composerKey={composerKey}
                 initialDraft={initialDraft}
                 onSubmit={handlePromptSubmit}
-                trailingActions={modelSelector}
+                trailingActions={composerActions}
               />
             </main>
           )}

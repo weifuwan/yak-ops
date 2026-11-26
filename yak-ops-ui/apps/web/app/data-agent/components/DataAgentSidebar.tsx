@@ -13,8 +13,6 @@ import {
 } from "@yak-ops/yak-ui";
 import { useEffect, useState } from "react";
 
-import type { AgentSessionContext } from "@/service/data-agent";
-
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 
@@ -27,7 +25,6 @@ type DataAgentSidebarConversation = {
   title: string;
   updatedAt: string;
   preview?: string;
-  contextTokens?: number;
 };
 
 type DataAgentSidebarProps = {
@@ -37,7 +34,6 @@ type DataAgentSidebarProps = {
   onSelectConversation: (id: string) => void;
   onRenameConversation: (id: string, title: string) => Promise<void>;
   onDeleteConversation: (id: string) => Promise<void>;
-  onLoadSessionContext: (id: string, signal?: AbortSignal) => Promise<AgentSessionContext | null>;
   busy?: boolean;
 };
 
@@ -48,7 +44,6 @@ export function DataAgentSidebar({
   onSelectConversation,
   onRenameConversation,
   onDeleteConversation,
-  onLoadSessionContext,
   busy = false,
 }: DataAgentSidebarProps) {
   const {
@@ -180,7 +175,6 @@ export function DataAgentSidebar({
         onSelectConversation={selectConversation}
         onRenameConversation={onRenameConversation}
         onDeleteConversation={onDeleteConversation}
-        onLoadSessionContext={onLoadSessionContext}
       />
 
       <DataAgentSidebarFooter
