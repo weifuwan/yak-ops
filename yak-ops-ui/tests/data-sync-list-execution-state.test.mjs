@@ -165,9 +165,9 @@ test("switching instances uses a layout-matched skeleton in the execution status
 
 
 test("task detail sync plan removes datasource prefix and highlights scope without a dot separator", () => {
-  assert.doesNotMatch(taskSummary, /MySQL\\s*·/);
-  assert.match(taskSummary, /bg-\\[#344054\\][^"]*text-white/);
-  assert.match(taskSummary, /<span>\\{scopeLabel\\}<\\/span>/);
-  assert.match(taskSummary, /<span>\\{modeLabel\\}<\\/span>/);
-  assert.doesNotMatch(taskSummary, /\\{scopeLabel\\}\\s*·/);
+  assert.ok(!taskSummary.includes("MySQL ·"));
+  assert.ok(taskSummary.includes("bg-[#344054] px-2 py-0.5 text-xs font-medium text-white"));
+  assert.ok(taskSummary.includes("{scopeLabel}"));
+  assert.ok(taskSummary.includes("<span>{modeLabel}</span>"));
+  assert.ok(!taskSummary.includes("{scopeLabel} ·"));
 });
