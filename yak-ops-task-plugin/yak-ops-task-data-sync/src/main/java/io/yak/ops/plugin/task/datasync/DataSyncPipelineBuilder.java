@@ -116,15 +116,35 @@ public final class DataSyncPipelineBuilder {
                 flinkConf.put("execution.checkpointing.num-retained", 3);
             }
         }
-        if (!flinkConf.has("execution.checkpointing.externalized-checkpoint-retention")) {
-            flinkConf.put("execution.checkpointing.externalized-checkpoint-retention", "RETAIN_ON_CANCELLATION");
+        String retention = flinkConf.has("execution.checkpointing.externalized-checkpoint-retention")
+                ? flinkConf.path("execution.checkpointing.externalized-checkpoint-retention").asText()
+                : "RETAIN_ON_CANCELLATION";
+        if (!"RETAIN_ON_CANCELLATION".equalsIgnoreCase(retention)) {
+            throw new IllegalArgumentException(
+                    "pipeline.flink-conf.execution.checkpointing.externalized-checkpoint-retention "
+                            + "must be RETAIN_ON_CANCELLATION for recoverable DataSync tasks");
         }
-        if (!flinkConf.has("execution.checkpointing.storage")) {
-            flinkConf.put("execution.checkpointing.storage", "filesystem");
+        flinkConf.put("execution.checkpointing.externalized-checkpoint-retention", "RETAIN_ON_CANCELLATION");
+
+        String storage = flinkConf.has("execution.checkpointing.storage")
+                ? flinkConf.path("execution.checkpointing.storage").asText()
+                : "filesystem";
+        if (!"filesystem".equalsIgnoreCase(storage)) {
+            throw new IllegalArgumentException(
+                    "pipeline.flink-conf.execution.checkpointing.storage must be filesystem");
         }
-        if (!flinkConf.has("execution.checkpointing.dir") && !flinkConf.has("state.checkpoints.dir")) {
-            flinkConf.put("execution.checkpointing.dir", checkpointDirectory());
+        flinkConf.put("execution.checkpointing.storage", "filesystem");
+
+        if (!flinkConf.has("execution.checkpointing.dir")) {
+            JsonNode legacyDirectory = flinkConf.get("state.checkpoints.dir");
+            if (legacyDirectory != null && !legacyDirectory.isNull()
+                    && !legacyDirectory.asText().trim().isEmpty()) {
+                flinkConf.set("execution.checkpointing.dir", legacyDirectory.deepCopy());
+            } else {
+                flinkConf.put("execution.checkpointing.dir", checkpointDirectory());
+            }
         }
+        flinkConf.remove("state.checkpoints.dir");
     }
 
     private static String checkpointDirectory() {

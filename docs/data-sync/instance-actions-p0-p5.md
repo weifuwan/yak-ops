@@ -22,7 +22,7 @@ The DataSync pipeline builder supplies these defaults under `pipeline.flink-conf
 - `execution.checkpointing.interval: 30s`
 - `execution.checkpointing.num-retained: 3` (user values below three are raised to three so the Master never advertises a checkpoint Flink has already discarded)
 - `execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION`
-- `execution.checkpointing.storage: filesystem`
+- `execution.checkpointing.storage: filesystem` (required)
 - `execution.checkpointing.dir`: local default described below
 
 The Worker polls the Flink REST endpoint `/jobs/{jobId}/checkpoints` and reports the latest completed checkpoint with a usable `external_path`. The Master persists checkpoint metadata idempotently and retains at most the latest three completed Checkpoints for each execution. A STOP action separately creates a Savepoint and persists its intent before invoking the Worker RPC.

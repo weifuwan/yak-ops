@@ -57,6 +57,42 @@ class DataSyncPipelineBuilderTest {
     }
 
     @Test
+    void requiresFilesystemBackedCheckpointStorage() {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
+                .putObject("flink-conf")
+                .put("execution.checkpointing.storage", "jobmanager");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new DataSyncPipelineBuilder().build(context(), parameters));
+    }
+
+    @Test
+    void requiresExternalizedCheckpointRetentionOnCancellation() {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
+                .putObject("flink-conf")
+                .put("execution.checkpointing.externalized-checkpoint-retention", "DELETE_ON_CANCELLATION");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new DataSyncPipelineBuilder().build(context(), parameters));
+    }
+
+    @Test
+    void migratesLegacyCheckpointDirectoryToTheCurrentFlinkOption() throws Exception {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
+                .putObject("flink-conf")
+                .put("state.checkpoints.dir", "hdfs://namenode/yak/legacy-checkpoints");
+
+        JsonNode pipeline = YAML.readTree(new DataSyncPipelineBuilder().build(context(), parameters));
+
+        assertEquals("hdfs://namenode/yak/legacy-checkpoints", pipeline.path("pipeline").path("flink-conf")
+                .path("execution.checkpointing.dir").asText());
+        assertTrue(pipeline.path("pipeline").path("flink-conf").get("state.checkpoints.dir") == null);
+    }
+
+    @Test
     void raisesCheckpointRetentionBelowTheRecoveryWindow() throws Exception {
         DataSyncParameters parameters = DataSyncParametersTest.valid();
         ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
