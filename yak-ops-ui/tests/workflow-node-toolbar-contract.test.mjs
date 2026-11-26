@@ -233,7 +233,7 @@ test("workflow task icons use Dify-style solid color containers and white glyphs
   assert.ok(taskTypeBadgeIcon.includes('normalized === "SUB_WORKFLOW"'));
   assert.ok(taskTypeBadgeIcon.includes("M42.6496 341.3504A42.6496 42.6496 0 0 0 0 384"));
   assert.ok(taskTypeBadgeIcon.includes('normalized === "SWITCH"'));
-  assert.ok(taskTypeBadgeIcon.includes("M938.728542 177.940913a128.063937 0 0 1 0 241.450882"));
+  assert.ok(taskTypeBadgeIcon.includes("M938.728542 177.940913a128.063937 128.063937 0 0 1 0 241.450882"));
   assert.ok(taskTypeBadgeIcon.includes('PYTHON: { icon: Code2, background: TASK_TYPE_ICON_COLORS.blue }'));
   assert.ok(taskTypeBadgeIcon.includes('normalized === "PYTHON"'));
   assert.ok(taskTypeBadgeIcon.includes('viewBox="0 0 1029 1024"'));
