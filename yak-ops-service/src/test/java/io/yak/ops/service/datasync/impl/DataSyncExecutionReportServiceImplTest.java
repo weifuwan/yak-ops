@@ -141,7 +141,7 @@ class DataSyncExecutionReportServiceImplTest {
                 .thenReturn(java.util.Collections.singletonList(DataSyncTableReport.builder()
                         .executionId("execution-1")
                         .tableKey("orders")
-                .latestMetricsJson("{\"sourceTable\":\"db.orders\",\"readRecords\":10}")
+                        .latestMetricsJson("{\"sourceTable\":\"db.orders\",\"readRecords\":10}")
                         .finalMetricsJson(null)
                         .build()));
 
