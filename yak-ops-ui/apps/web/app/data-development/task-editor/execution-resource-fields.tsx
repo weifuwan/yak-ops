@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Button,
   Select,
   SelectContent,
   SelectItem,
@@ -98,7 +99,11 @@ export function isEnvironmentAvailableForWorkerGroup(
   workerGroup: string,
 ): boolean {
   const workerGroups = environment.workerGroups ?? [];
-  return Boolean(workerGroup) && workerGroups.length > 0 && workerGroups.includes(workerGroup);
+  return (
+    Boolean(workerGroup) &&
+    workerGroups.length > 0 &&
+    workerGroups.includes(workerGroup)
+  );
 }
 
 export function ExecutionResourceFields({
@@ -220,13 +225,15 @@ export function ExecutionResourceFields({
             }
           />
           {workerGroupsQuery.isError ? (
-            <button
+            <Button
               type="button"
+              size="sm"
+              variant="ghost"
               onClick={() => void workerGroupsQuery.refetch()}
-              className="text-[11px] text-[var(--yak-components-muted-text)] hover:underline"
+              className="h-auto min-h-0 px-0 py-0 text-[11px] font-normal"
             >
               Worker 分组加载失败，点击重试
-            </button>
+            </Button>
           ) : null}
         </div>
       </SettingField>
@@ -250,14 +257,23 @@ export function ExecutionResourceFields({
                 : "请选择执行环境"
             }
           />
+          {!environmentsQuery.isPending &&
+          !environmentsQuery.isError &&
+          availableEnvironments.length === 0 ? (
+            <span className="text-[11px] text-[var(--yak-components-muted-text)]">
+              当前 Worker 分组暂无可用执行环境
+            </span>
+          ) : null}
           {environmentsQuery.isError ? (
-            <button
+            <Button
               type="button"
+              size="sm"
+              variant="ghost"
               onClick={() => void environmentsQuery.refetch()}
-              className="text-[11px] text-[var(--yak-components-muted-text)] hover:underline"
+              className="h-auto min-h-0 px-0 py-0 text-[11px] font-normal"
             >
               执行环境加载失败，点击重试
-            </button>
+            </Button>
           ) : null}
         </div>
       </SettingField>
