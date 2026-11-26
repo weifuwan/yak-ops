@@ -13,7 +13,6 @@ import io.yak.ops.modeling.ddl.model.DdlPlan;
 import io.yak.ops.modeling.ddl.model.DdlPublishMode;
 import io.yak.ops.modeling.ddl.model.DdlRequest;
 import io.yak.ops.modeling.ddl.session.DdlSession;
-import io.yak.ops.spi.enums.DbType;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -46,7 +45,7 @@ public class DorisDialect extends AbstractDdlDialect {
 
     @Override
     public String getDatabaseType() {
-        return DbType.DORIS.name();
+        return "DORIS";
     }
 
     @Override
