@@ -887,7 +887,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .collect(Collectors.toList());
         Map<Integer, DataSyncRecoveryPoint> recoveryPoints = new java.util.HashMap<>();
         if (!instanceIds.isEmpty()) {
-            dataSyncRecoveryPointDao.queryAvailableByTaskInstanceIds(instanceIds)
+            dataSyncRecoveryPointDao.queryByTaskInstanceIds(instanceIds)
                     .forEach(point -> recoveryPoints.putIfAbsent(point.getTaskInstanceId(), point));
         }
 
@@ -921,10 +921,17 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .status(instance.getState())
                 .workflowStatus(workflow == null ? null : workflow.getState())
                 .availableActions(availableActions)
-                .recoveryPointAvailable(recoveryPoint != null)
+                .recoveryPointAvailable(recoveryPoint != null
+                        && "AVAILABLE".equals(recoveryPoint.getState()))
                 .recoveryPointTime(recoveryPoint == null ? null : recoveryPoint.getCreatedAt())
-                .recoveryUnavailableReason(recoveryRequired && recoveryPoint == null
-                        ? "该实例没有可用的恢复点"
+                .recoveryPointUsedByWorkflowInstanceId(recoveryPoint == null
+                        ? null : recoveryPoint.getUsedByWorkflowInstanceId())
+                                .recoveryUnavailableReason(recoveryRequired && (recoveryPoint == null
+                        || !"AVAILABLE".equals(recoveryPoint.getState()))
+                        ? recoveryPoint == null ? "该实例没有可用的恢复点"
+                                : "CREATING".equals(recoveryPoint.getState()) ? "恢复点生成中"
+                                        : "USED".equals(recoveryPoint.getState()) ? "恢复点已用于新实例"
+                                                : "恢复点已被重新运行替代"
                         : null)
                 .createTime(instance.getFirstSubmitTime())
                 .startTime(instance.getStartTime())
