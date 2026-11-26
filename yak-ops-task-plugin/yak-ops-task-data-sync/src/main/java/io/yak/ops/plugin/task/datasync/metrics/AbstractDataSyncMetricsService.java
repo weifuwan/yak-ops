@@ -69,7 +69,7 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
             Long tableCommitted = counters.value(COMMITTED);
             boolean sourceMetric = tableRead != null || counters.value(DDL) != null;
             boolean sinkMetric = tableCommitted != null;
-            String tableMetricsState = sourceMetric && sinkMetric ? "AVAILABLE" : "PARTIAL";
+            String tableMetricsState = tableRead != null && tableCommitted != null ? "AVAILABLE" : "PARTIAL";
             tables.add(DataSyncTableMetrics.builder()
                     .sourceTable(sourceMetric ? entry.getKey() : null)
                     .sinkTable(sinkMetric ? entry.getKey() : null)
