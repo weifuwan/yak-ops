@@ -16,6 +16,9 @@ public interface DataSyncExecutionService {
 
     DataSyncExecutionState queryState(DataSyncExecutionHandle handle) throws Exception;
 
+    /** Returns the latest completed, externally-restorable Flink checkpoint, if one exists. */
+    DataSyncRecoveryPointSnapshot getLatestCompletedCheckpoint(DataSyncExecutionHandle handle) throws Exception;
+
     void cancel(DataSyncExecutionHandle handle) throws Exception;
 
     String triggerSavepoint(DataSyncExecutionHandle handle) throws Exception;

@@ -28,6 +28,16 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
 
     private final Map<String, RuntimeExecution> executions = new ConcurrentHashMap<>();
 
+    private final FlinkRestDataSyncRecoveryPointService recoveryPointService;
+
+    public MiniClusterDataSyncExecutionService() {
+        this(new FlinkRestDataSyncRecoveryPointService());
+    }
+
+    MiniClusterDataSyncExecutionService(FlinkRestDataSyncRecoveryPointService recoveryPointService) {
+        this.recoveryPointService = recoveryPointService;
+    }
+
     @Override
     protected DataSyncExecutionHandle doSubmit(
             FlinkPipelineExecution execution, String executionId,
@@ -117,6 +127,12 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
         }
         return new File(new File(System.getProperty("user.dir"), "data"),
                 "yak-ops/data-sync/savepoints").toURI().toString();
+    }
+
+    @Override
+    protected DataSyncRecoveryPointSnapshot doGetLatestCompletedCheckpoint(DataSyncExecutionHandle handle)
+            throws Exception {
+        return recoveryPointService.latestCompletedCheckpoint(handle);
     }
 
     @Override

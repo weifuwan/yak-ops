@@ -36,6 +36,13 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
     }
 
     @Override
+    public final DataSyncRecoveryPointSnapshot getLatestCompletedCheckpoint(DataSyncExecutionHandle handle)
+            throws Exception {
+        requireActive(handle);
+        return doGetLatestCompletedCheckpoint(handle);
+    }
+
+    @Override
     public final void cancel(DataSyncExecutionHandle handle) throws Exception {
         if (handle == null || releasedExecutions.contains(handle.getExecutionId())) {
             return;
@@ -77,6 +84,9 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
     protected abstract String doStopWithSavepoint(DataSyncExecutionHandle handle) throws Exception;
 
     protected abstract DataSyncExecutionState doQueryState(DataSyncExecutionHandle handle) throws Exception;
+
+    protected abstract DataSyncRecoveryPointSnapshot doGetLatestCompletedCheckpoint(
+            DataSyncExecutionHandle handle) throws Exception;
 
     protected abstract void doCancel(DataSyncExecutionHandle handle) throws Exception;
 

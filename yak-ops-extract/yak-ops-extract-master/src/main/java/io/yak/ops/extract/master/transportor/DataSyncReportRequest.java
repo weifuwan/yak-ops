@@ -44,4 +44,10 @@ public class DataSyncReportRequest {
     private DataSyncExecutionMetrics summary;
 
     private List<DataSyncTableMetrics> tables;
+
+    /** Latest completed checkpoint observed by the Worker. */
+    private DataSyncRecoveryPointReport recoveryPoint;
+
+    /** Recovery point used to start this execution; used to link old and new task instances. */
+    private String recoveredFromRecoveryPointId;
 }
