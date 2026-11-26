@@ -22,6 +22,7 @@ import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
+import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.common.enums.CommandType;
@@ -46,6 +47,9 @@ import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowInstanceDao;
 import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
+import io.yak.ops.service.datasync.DataSyncExecutionReportService;
+import io.yak.ops.service.datasync.model.DataSyncExecutionReportDetail;
+import io.yak.ops.extract.master.transportor.DataSyncExecutionMetrics;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.spi.enums.DbType;
 
@@ -83,6 +87,8 @@ class DataSyncServiceImplTest {
     private WorkflowTaskRelationDao workflowTaskRelationDao;
     @Mock
     private WorkflowDefinitionService workflowDefinitionService;
+    @Mock
+    private DataSyncExecutionReportService dataSyncExecutionReportService;
 
     @InjectMocks
     private DataSyncServiceImpl service;
@@ -119,6 +125,38 @@ class DataSyncServiceImplTest {
         assertThrows(ServiceException.class,
                 () -> service.getExecutionStats(user, PROJECT_CODE, end.minusDays(90), end));
         verifyNoInteractions(taskInstanceDao);
+    }
+
+
+    @Test
+    void instanceReportUsesProjectScopedTaskInstanceAndReturnsLatestSnapshot() {
+        TaskInstance instance = TaskInstance.builder()
+                .id(42)
+                .taskType("DATA_SYNC")
+                .projectCode(PROJECT_CODE)
+                .taskCode(99L)
+                .workflowInstanceId(7)
+                .build();
+        DataSyncExecutionReportDetail detail = DataSyncExecutionReportDetail.builder()
+                .executionId("execution-1")
+                .jobId("job-1")
+                .executionState("RUNNING")
+                .metricsState("AVAILABLE")
+                .latestSnapshot(DataSyncExecutionMetrics.builder()
+                        .readRecords(100L)
+                        .committedRecords(80L)
+                        .build())
+                .build();
+        when(taskInstanceDao.queryById(42)).thenReturn(instance);
+        when(dataSyncExecutionReportService.getLatestReport(42)).thenReturn(detail);
+
+        DataSyncExecutionReportVO result =
+                service.getInstanceReport(new User(), PROJECT_CODE, 42);
+
+        assertEquals("execution-1", result.getExecutionId());
+        assertEquals(100L, result.getLatestSnapshot().getReadRecords());
+        assertEquals(80L, result.getLatestSnapshot().getCommittedRecords());
+        verify(projectService).checkProjectAndAuthThrowException(any(), eq(PROJECT_CODE), isNull());
     }
 
     private static DataSyncExecutionDailyRow dailyRow(String day, int executeType, int state, long count) {
