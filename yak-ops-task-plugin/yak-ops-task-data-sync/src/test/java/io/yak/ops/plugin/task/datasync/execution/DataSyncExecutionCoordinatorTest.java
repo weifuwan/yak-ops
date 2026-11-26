@@ -137,5 +137,4 @@ class DataSyncExecutionCoordinatorTest {
         assertEquals("STALE", finalReport.getTables().get(0).getMetricsState());
         verify(executionService).release(handle);
     }
-
 }
