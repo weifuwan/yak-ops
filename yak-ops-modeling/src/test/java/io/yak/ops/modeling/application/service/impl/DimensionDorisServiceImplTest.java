@@ -2,6 +2,7 @@ package io.yak.ops.modeling.application.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -226,9 +227,9 @@ class DimensionDorisServiceImplTest {
                 .thenAnswer(invocation -> {
                     io.yak.ops.modeling.ddl.model.DorisDdlRequest ddlRequest =
                             (io.yak.ops.modeling.ddl.model.DorisDdlRequest) invocation.getArguments()[2];
-                    assertEquals(null, ddlRequest.getPreviousTableModel());
+                    assertNull(ddlRequest.getPreviousTableModel());
                     assertTrue(ddlRequest.getPreviousKeyFields().isEmpty());
-                    assertEquals(null, ddlRequest.getPreviousPhysicalSchema());
+                    assertNull(ddlRequest.getPreviousPhysicalSchema());
                     return new DdlPlan(
                             "DROP TABLE IF EXISTS ...; CREATE TABLE ...",
                             Arrays.asList("DROP TABLE IF EXISTS ...", "CREATE TABLE ..."),
