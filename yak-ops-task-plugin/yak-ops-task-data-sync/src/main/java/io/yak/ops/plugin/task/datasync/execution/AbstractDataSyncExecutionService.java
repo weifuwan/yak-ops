@@ -1,9 +1,9 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
+import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 
 /**
  * Shared execution lifecycle rules.
