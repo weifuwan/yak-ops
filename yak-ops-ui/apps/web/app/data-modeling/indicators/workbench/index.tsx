@@ -31,8 +31,25 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
   const [contextMenuPortalRoot, setContextMenuPortalRoot] = useState<HTMLElement | null>(null);
   const [pendingDelete, setPendingDelete] = useState<IndicatorDeleteTarget | null>(null);
 
-  const contextTab = tabs.tabs.find((tab) => tab.key === tabContextMenu?.tabKey) || null;
-  const contextTabIndex = contextTab ? tabs.tabs.findIndex((tab) => tab.key === contextTab.key) : -1;
+  const visibleTabs = tabs.tabs.filter((tab) => tab.kind === activeKind);
+  const visibleActiveTabKey = visibleTabs.some((tab) => tab.key === tabs.activeTabKey)
+    ? tabs.activeTabKey
+    : visibleTabs[visibleTabs.length - 1]?.key || "";
+  const visibleActiveTab = visibleTabs.find((tab) => tab.key === visibleActiveTabKey) || null;
+  const getVisibleTabKeysToClose = (
+    anchorKey: string,
+    action: "current" | "other" | "left" | "right" | "all",
+  ) => {
+    const index = visibleTabs.findIndex((tab) => tab.key === anchorKey);
+    if (action === "all") return visibleTabs.map((tab) => tab.key);
+    if (index < 0) return [];
+    if (action === "current") return [anchorKey];
+    if (action === "other") return visibleTabs.filter((tab) => tab.key !== anchorKey).map((tab) => tab.key);
+    if (action === "left") return visibleTabs.slice(0, index).map((tab) => tab.key);
+    return visibleTabs.slice(index + 1).map((tab) => tab.key);
+  };
+  const contextTab = visibleTabs.find((tab) => tab.key === tabContextMenu?.tabKey) || null;
+  const contextTabIndex = contextTab ? visibleTabs.findIndex((tab) => tab.key === contextTab.key) : -1;
 
   useEffect(() => {
     setContextMenuPortalRoot(document.body);
@@ -40,6 +57,7 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
 
   useEffect(() => {
     setContextMenu(null);
+    setTabContextMenu(null);
   }, [activeKind, dwType]);
 
   const onTreeContextMenu = (event: ReactMouseEvent<HTMLButtonElement>, node: IndicatorTreeNode) => {
@@ -95,19 +113,19 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
 
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--yak-color-hover)]">
           <IndicatorTabBar
-            tabs={tabs.tabs}
-            activeTabKey={tabs.activeTabKey}
-            activeTab={tabs.activeTab}
+            tabs={visibleTabs}
+            activeTabKey={visibleActiveTabKey}
+            activeTab={visibleActiveTab}
             onSelect={tabs.setActiveTabKey}
             onClose={tabs.requestCloseTabs}
             onContextMenu={(tabKey, x, y) => setTabContextMenu({ tabKey, x, y })}
-            getTabKeysToClose={tabs.getTabKeysToClose}
+            getTabKeysToClose={getVisibleTabKeysToClose}
           />
           <IndicatorWorkspace
             projectCode={projectCode}
             dwType={dwType}
-            tabs={tabs.tabs}
-            activeTabKey={tabs.activeTabKey}
+            tabs={visibleTabs}
+            activeTabKey={visibleActiveTabKey}
             onEdit={tabs.openEdit}
             onDelete={(kind, record) => setPendingDelete({ kind, record })}
             onSaved={tabs.onSaved}
@@ -129,10 +147,10 @@ export function DataIndicatorsWorkbench({ projectCode, activeKind }: DataIndicat
         portalRoot={contextMenuPortalRoot}
         contextTab={contextTab}
         contextTabIndex={contextTabIndex}
-        tabs={tabs.tabs}
+        tabs={visibleTabs}
         onCloseMenu={() => setTabContextMenu(null)}
         onCloseTabs={tabs.requestCloseTabs}
-        getTabKeysToClose={tabs.getTabKeysToClose}
+        getTabKeysToClose={getVisibleTabKeysToClose}
       />
       <IndicatorTabCloseDialog
         pendingClose={tabs.pendingClose}

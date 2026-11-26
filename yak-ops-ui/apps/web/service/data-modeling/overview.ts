@@ -16,7 +16,7 @@ export type ModelingIndicatorStatistics = {
   total: number;
 };
 
-export type ModelingLatestPublish = {
+export type ModelingLatestSubmission = {
   id: string;
   name: string;
   assetType: string;
@@ -29,7 +29,7 @@ export type ModelingOverview = {
   modelStatistics: ModelingOverviewStatistics;
   indicatorStatistics: ModelingIndicatorStatistics;
   totalAssets: number;
-  latestPublished: ModelingLatestPublish[];
+  latestSubmitted: ModelingLatestSubmission[];
 };
 
 export const modelingOverviewApi = {

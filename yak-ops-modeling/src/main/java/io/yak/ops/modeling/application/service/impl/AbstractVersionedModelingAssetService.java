@@ -27,6 +27,20 @@ public abstract class AbstractVersionedModelingAssetService<
 
     protected abstract String versionType();
 
+    @Override
+    public V getById(String id) {
+        V view = super.getById(id);
+        VersionManagementPO latest = modelingAssetDao.queryOne(
+                "version-management",
+                new QueryWrapper<VersionManagementPO>()
+                        .eq("source_table_id", id)
+                        .eq("version_type", versionType())
+                        .orderByDesc("version_number")
+                        .last("limit 1"));
+        view.setCurrentVersion(latest == null ? null : latest.getVersionNumber());
+        return view;
+    }
+
     protected void beforeSubmit(D dto, PO current) {
     }
 

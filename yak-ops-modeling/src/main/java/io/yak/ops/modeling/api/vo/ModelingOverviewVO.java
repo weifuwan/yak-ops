@@ -18,7 +18,7 @@ public class ModelingOverviewVO {
     private ModelStatistics modelStatistics;
     private IndicatorStatistics indicatorStatistics;
     private long totalAssets;
-    private List<LatestPublishItem> latestPublished;
+    private List<LatestSubmittedItem> latestSubmitted;
 
     @Data
     @Builder
@@ -47,7 +47,7 @@ public class ModelingOverviewVO {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class LatestPublishItem {
+    public static class LatestSubmittedItem {
         private String id;
         private String name;
         private String assetType;

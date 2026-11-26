@@ -96,6 +96,7 @@ export type IndicatorEditorFieldsProps = {
   values: Record<string, string>;
   recordId: string;
   optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
+  optionsFailedResources?: IndicatorOptionResource[];
   optionsLoading: boolean;
   onChange: (key: string, value: string) => void;
   onChangeMany: (values: Record<string, string>) => void;

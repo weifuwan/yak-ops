@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseServiceImpl implements ModelingModuleService {
 
-    private static final int LATEST_PUBLISH_LIMIT = 5;
+    private static final int LATEST_SUBMITTED_LIMIT = 5;
 
     @Resource
     private DimensionTableDao dimensionTableDao;
@@ -66,17 +66,17 @@ public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseSer
         long composite = modelingAssetDao.queryCount("compose-indicator", new QueryWrapper<ComposeIndicatorPO>());
         long indicatorTotal = atom + derived + composite;
 
-        List<ModelingOverviewVO.LatestPublishItem> latestPublished = new ArrayList<>();
-        latestPublished.addAll(latestDimensions());
-        latestPublished.addAll(latestAtomIndicators());
-        latestPublished.addAll(latestDerivedIndicators());
-        latestPublished.addAll(latestCompositeIndicators());
-        latestPublished.sort(Comparator.comparingLong(
-                (ModelingOverviewVO.LatestPublishItem item) ->
+        List<ModelingOverviewVO.LatestSubmittedItem> latestSubmitted = new ArrayList<>();
+        latestSubmitted.addAll(latestSubmittedDimensions());
+        latestSubmitted.addAll(latestSubmittedAtomIndicators());
+        latestSubmitted.addAll(latestSubmittedDerivedIndicators());
+        latestSubmitted.addAll(latestSubmittedCompositeIndicators());
+        latestSubmitted.sort(Comparator.comparingLong(
+                (ModelingOverviewVO.LatestSubmittedItem item) ->
                         item.getUpdateTime() == null ? 0L : item.getUpdateTime().getTime())
                 .reversed());
-        if (latestPublished.size() > LATEST_PUBLISH_LIMIT) {
-            latestPublished = new ArrayList<>(latestPublished.subList(0, LATEST_PUBLISH_LIMIT));
+        if (latestSubmitted.size() > LATEST_SUBMITTED_LIMIT) {
+            latestSubmitted = new ArrayList<>(latestSubmitted.subList(0, LATEST_SUBMITTED_LIMIT));
         }
 
         return ModelingOverviewVO.builder()
@@ -94,7 +94,7 @@ public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseSer
                         .total(indicatorTotal)
                         .build())
                 .totalAssets(modelTotal + indicatorTotal)
-                .latestPublished(latestPublished)
+                .latestSubmitted(latestSubmitted)
                 .build();
     }
 
@@ -103,22 +103,22 @@ public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseSer
                 new QueryWrapper<DimensionTablePO>().eq("table_type", type.getCode()));
     }
 
-    private List<ModelingOverviewVO.LatestPublishItem> latestDimensions() {
+    private List<ModelingOverviewVO.LatestSubmittedItem> latestSubmittedDimensions() {
         List<String> types = Arrays.asList(
                 DimensionTableTypeEnum.DIMENSION.getCode(),
                 DimensionTableTypeEnum.DETAIL.getCode(),
                 DimensionTableTypeEnum.SUMMARY.getCode(),
                 DimensionTableTypeEnum.APPLICATION.getCode());
         IPage<DimensionTablePO> page = dimensionTableDao.queryPage(
-                new Page<DimensionTablePO>(1, LATEST_PUBLISH_LIMIT),
+                new Page<DimensionTablePO>(1, LATEST_SUBMITTED_LIMIT),
                 new QueryWrapper<DimensionTablePO>()
                         .eq("submit", Boolean.TRUE)
                         .in("table_type", types)
                         .orderByDesc("update_time"));
-        List<ModelingOverviewVO.LatestPublishItem> result = new ArrayList<>();
+        List<ModelingOverviewVO.LatestSubmittedItem> result = new ArrayList<>();
         for (DimensionTablePO item : page.getRecords()) {
             DimensionTableTypeEnum type = item.getTableType();
-            result.add(ModelingOverviewVO.LatestPublishItem.builder()
+            result.add(ModelingOverviewVO.LatestSubmittedItem.builder()
                     .id(item.getId())
                     .name(firstNonBlank(item.getCnName(), item.getTableName(), item.getEnShortName()))
                     .assetType(type == null ? "MODEL" : type.getCode())
@@ -130,14 +130,14 @@ public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseSer
         return result;
     }
 
-    private List<ModelingOverviewVO.LatestPublishItem> latestAtomIndicators() {
+    private List<ModelingOverviewVO.LatestSubmittedItem> latestSubmittedAtomIndicators() {
         IPage<AtomIndicatorPO> page = modelingAssetDao.queryPage(
                 "atom-indicator",
-                new Page<AtomIndicatorPO>(1, LATEST_PUBLISH_LIMIT),
+                new Page<AtomIndicatorPO>(1, LATEST_SUBMITTED_LIMIT),
                 new QueryWrapper<AtomIndicatorPO>()
                         .eq("submit", Boolean.TRUE)
                         .orderByDesc("update_time"));
-        List<ModelingOverviewVO.LatestPublishItem> result = new ArrayList<>();
+        List<ModelingOverviewVO.LatestSubmittedItem> result = new ArrayList<>();
         for (AtomIndicatorPO item : page.getRecords()) {
             result.add(latestIndicator(
                     item.getId(),
@@ -150,14 +150,14 @@ public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseSer
         return result;
     }
 
-    private List<ModelingOverviewVO.LatestPublishItem> latestDerivedIndicators() {
+    private List<ModelingOverviewVO.LatestSubmittedItem> latestSubmittedDerivedIndicators() {
         IPage<DerivativeIndicatorPO> page = modelingAssetDao.queryPage(
                 "derivative-indicator",
-                new Page<DerivativeIndicatorPO>(1, LATEST_PUBLISH_LIMIT),
+                new Page<DerivativeIndicatorPO>(1, LATEST_SUBMITTED_LIMIT),
                 new QueryWrapper<DerivativeIndicatorPO>()
                         .eq("submit", Boolean.TRUE)
                         .orderByDesc("update_time"));
-        List<ModelingOverviewVO.LatestPublishItem> result = new ArrayList<>();
+        List<ModelingOverviewVO.LatestSubmittedItem> result = new ArrayList<>();
         for (DerivativeIndicatorPO item : page.getRecords()) {
             result.add(latestIndicator(
                     item.getId(),
@@ -170,14 +170,14 @@ public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseSer
         return result;
     }
 
-    private List<ModelingOverviewVO.LatestPublishItem> latestCompositeIndicators() {
+    private List<ModelingOverviewVO.LatestSubmittedItem> latestSubmittedCompositeIndicators() {
         IPage<ComposeIndicatorPO> page = modelingAssetDao.queryPage(
                 "compose-indicator",
-                new Page<ComposeIndicatorPO>(1, LATEST_PUBLISH_LIMIT),
+                new Page<ComposeIndicatorPO>(1, LATEST_SUBMITTED_LIMIT),
                 new QueryWrapper<ComposeIndicatorPO>()
                         .eq("submit", Boolean.TRUE)
                         .orderByDesc("update_time"));
-        List<ModelingOverviewVO.LatestPublishItem> result = new ArrayList<>();
+        List<ModelingOverviewVO.LatestSubmittedItem> result = new ArrayList<>();
         for (ComposeIndicatorPO item : page.getRecords()) {
             result.add(latestIndicator(
                     item.getId(),
@@ -190,14 +190,14 @@ public class ModelingModuleServiceImpl extends io.yak.ops.common.service.BaseSer
         return result;
     }
 
-    private ModelingOverviewVO.LatestPublishItem latestIndicator(
+    private ModelingOverviewVO.LatestSubmittedItem latestIndicator(
             String id,
             String name,
             String assetType,
             String assetTypeLabel,
             String updateBy,
             java.util.Date updateTime) {
-        return ModelingOverviewVO.LatestPublishItem.builder()
+        return ModelingOverviewVO.LatestSubmittedItem.builder()
                 .id(id)
                 .name(name)
                 .assetType(assetType)

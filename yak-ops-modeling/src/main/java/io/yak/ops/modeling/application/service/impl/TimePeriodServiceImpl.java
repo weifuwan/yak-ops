@@ -13,8 +13,11 @@ import io.yak.ops.modeling.api.vo.timeperiod.TimePeriodVO;
 import io.yak.ops.modeling.application.service.TimePeriodService;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -132,7 +135,7 @@ public class TimePeriodServiceImpl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String createCategory(TimePeriodCategoryDTO dto, String operator) {
-        validateCategory(dto);
+        validateCategory(dto, null);
         if (notBlank(dto.getParentId())) {
             requireCategory(dto.getParentId());
         }
@@ -150,8 +153,8 @@ public class TimePeriodServiceImpl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TimePeriodCategoryVO updateCategory(String id, TimePeriodCategoryDTO dto, String operator) {
-        validateCategory(dto);
         TimePeriodCategoryPO existing = requireCategory(id);
+        validateCategory(dto, existing.getId());
         if (id.equals(dto.getParentId())) {
             throw new IllegalArgumentException("时间周期目录不能将自身设为父目录");
         }
@@ -204,11 +207,22 @@ public class TimePeriodServiceImpl
         }
     }
 
-    private void validateCategory(TimePeriodCategoryDTO dto) {
+    private void validateCategory(TimePeriodCategoryDTO dto, String excludeId) {
         if (dto == null) {
             throw new IllegalArgumentException("请求参数不能为空");
         }
         requireFields(dto, "cnName");
+        String enName = text(dto.getEnName());
+        if (notBlank(enName)) {
+            QueryWrapper<TimePeriodCategoryPO> wrapper = new QueryWrapper<TimePeriodCategoryPO>()
+                    .apply("LOWER(en_name) = {0}", enName.toLowerCase(Locale.ROOT));
+            if (notBlank(excludeId)) {
+                wrapper.ne("id", excludeId);
+            }
+            if (modelingAssetDao.queryCount("time-period-category", wrapper) > 0) {
+                throw new IllegalArgumentException("时间周期粒度英文名称已存在：" + enName);
+            }
+        }
     }
 
     private TimePeriodCategoryPO requireCategory(String id) {
@@ -230,8 +244,16 @@ public class TimePeriodServiceImpl
 
     private List<TimePeriodCategoryVO> toCategoryViews(List<TimePeriodCategoryPO> entities) {
         List<TimePeriodCategoryVO> result = new ArrayList<TimePeriodCategoryVO>(entities.size());
+        Set<String> seen = new HashSet<String>();
         for (TimePeriodCategoryPO entity : entities) {
-            result.add(toCategoryView(entity));
+            String code = text(entity.getEnName()).toLowerCase(Locale.ROOT);
+            if (!notBlank(code)) {
+                code = text(entity.getCnName()).toLowerCase(Locale.ROOT);
+            }
+            String key = code;
+            if (seen.add(key)) {
+                result.add(toCategoryView(entity));
+            }
         }
         return result;
     }

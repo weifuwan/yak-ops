@@ -12,7 +12,7 @@ const modelingController = read("../../yak-ops-api/src/main/java/io/yak/ops/api/
 const modelingService = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/application/ModelingModuleServiceImpl.java");
 
 test("data modeling overview keeps the current landing-page structure", () => {
-  for (const label of ["数据概览", "最新发布", "工作空间：", "全部"]) {
+  for (const label of ["数据概览", "最新提交", "工作空间：", "全部"]) {
     assert.ok(overview.includes(label), "overview should render " + label);
   }
 
@@ -94,7 +94,7 @@ test("overview reads project-scoped real statistics instead of fabricated counts
   assert.ok(overview.includes("indicators?.composite"));
   assert.ok(overview.includes("overview?.totalAssets"));
   assert.equal(overview.includes("统计接口待接入"), false);
-  assert.ok(overview.includes("latestPublished"));
+  assert.ok(overview.includes("latestSubmitted"));
   assert.ok(overview.includes("暂无数据"));
 });
 
@@ -110,7 +110,7 @@ test("overview API is backed by one project-scoped aggregation endpoint", () => 
     assert.ok(modelingService.includes('"' + resource + '"'));
   }
   assert.ok(modelingService.includes('.eq("submit", Boolean.TRUE)'));
-  assert.ok(modelingService.includes("LATEST_PUBLISH_LIMIT = 5"));
+  assert.ok(modelingService.includes("LATEST_SUBMITTED_LIMIT = 5"));
 });
 
 test("workspace filter remains a controlled Yak UI Select", () => {

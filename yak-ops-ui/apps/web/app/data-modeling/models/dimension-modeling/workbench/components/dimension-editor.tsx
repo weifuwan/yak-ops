@@ -68,6 +68,7 @@ import {
   fieldsForSave,
   validateDimensionFields,
 } from "./field-spreadsheet/field-grid-utils";
+import { DATA_TYPE_OPTIONS } from "./field-spreadsheet/field-grid-types";
 
 type Option = { value: string; label: string };
 
@@ -312,12 +313,13 @@ export function DimensionEditor({
   const dorisFieldTypesQuery = useQuery<DorisFieldTypeOption[]>({
     queryKey: ["modeling", "doris-field-types", projectCode],
     queryFn: () => dimensionModelingApi.dorisFieldTypes(projectCode),
-    enabled: Boolean(projectCode && recordId && values.tableType !== "DIM"),
+    enabled: Boolean(projectCode && values.tableType !== "DIM"),
   });
   const dorisFieldTypeOptions = (dorisFieldTypesQuery.data || []).map((option) => ({
     value: option.code,
     label: option.label || option.code,
   }));
+  const fieldTypeOptions = dorisFieldTypeOptions.length ? dorisFieldTypeOptions : DATA_TYPE_OPTIONS;
 
   const versionQuery = useQuery<DimensionVersionRecord[]>({
     queryKey: ["modeling", "dimension-versions", projectCode, recordId],
@@ -812,10 +814,10 @@ export function DimensionEditor({
             </Button>
             <span className="mx-1 h-4 w-px bg-[var(--yak-components-control-border)]" />
             <Button size="sm" variant="ghost" isDisabled={!canOpenPublish} onClick={() => setPublishOpen(true)}><Send size={13} />发布</Button>
-            <Button size="sm" variant="ghost" isDisabled title="日志能力将在后续阶段接入">日志</Button>
-            <Button size="sm" variant="ghost" isDisabled title="质量规则将在后续阶段接入">质量规则</Button>
-            <Button size="sm" variant="ghost" isDisabled title="模型开发将在后续阶段接入">模型开发</Button>
-            <Button size="sm" variant="ghost" isDisabled title="导出将在后续阶段接入"><Download size={13} />导出</Button>
+            <Button size="sm" variant="ghost" isDisabled title="日志能力规划中，暂未开放">日志</Button>
+            <Button size="sm" variant="ghost" isDisabled title="质量规则规划中，暂未开放">质量规则</Button>
+            <Button size="sm" variant="ghost" isDisabled title="模型开发规划中，暂未开放">模型开发</Button>
+            <Button size="sm" variant="ghost" isDisabled title="导出能力规划中，暂未开放"><Download size={13} />导出</Button>
           </div>
           <div className="flex items-center gap-2 whitespace-nowrap text-xs text-[var(--yak-components-muted-text)]">
             <span className={isSubmitted ? "size-1.5 rounded-full bg-[var(--yak-color-success)]" : "size-1.5 rounded-full bg-[var(--yak-components-muted-text)]"} />
@@ -1163,7 +1165,7 @@ export function DimensionEditor({
                     fieldStandardOptions={fieldStandardOptions}
                     codeStandardOptions={codeStandardOptions}
                     unitOptions={unitOptions}
-                    fieldTypeOptions={dorisFieldTypeOptions}
+                    fieldTypeOptions={fieldTypeOptions}
                     loading={Boolean(recordId && fieldsQuery.isFetching)}
                     error={Boolean(recordId && fieldsQuery.isError)}
                     onChange={(nextFields) => updateFieldGroup("PROPERTY", nextFields)}
@@ -1179,7 +1181,7 @@ export function DimensionEditor({
                     fieldStandardOptions={fieldStandardOptions}
                     codeStandardOptions={codeStandardOptions}
                     unitOptions={unitOptions}
-                    fieldTypeOptions={dorisFieldTypeOptions}
+                    fieldTypeOptions={fieldTypeOptions}
                     loading={Boolean(recordId && fieldsQuery.isFetching)}
                     error={Boolean(recordId && fieldsQuery.isError)}
                     onChange={(nextFields) => updateFieldGroup("PARTITION", nextFields)}

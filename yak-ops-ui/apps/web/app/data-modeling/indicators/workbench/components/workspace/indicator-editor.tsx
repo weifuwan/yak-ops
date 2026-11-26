@@ -17,6 +17,7 @@ type IndicatorEditorProps = {
   definition: IndicatorDefinition;
   tab: IndicatorTab;
   optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
+  optionsFailedResources?: IndicatorOptionResource[];
   optionsLoading: boolean;
   renderFields?: (props: IndicatorEditorFieldsProps) => ReactNode;
   validateBeforeSave?: IndicatorValidation;
@@ -30,6 +31,7 @@ export function IndicatorEditor({
   definition,
   tab,
   optionsByResource,
+  optionsFailedResources = [],
   optionsLoading,
   renderFields,
   validateBeforeSave,
@@ -206,6 +208,7 @@ export function IndicatorEditor({
               values={values}
               recordId={recordId}
               optionsByResource={optionsByResource}
+              optionsFailedResources={optionsFailedResources}
               optionsLoading={optionsLoading}
               renderFields={renderFields}
               onChange={changeValue}

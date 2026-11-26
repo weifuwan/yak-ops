@@ -42,7 +42,11 @@ export function IndicatorTabContent({
   onSaved,
   onDraftChange,
 }: Props) {
-  const { optionsByResource, isFetching: optionsLoading } = useIndicatorResources(projectCode, definition);
+  const {
+    optionsByResource,
+    optionsFailedResources,
+    isFetching: optionsLoading,
+  } = useIndicatorResources(projectCode, definition);
 
   if (tab.mode === "list") {
     return (
@@ -63,6 +67,7 @@ export function IndicatorTabContent({
       definition={definition}
       tab={tab}
       optionsByResource={optionsByResource}
+      optionsFailedResources={optionsFailedResources}
       optionsLoading={optionsLoading}
       renderFields={renderFields}
       validateBeforeSave={validateBeforeSave}

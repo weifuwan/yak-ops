@@ -4,8 +4,8 @@ export default function ReverseModelingPage() {
   return (
     <ModelingSectionPage
       title="逆向建模"
-      description="预留数据库逆向解析、表结构导入和模型生成入口，后续逐步迁移原有功能。"
-      capabilities={["数据源选择", "表结构读取", "模型反向生成", "模型校验"]}
+      description="逆向建模能力正在规划中。当前可先进入维度建模，通过来源表字段导入完成模型初始化。"
+      capabilities={["规划中：数据源选择", "规划中：表结构读取", "规划中：模型反向生成", "规划中：模型校验"]}
     />
   );
 }

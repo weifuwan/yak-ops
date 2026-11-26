@@ -52,6 +52,14 @@ test("changing warehouse classification clears both ownership branches", () => {
   }
 });
 
+test("changing business category preserves a still-valid business process and clears only an invalid selection", () => {
+  assert.match(form, /onChange\("busTypeId", value\)/);
+  assert.match(form, /processStillAvailable/);
+  assert.match(form, /processQuery\.options\.some/);
+  assert.match(form, /onChangeMany\(\{ domainId: "", busProcessId: "" \}\)/);
+  assert.doesNotMatch(form, /onChangeMany\(\{ busTypeId: value, domainId: "", busProcessId: "" \}\)/);
+});
+
 test("composite ownership validation follows the selected classification without loading layer definitions", () => {
   const validPublic = {
     dwType: "PUBLIC_LAYER",

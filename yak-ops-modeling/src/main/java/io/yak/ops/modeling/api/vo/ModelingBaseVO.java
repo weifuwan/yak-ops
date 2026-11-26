@@ -12,4 +12,5 @@ public class ModelingBaseVO {
     private String createBy;
     private Date updateTime;
     private String updateBy;
+    private Integer currentVersion;
 }

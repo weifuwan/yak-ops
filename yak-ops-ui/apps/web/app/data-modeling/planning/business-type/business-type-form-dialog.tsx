@@ -20,20 +20,24 @@ export function BusinessTypeFormDialog({
     setError("");
   }, [record, open]);
   const update = (key: keyof BusinessTypeFormValues, value: string) => {
-    setValues((current) => ({ ...current, [key]: value }));
+    const nextValue = key === "enShortName" ? value.toLowerCase() : value;
+    setValues((current) => ({ ...current, [key]: nextValue }));
     if (error) setError("");
   };
   const submit = () => {
     if (!values.businessName.trim()) return setError("请输入中文名");
     if (values.businessName.trim().length > 64) return setError("中文名不能超过 64 个字符");
-    if (!values.enShortName.trim()) return setError("请输入英文缩写");
-    if (values.enShortName.trim().length > 64) return setError("英文缩写不能超过 64 个字符");
+    const enShortName = values.enShortName.trim().toLowerCase();
+    if (!enShortName) return setError("请输入英文缩写");
+    if (enShortName.length > 64 || !/^[a-z0-9](?:[a-z0-9_]*[a-z0-9])?$/.test(enShortName)) {
+      return setError("英文缩写请使用小写字母、数字和下划线，且不能以下划线开头或结尾");
+    }
     if (!values.director.trim()) return setError("请输入负责人");
     if (values.director.trim().length > 32) return setError("负责人不能超过 32 个字符");
     if (values.reviewer.length > 32) return setError("模型评审人不能超过 32 个字符");
     if (values.remark.length > 2048) return setError("备注不能超过 2048 个字符");
     onSubmit({
-      businessName: values.businessName.trim(), enShortName: values.enShortName.trim(),
+      businessName: values.businessName.trim(), enShortName,
       reviewer: values.reviewer.trim(), director: values.director.trim(), remark: values.remark.trim(),
     });
   };
@@ -46,8 +50,8 @@ export function BusinessTypeFormDialog({
         <Textarea size="small" variant="outlined" rows={3} value={values[key]}
           onValueChange={(value) => update(key, String(value))} placeholder={label} />
       ) : (
-        <Input size="small" variant="outlined" value={values[key]}
-          onValueChange={(value) => update(key, String(value))} placeholder={label} />
+        <Input size="small" variant="outlined" maxLength={key === "enShortName" ? 64 : undefined} value={values[key]}
+          onValueChange={(value) => update(key, String(value))} placeholder={key === "enShortName" ? "小写字母、数字和下划线，例如 ecom_retail" : label} />
       )}
     </label>
   );
@@ -60,6 +64,7 @@ export function BusinessTypeFormDialog({
       </>}>
       <div className="space-y-4">
         {field("英文缩写", "enShortName", true)}
+        <p className="-mt-3 pl-[124px] text-[11px] text-[var(--yak-components-muted-text)]">统一使用小写字母、数字和下划线，不能以下划线开头或结尾。</p>
         {field("中文名", "businessName", true)}
         {field("模型评审人", "reviewer")}
         {field("负责人", "director", true)}

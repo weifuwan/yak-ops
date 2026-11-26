@@ -1,6 +1,7 @@
 package io.yak.ops.modeling.application.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.common.service.BaseServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -56,6 +57,8 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String create(BusinessTypeDTO businessType) {
+        normalizeAndValidate(businessType);
+        validateUniqueShortName(businessType.getEnShortName(), null);
         BusinessTypePO businessTypePO = ConvertUtil.sourceToTarget(businessType, BusinessTypePO.class);
         businessTypePO.initInsert();
         businessTypeDao.insert(businessTypePO);
@@ -65,6 +68,8 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BusinessTypeVO updateById(BusinessTypeDTO businessType) {
+        normalizeAndValidate(businessType);
+        validateUniqueShortName(businessType.getEnShortName(), businessType.getId());
         BusinessTypePO businessTypePO = ConvertUtil.sourceToTarget(businessType, BusinessTypePO.class);
         businessTypePO.initUpdate();
         businessTypeDao.updateById(businessTypePO);
@@ -303,6 +308,46 @@ public class BusinessTypeServiceImpl extends BaseServiceImpl implements Business
         if (parent != null) {
             includeIds.add(parent.getId());
             addAllParentIds(parent.getParentId() == null ? null : parent.getParentId(), includeIds);
+        }
+    }
+
+    private void normalizeAndValidate(BusinessTypeDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("业务分类参数不能为空");
+        }
+        dto.setEnShortName(StringUtils.lowerCase(StringUtils.trimToEmpty(dto.getEnShortName()), Locale.ROOT));
+        dto.setBusinessName(StringUtils.trim(dto.getBusinessName()));
+        dto.setReviewer(StringUtils.trim(dto.getReviewer()));
+        dto.setDirector(StringUtils.trim(dto.getDirector()));
+        dto.setRemark(StringUtils.trim(dto.getRemark()));
+
+        if (StringUtils.isBlank(dto.getEnShortName())
+                || dto.getEnShortName().length() > 64
+                || !dto.getEnShortName().matches("[a-z0-9](?:[a-z0-9_]*[a-z0-9])?")) {
+            throw new IllegalArgumentException("业务分类英文缩写格式不正确");
+        }
+        if (StringUtils.isBlank(dto.getBusinessName()) || dto.getBusinessName().length() > 64) {
+            throw new IllegalArgumentException("业务分类中文名不能为空且不能超过64个字符");
+        }
+        if (StringUtils.isBlank(dto.getDirector()) || dto.getDirector().length() > 32) {
+            throw new IllegalArgumentException("业务分类负责人不能为空且不能超过32个字符");
+        }
+        if (dto.getReviewer() != null && dto.getReviewer().length() > 32) {
+            throw new IllegalArgumentException("模型评审人不能超过32个字符");
+        }
+        if (dto.getRemark() != null && dto.getRemark().length() > 2048) {
+            throw new IllegalArgumentException("备注不能超过2048个字符");
+        }
+    }
+
+    private void validateUniqueShortName(String shortName, String excludeId) {
+        QueryWrapper<BusinessTypePO> wrapper = new QueryWrapper<>();
+        wrapper.apply("LOWER(en_short_name) = {0}", shortName.toLowerCase(Locale.ROOT));
+        if (StringUtils.isNotBlank(excludeId)) {
+            wrapper.ne("id", excludeId);
+        }
+        if (businessTypeDao.queryCount(wrapper) > 0) {
+            throw new IllegalArgumentException("业务分类英文缩写已存在：" + shortName);
         }
     }
 

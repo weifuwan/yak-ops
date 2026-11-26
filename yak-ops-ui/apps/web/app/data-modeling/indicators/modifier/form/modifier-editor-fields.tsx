@@ -21,6 +21,7 @@ type Props = {
   values: Record<string, string>;
   recordId: string;
   optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
+  optionsFailedResources?: IndicatorOptionResource[];
   optionsLoading: boolean;
   onChange: (key: string, value: string) => void;
   onChangeMany: (values: Record<string, string>) => void;
@@ -89,6 +90,7 @@ export function ModifierEditorFields({
   values,
   recordId,
   optionsByResource,
+  optionsFailedResources = [],
   optionsLoading,
   onChange,
   onChangeMany,
@@ -111,21 +113,26 @@ export function ModifierEditorFields({
     queryFn: () => businessTypeApi.allRelatedDomainIds(projectCode),
     enabled: Boolean(projectCode),
   });
-  const ownerOptionsQuery = useQuery<UserRecord[]>({
+  const ownerOptionsQuery = useQuery<{ records: UserRecord[]; unavailable: boolean }>({
     queryKey: ["modeling", "modifier-owner-options", projectCode],
     queryFn: async () => {
       try {
         const firstPage = await listUsers({ pageNo: 1, pageSize: 100 });
-        if (firstPage.totalPage <= 1) return firstPage.records;
+        if (firstPage.totalPage <= 1) {
+          return { records: firstPage.records, unavailable: false };
+        }
         const remainingPages = await Promise.all(
           Array.from({ length: firstPage.totalPage - 1 }, (_, index) =>
             listUsers({ pageNo: index + 2, pageSize: 100 }),
           ),
         );
-        return [...firstPage.records, ...remainingPages.flatMap((page) => page.records)];
+        return {
+          records: [...firstPage.records, ...remainingPages.flatMap((page) => page.records)],
+          unavailable: false,
+        };
       } catch {
-        // The user-list API is admin-only; keep manual entry available for other roles.
-        return [];
+        // The user-list API is admin-only; manual entry remains available to other roles.
+        return { records: [], unavailable: true };
       }
     },
     enabled: Boolean(projectCode),
@@ -168,7 +175,7 @@ export function ModifierEditorFields({
     label: "标准代码",
     optionsSource: "codeStandard",
   }, optionsByResource);
-  const ownerOptions: IndicatorFieldOption[] = (ownerOptionsQuery.data || []).map((user) => ({
+  const ownerOptions: IndicatorFieldOption[] = (ownerOptionsQuery.data?.records || []).map((user) => ({
     value: user.userName,
     label: user.userName,
   }));
@@ -280,7 +287,7 @@ export function ModifierEditorFields({
         </FormRow>
 
         <FormRow label="负责人" required>
-          {ownerOptionsQuery.isFetching || ownerOptionsQuery.data?.length ? (
+          {ownerOptionsQuery.data?.records.length ? (
             <OptionSelect
               value={values.director || ""}
               options={ownerOptions}
@@ -297,6 +304,11 @@ export function ModifierEditorFields({
               onChange={(event) => onChange("director", event.target.value)}
             />
           )}
+          {ownerOptionsQuery.isFetching ? (
+            <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">正在加载用户列表，可直接输入负责人。</p>
+          ) : ownerOptionsQuery.data?.unavailable ? (
+            <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">当前账号无法读取用户列表，请手动输入负责人。</p>
+          ) : null}
         </FormRow>
 
         <FormRow label="描述">
@@ -331,6 +343,9 @@ export function ModifierEditorFields({
             <FormRow label="数据域">
               <OptionSelect value={values.domainId || ""} options={domainOptions} placeholder="请选择数据域" loading={optionsLoading || relatedDomainsQuery.isFetching} onChange={(value) => onChange("domainId", value)} />
               {relatedDomainIds.length ? <p className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">已按所选业务分类关联的数据域过滤。</p> : null}
+              {optionsFailedResources.includes("dataDomain") ? (
+                <p className="mt-1 text-[11px] text-[var(--yak-components-danger-text)]">数据域加载失败，请刷新后重试；其他选项仍可正常使用。</p>
+              ) : null}
             </FormRow>
 
             {isDimension ? (

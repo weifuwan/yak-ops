@@ -8,6 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.dao.entity.BusinessTypePO;
+import io.yak.ops.modeling.api.dto.businesstype.BusinessTypeDTO;
+import org.mockito.ArgumentCaptor;
 import io.yak.ops.dao.repository.modeling.BusinessTypeDao;
 import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataMartDao;
@@ -37,6 +39,40 @@ class BusinessTypeServiceImplTest {
 
     @InjectMocks
     private BusinessTypeServiceImpl service;
+
+    @Test
+    void shouldNormalizeBusinessTypeShortNameToLowerCase() {
+        when(businessTypeDao.queryCount(any())).thenReturn(0L);
+        when(businessTypeDao.insert(any())).thenReturn(1);
+
+        BusinessTypeDTO dto = new BusinessTypeDTO();
+        dto.setBusinessName("零售业务");
+        dto.setEnShortName("Retail_Sales");
+        dto.setDirector("owner");
+
+        service.create(dto);
+
+        ArgumentCaptor<BusinessTypePO> captor = ArgumentCaptor.forClass(BusinessTypePO.class);
+        verify(businessTypeDao).insert(captor.capture());
+        assertEquals("retail_sales", captor.getValue().getEnShortName());
+    }
+
+    @Test
+    void shouldRejectDuplicateBusinessTypeShortName() {
+        when(businessTypeDao.queryCount(any())).thenReturn(1L);
+
+        BusinessTypeDTO dto = new BusinessTypeDTO();
+        dto.setBusinessName("零售业务");
+        dto.setEnShortName("retail_sales");
+        dto.setDirector("owner");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(dto));
+
+        assertEquals("业务分类英文缩写已存在：retail_sales", exception.getMessage());
+        verify(businessTypeDao, never()).insert(any());
+    }
 
     @Test
     void shouldRejectDeleteWhenChildBusinessTypesExist() {

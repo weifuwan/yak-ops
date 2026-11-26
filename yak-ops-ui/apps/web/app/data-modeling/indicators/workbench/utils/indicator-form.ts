@@ -52,11 +52,23 @@ export function fieldOptions(
     ? new Set(field.includeOptionValues)
     : undefined;
   const excludedValues = new Set(field.excludeOptionValues || []);
+  const seenCategoryKeys = new Set<string>();
   return (optionsByResource[field.optionsSource] || [])
     .filter((record) => {
       const filterValue = String(record[filterField] ?? "");
       if (includedValues && !includedValues.has(filterValue)) return false;
-      return !excludedValues.has(filterValue);
+      if (excludedValues.has(filterValue)) return false;
+
+      if (field.optionsSource === "timePeriodCategory") {
+        if (record.leaf === false || String(record.leaf).toLowerCase() === "false") return false;
+        const categoryCode = String(record.enName || record.enShortName || record.cnName || record.id || "")
+          .trim()
+          .toLowerCase();
+        const categoryKey = categoryCode;
+        if (seenCategoryKeys.has(categoryKey)) return false;
+        seenCategoryKeys.add(categoryKey);
+      }
+      return true;
     })
     .map((record) => {
       const label = record[labelField] ?? record.cnName ?? record.businessName ?? record.id;

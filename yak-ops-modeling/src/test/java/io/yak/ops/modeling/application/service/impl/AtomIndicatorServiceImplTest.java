@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.dao.entity.AtomIndicatorPO;
+import io.yak.ops.dao.entity.VersionManagementPO;
 import io.yak.ops.dao.entity.BusinessProcessPO;
 import io.yak.ops.dao.entity.BusinessTypePO;
 import io.yak.ops.dao.entity.BusinessTypeRelatedDataDomainPO;
@@ -20,6 +21,7 @@ import io.yak.ops.dao.repository.modeling.BusinessTypeRelatedDataDomainDao;
 import io.yak.ops.dao.repository.modeling.DataDomainDao;
 import io.yak.ops.dao.repository.modeling.ModelingAssetDao;
 import io.yak.ops.modeling.api.dto.atomindicator.AtomIndicatorDTO;
+import io.yak.ops.modeling.api.vo.atomindicator.AtomIndicatorVO;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -228,6 +230,20 @@ class AtomIndicatorServiceImplTest {
 
         assertEquals("度量单位不存在或不属于当前项目", exception.getMessage());
         verify(modelingAssetDao, never()).insert(eq("atom-indicator"), any(AtomIndicatorPO.class));
+    }
+
+    @Test
+    void shouldExposeLatestVersionNumberOnDetailView() {
+        AtomIndicatorPO atom = new AtomIndicatorPO();
+        atom.setId("atom-id");
+        VersionManagementPO latestVersion = new VersionManagementPO();
+        latestVersion.setVersionNumber(Integer.valueOf(3));
+        when(modelingAssetDao.queryById("atom-indicator", "atom-id")).thenReturn(atom);
+        when(modelingAssetDao.queryOne(eq("version-management"), any())).thenReturn(latestVersion);
+
+        AtomIndicatorVO result = service.getById("atom-id");
+
+        assertEquals(Integer.valueOf(3), result.getCurrentVersion());
     }
 
     private AtomIndicatorDTO validDto() {

@@ -14,17 +14,36 @@ export function useIndicatorResources(projectCode: string, definition: Indicator
     return Array.from(resources);
   }, [definition]);
 
-  const optionsQuery = useQuery<Partial<Record<IndicatorOptionResource, ModelingRecord[]>>>({
+  const optionsQuery = useQuery<{
+    optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
+    failedResources: IndicatorOptionResource[];
+  }>({
     queryKey: ["modeling", "indicator-options", projectCode, definition.key],
     queryFn: async () => {
-      const entries = await Promise.all(optionResources.map(async (resource) => [
-        resource,
-        await getIndicatorOptionRecords(projectCode, resource),
-      ] as const));
-      return Object.fromEntries(entries) as Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
+      const results = await Promise.all(optionResources.map(async (resource) => {
+        try {
+          return {
+            resource,
+            records: await getIndicatorOptionRecords(projectCode, resource),
+            failed: false,
+          };
+        } catch {
+          return { resource, records: [] as ModelingRecord[], failed: true };
+        }
+      }));
+      return {
+        optionsByResource: Object.fromEntries(
+          results.map(({ resource, records }) => [resource, records]),
+        ) as Partial<Record<IndicatorOptionResource, ModelingRecord[]>>,
+        failedResources: results.filter((item) => item.failed).map((item) => item.resource),
+      };
     },
     enabled: Boolean(projectCode),
   });
 
-  return { optionsByResource: optionsQuery.data || {}, isFetching: optionsQuery.isFetching };
+  return {
+    optionsByResource: optionsQuery.data?.optionsByResource || {},
+    optionsFailedResources: optionsQuery.data?.failedResources || [],
+    isFetching: optionsQuery.isFetching,
+  };
 }

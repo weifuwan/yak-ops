@@ -55,7 +55,8 @@ export function BusinessProcessFormDialog({
   }, [open, editing]);
 
   const update = (key: keyof BusinessProcessFormValues, value: string) => {
-    setValues((current) => ({ ...current, [key]: value }));
+    const nextValue = key === "enShortName" ? value.toLowerCase() : value;
+    setValues((current) => ({ ...current, [key]: nextValue }));
     if (error) setError("");
   };
 
@@ -109,9 +110,10 @@ export function BusinessProcessFormDialog({
         <label className={FIELD_CLASS}>
           <span className={LABEL_CLASS}><span className="mr-1 text-[#d92d20]">*</span>英文缩写</span>
           <Input size="small" variant="outlined" maxLength={64} value={values.enShortName}
-            disabled={system} placeholder="请输入英文缩写"
+            disabled={system} placeholder="小写字母、数字和下划线，例如 order_submit"
             onChange={(event) => update("enShortName", event.target.value)} />
         </label>
+        <p className="-mt-2 pl-[116px] text-[11px] text-[var(--yak-components-muted-text)]">统一使用小写字母、数字和下划线，不能以下划线开头或结尾。</p>
         <label className={FIELD_CLASS}>
           <span className={LABEL_CLASS}><span className="mr-1 text-[#d92d20]">*</span>英文名</span>
           <Input size="small" variant="outlined" maxLength={64} value={values.enName}

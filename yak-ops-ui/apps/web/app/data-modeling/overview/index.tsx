@@ -21,7 +21,7 @@ import {
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
   modelingOverviewApi,
-  type ModelingLatestPublish,
+  type ModelingLatestSubmission,
   type ModelingOverview,
 } from "@/service/data-modeling/overview";
 
@@ -98,7 +98,7 @@ function buildStatistics(
   ];
 }
 
-function formatPublishTime(value?: string | number) {
+function formatSubmissionTime(value?: string | number) {
   if (value === undefined || value === null || value === "") return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
@@ -235,18 +235,7 @@ function DataOverviewCard({
           </span>
         </div>
 
-        <div className="flex h-5 shrink-0 items-center gap-1 leading-5">
-          <button
-            type="button"
-            className="cursor-pointer border-0 bg-transparent p-0 text-xs text-[var(--yak-color-primary)] hover:opacity-80"
-          >
-            查看数据详情
-          </button>
 
-          <span className="cursor-help text-[var(--yak-color-primary)]">
-            <InfoIcon />
-          </span>
-        </div>
       </div>
 
       {/* Content */}
@@ -297,14 +286,14 @@ function DataOverviewCard({
 }
 
 /**
- * 最新发布
+ * 最新提交
  */
-function LatestPublishCard({
+function LatestSubmittedCard({
   items,
   loading,
   error,
 }: {
-  items: ModelingLatestPublish[];
+  items: ModelingLatestSubmission[];
   loading: boolean;
   error: boolean;
 }) {
@@ -312,8 +301,8 @@ function LatestPublishCard({
     <div className="flex h-full w-full flex-col overflow-hidden rounded-[4px] border border-[#EDEFF7] bg-white p-4">
       <div className="flex min-h-5 w-full items-center">
         <div className="flex h-5 flex-1 items-center gap-1 text-base leading-5 text-[#10121A]">
-          最新发布
-          <span className="cursor-help text-[var(--yak-color-primary)]">
+          最新提交
+          <span className="cursor-help text-[var(--yak-color-primary)]" title="仅展示已提交资产，不代表物理表已发布到 Doris">
             <InfoIcon />
           </span>
         </div>
@@ -322,11 +311,11 @@ function LatestPublishCard({
       <div className="relative mt-3 min-h-[250px] w-full">
         {loading ? (
           <div className="flex h-[250px] items-center justify-center text-xs text-[#9299A5]">
-            正在加载最新发布...
+            正在加载最新提交...
           </div>
         ) : error ? (
           <div className="flex h-[250px] items-center justify-center text-xs text-[#9299A5]">
-            最新发布加载失败
+            最新提交加载失败
           </div>
         ) : items.length === 0 ? (
           <div className="flex h-[250px] w-full flex-col items-center justify-center overflow-hidden">
@@ -355,7 +344,7 @@ function LatestPublishCard({
                 <div className="mt-1.5 flex items-center gap-2 text-xs text-[#9299A5]">
                   <span>{item.updateBy || "—"}</span>
                   <span>·</span>
-                  <span>{formatPublishTime(item.updateTime)}</span>
+                  <span>{formatSubmissionTime(item.updateTime)}</span>
                 </div>
               </div>
             ))}
@@ -459,10 +448,10 @@ export function DataModelingOverviewPage() {
               />
             </div>
 
-            {/* 右侧：最新发布 */}
+            {/* 右侧：最新提交 */}
             <div className="col-span-[24] flex px-2 min-[1200px]:col-span-[7] min-[1500px]:col-span-[8]">
-              <LatestPublishCard
-                items={overview?.latestPublished || []}
+              <LatestSubmittedCard
+                items={overview?.latestSubmitted || []}
                 loading={overviewQuery.isPending && Boolean(projectCode)}
                 error={overviewQuery.isError}
               />

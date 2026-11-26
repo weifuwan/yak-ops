@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
@@ -405,7 +406,10 @@ export function DorisPublishModal({
                   </Button>
                 ) : !datasourceQuery.isPending && !datasourceOptions.length ? (
                   <p className="mb-0 mt-1 text-xs text-[var(--yak-components-muted-text)]">
-                    暂无可用 Doris 数据源，请先在数据源管理中配置。
+                    暂无可用 Doris 数据源，请先配置连接。
+                    <Link to="/data-source" className="ml-1 font-medium text-[var(--yak-color-primary)] hover:underline">
+                      前往数据源管理
+                    </Link>
                   </p>
                 ) : null}
               </div>

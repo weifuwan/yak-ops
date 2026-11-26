@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Cascader,
   Field,
@@ -130,6 +130,34 @@ export function CompositeIndicatorEditorFields({
     [optionsByResource.derivativeIndicator],
   );
   const processQuery = useDerivativeBusinessProcessCascader(projectCode, values.busTypeId);
+
+  useEffect(() => {
+    if (
+      selectedDwType !== "PUBLIC_LAYER"
+      || !values.busProcessId
+      || processQuery.isFetching
+      || processQuery.isError
+    ) {
+      return;
+    }
+    const processStillAvailable = processQuery.options.some((domain) =>
+      domain.value === values.domainId
+      && (domain.children || []).some((process) => process.value === values.busProcessId),
+    );
+    if (!processStillAvailable) {
+      onChangeMany({ domainId: "", busProcessId: "" });
+    }
+  }, [
+    selectedDwType,
+    values.busTypeId,
+    values.domainId,
+    values.busProcessId,
+    processQuery.isFetching,
+    processQuery.isError,
+    processQuery.options,
+    onChangeMany,
+  ]);
+
   const computeMode = values.computeMode === "1" ? "1" : "0";
 
   const changeComputeMode = (next: string) => {
@@ -235,7 +263,7 @@ export function CompositeIndicatorEditorFields({
                     options={businessTypeOptions}
                     placeholder="请选择业务分类（非必填）"
                     loading={optionsLoading}
-                    onChange={(value) => onChangeMany({ busTypeId: value, domainId: "", busProcessId: "" })}
+                    onChange={(value) => onChange("busTypeId", value)}
                   />
                 </FormRow>
                 <FormRow label="业务过程" required>

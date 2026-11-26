@@ -19,6 +19,7 @@ type Props = {
   values: Record<string, string>;
   recordId: string;
   optionsByResource: Partial<Record<IndicatorOptionResource, ModelingRecord[]>>;
+  optionsFailedResources?: IndicatorOptionResource[];
   optionsLoading: boolean;
   renderFields?: (props: IndicatorEditorFieldsProps) => ReactNode;
   onChange: (key: string, value: string) => void;
@@ -26,12 +27,12 @@ type Props = {
 };
 
 export function IndicatorFormRenderer({
-  projectCode, definition, values, recordId, optionsByResource, optionsLoading,
+  projectCode, definition, values, recordId, optionsByResource, optionsFailedResources = [], optionsLoading,
   renderFields, onChange, onChangeMany,
 }: Props) {
   if (renderFields) {
     return <>{renderFields({
-      projectCode, values, recordId, optionsByResource, optionsLoading, onChange, onChangeMany,
+      projectCode, values, recordId, optionsByResource, optionsFailedResources, optionsLoading, onChange, onChangeMany,
     })}</>;
   }
 
