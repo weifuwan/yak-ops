@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_data_sync_execution_report (
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_data_sync_report_task_update
-    ON t_yak_ops_data_sync_execution_report(task_instance_id, update_time);
+CREATE INDEX IF NOT EXISTS idx_data_sync_report_task_submitted
+    ON t_yak_ops_data_sync_execution_report(task_instance_id, submitted_at, create_time);
 CREATE INDEX IF NOT EXISTS idx_data_sync_report_job_id
     ON t_yak_ops_data_sync_execution_report(job_id);
 
