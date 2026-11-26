@@ -81,6 +81,10 @@ jobs:
         run: |
           docker version
           docker info
+      - name: Configure Docker API compatibility for Testcontainers
+        run: |
+          printf 'api.version=1.44\n' > "$HOME/.docker-java.properties"
+          cat "$HOME/.docker-java.properties"
       - name: Build PostgreSQL connectors and CLI; run integration tests
         run: |
           mvn -B -ntp -T 2 -fae \
@@ -107,7 +111,7 @@ jobs:
           jar = Path(
               "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/"
               "yak-ops-cdc-pipeline-connector-postgres/target/"
-              "yak-ops-cdc-pipeline-connector-postgres-1.4.0.jar"
+              "yak-ops-cdc-pipeline-connector-postgres-1.4.0-shade.jar"
           )
           if not jar.is_file():
               raise SystemExit(f"Shaded PostgreSQL Pipeline JAR not found: {jar}")
