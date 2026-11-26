@@ -82,7 +82,15 @@ public class DorisDdlEngine {
             if (remaining <= 0) {
                 break;
             }
-            Thread.sleep(Math.min(PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS, remaining));
+            try {
+                Thread.sleep(Math.min(PHYSICAL_SCHEMA_VERIFY_INTERVAL_MILLIS, remaining));
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new DorisSchemaVerificationException(
+                        "Doris DDL 已执行，但物理结构校验被中断。请先检查目标表，不要直接重复删除重建。",
+                        lastResult.getPhysicalSchema(),
+                        ex);
+            }
         }
 
         String details = lastResult == null ? "未能读取目标表元数据" : lastResult.getSummary();
