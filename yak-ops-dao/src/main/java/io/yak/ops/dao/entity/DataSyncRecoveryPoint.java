@@ -33,6 +33,12 @@ public class DataSyncRecoveryPoint {
 
     private String jobId;
 
+    /** Flink checkpoint id or a generated Savepoint id. */
+    private String recoveryPointId;
+
+    /** Native Flink checkpoint id; null for a manually-created Savepoint. */
+    private String checkpointId;
+
     private String runtimeMode;
 
     private String recoveryType;
@@ -43,7 +49,11 @@ public class DataSyncRecoveryPoint {
 
     private Date createdAt;
 
+    private Date completedAt;
+
     private Integer usedByWorkflowInstanceId;
+
+    private Integer usedByInstanceId;
 
     private Date usedAt;
 }
