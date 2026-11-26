@@ -7,6 +7,7 @@ import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
+import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
@@ -53,6 +54,8 @@ public interface DataSyncService {
                                              List<Long> taskCodes, boolean activeOnly);
 
     DataSyncInstanceVO getInstance(User user, long projectCode, int instanceId);
+
+    DataSyncExecutionReportVO getInstanceReport(User user, long projectCode, int instanceId);
 
     DataSyncDefinitionVO getInstanceDefinition(User user, long projectCode, int instanceId);
 
