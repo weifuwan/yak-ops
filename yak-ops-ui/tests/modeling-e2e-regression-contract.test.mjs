@@ -57,7 +57,7 @@ test("time-period category options remove root nodes and duplicate category code
     { value: "day", label: "天" },
     { value: "week", label: "周" },
   ]);
-  assert.match(timePeriodService, /同一目录下时间周期粒度英文名称已存在/);
+  assert.match(timePeriodService, /时间周期粒度英文名称已存在/);
   assert.match(timePeriodService, /Set<String> seen/);
 });
 
