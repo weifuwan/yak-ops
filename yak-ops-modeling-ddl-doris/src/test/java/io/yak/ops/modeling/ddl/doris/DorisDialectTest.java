@@ -10,6 +10,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.yak.ops.modeling.ddl.api.DdlEngine;
+import io.yak.ops.modeling.ddl.core.DdlDialectRegistry;
+import io.yak.ops.modeling.ddl.core.JdbcDdlEngine;
 import io.yak.ops.modeling.ddl.model.DdlDataType;
 import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
 import io.yak.ops.modeling.ddl.doris.model.DorisOptions;
@@ -49,7 +52,7 @@ class DorisDialectTest {
     @Mock private Connection connection;
     @Mock private DataSourceCatalog catalog;
 
-    private DorisDialect engine;
+    private DdlEngine engine;
     private DdlSession session;
 
     @BeforeEach
@@ -59,8 +62,9 @@ class DorisDialectTest {
         DdlGenerator generator = new DdlGenerator(schemaBuilder, new DdlFormatter());
         SchemaInspector inspector = new SchemaInspector();
         SchemaPlanner planner = new SchemaPlanner(inspector, generator, new ReplicationPolicy());
-        engine = new DorisDialect(
+        DorisDialect dialect = new DorisDialect(
                 validator, planner, new StatementExecutor(), inspector, generator);
+        engine = new JdbcDdlEngine(new DdlDialectRegistry(Collections.singletonList(dialect)));
         session = new DdlSession("DORIS", connection, catalog, "warehouse");
     }
 
