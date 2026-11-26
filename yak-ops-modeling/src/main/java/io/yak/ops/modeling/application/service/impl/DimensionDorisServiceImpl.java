@@ -100,7 +100,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         DimensionTablePO table = requirePhysicalTable(tableId);
         requireSubmitted(table);
         List<DimensionTableFieldPO> fields = listFields(tableId);
-        try (DdlSession context = sessionFactory.open(new DdlConnectionInfo(datasource.getType().name(), datasource.getConnectionParams()))) {
+        try (DdlSession context = openSession(datasource)) {
             String database = context.getDatabase();
             DdlRequest request = buildDdlRequest(table, fields, dto, database);
             DdlPlan plan = ddlEngine.plan(context, request);
@@ -155,7 +155,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         Date startedAt = null;
         DimensionDorisPublishPO publish = null;
 
-        try (DdlSession context = sessionFactory.open(new DdlConnectionInfo(datasource.getType().name(), datasource.getConnectionParams()))) {
+        try (DdlSession context = openSession(datasource)) {
             database = context.getDatabase();
             DdlRequest request = buildDdlRequest(table, fields, dto, database);
             DdlPlan plan = ddlEngine.plan(context, request);
@@ -513,6 +513,12 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 && (dto.getReplicationNum() < 1 || dto.getReplicationNum() > 3)) {
             throw new IllegalArgumentException("Doris 副本数只能设置为 1、2 或 3");
         }
+    }
+
+    private DdlSession openSession(DataSource datasource) throws Exception {
+        return sessionFactory.open(new DdlConnectionInfo(
+                datasource.getType().name(),
+                datasource.getConnectionParams()));
     }
 
     private void validateDatasource(DataSource datasource) {
