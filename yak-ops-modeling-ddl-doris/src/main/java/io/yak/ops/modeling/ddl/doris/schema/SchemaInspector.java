@@ -1,6 +1,7 @@
 package io.yak.ops.modeling.ddl.doris.schema;
 
 import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
+import io.yak.ops.modeling.ddl.doris.schema.DdlGenerator;
 import io.yak.ops.modeling.ddl.model.DdlColumnDefinition;
 import io.yak.ops.modeling.ddl.model.DdlTableDefinition;
 import io.yak.ops.modeling.ddl.model.DdlColumnMetadata;
@@ -48,7 +49,7 @@ public class SchemaInspector {
             Connection connection, DataSourceCatalog catalog, String database, String tableName) {
         List<DataSourceCatalogColumn> columns = catalog.listColumns(
                 connection, new CatalogPath(null, database, null, tableName, CatalogObjectType.TABLE));
-        Map<String, DorisColumnMetadata> result = new LinkedHashMap<>();
+        Map<String, DdlColumnMetadata> result = new LinkedHashMap<>();
         if (columns == null) {
             return result;
         }
@@ -56,7 +57,7 @@ public class SchemaInspector {
             if (column == null || column.getName() == null || column.getName().trim().isEmpty()) {
                 continue;
             }
-            result.put(column.getName().toLowerCase(Locale.ROOT), new DorisColumnMetadata(
+            result.put(column.getName().toLowerCase(Locale.ROOT), new DdlColumnMetadata(
                     column.getName(),
                     column.getTypeName(),
                     column.getSize(),
@@ -73,7 +74,7 @@ public class SchemaInspector {
             return null;
         }
         String createDdl = readCreateTableDdl(connection, database, tableName);
-        Map<String, DorisColumnMetadata> columns = readColumns(connection, catalog, database, tableName);
+        Map<String, DdlColumnMetadata> columns = readColumns(connection, catalog, database, tableName);
         if (columns.isEmpty()) {
             throw new IllegalStateException(
                     "已识别目标 Doris 表，但无法读取字段结构: " + database + "." + tableName);
@@ -89,7 +90,7 @@ public class SchemaInspector {
             throw new IllegalArgumentException(
                     "目标 Doris 表使用 " + modelName + " KEY，当前维度建模仅支持 UNIQUE KEY 和 DUPLICATE KEY。");
         }
-        DorisTableModel tableModel = DorisDataModelEnum.valueOf(modelName);
+        DorisTableModel tableModel = DorisTableModel.valueOf(modelName);
         List<String> keyFields = parseIdentifiers(modelMatcher.group(2));
         String partitionClause = extractClause(
                 createDdl, "PARTITION BY", "(?=\\s+DISTRIBUTED BY\\s+|\\s+PROPERTIES\\s*\\(|$)");
@@ -102,7 +103,7 @@ public class SchemaInspector {
         protectedColumns.addAll(parseDistributionColumns(distributionClause));
         protectedColumns.addAll(parseIdentifiersFromClause(partitionClause));
 
-        return new DorisPhysicalTableMetadata(
+        return new DorisPhysicalTable(
                 createDdl,
                 tableModel,
                 keyFields,
@@ -143,7 +144,7 @@ public class SchemaInspector {
             Connection connection,
             DataSourceCatalog catalog,
             DdlTableDefinition table,
-            DorisDataModelEnum expectedModel,
+            DorisTableModel expectedModel,
             List<String> expectedKeyFields,
             DdlGenerator generator,
             boolean strictNullability) {
@@ -157,7 +158,7 @@ public class SchemaInspector {
 
             physicalSchema = readCreateTableDdl(
                     connection, table.getDatabase(), table.getTableName());
-            Map<String, DorisColumnMetadata> actualColumns = readColumns(
+            Map<String, DdlColumnMetadata> actualColumns = readColumns(
                     connection, catalog, table.getDatabase(), table.getTableName());
             if (actualColumns.isEmpty()) {
                 mismatches.add("Doris 已返回目标表，但暂时无法读取字段元数据");
@@ -183,7 +184,7 @@ public class SchemaInspector {
             Map<String, DdlColumnDefinition> expectedColumns = new LinkedHashMap<>();
             for (DdlColumnDefinition expected : table.getColumns()) {
                 expectedColumns.put(expected.getName().toLowerCase(Locale.ROOT), expected);
-                DorisColumnMetadata actual = actualColumns.get(
+                DdlColumnMetadata actual = actualColumns.get(
                         expected.getName().toLowerCase(Locale.ROOT));
                 if (actual == null) {
                     mismatches.add("缺少字段: " + expected.getName());
@@ -200,7 +201,7 @@ public class SchemaInspector {
                 }
             }
 
-            for (Map.Entry<String, DorisColumnMetadata> actual : actualColumns.entrySet()) {
+            for (Map.Entry<String, DdlColumnMetadata> actual : actualColumns.entrySet()) {
                 if (!expectedColumns.containsKey(actual.getKey())) {
                     mismatches.add("存在模型中未定义的字段: " + actual.getValue().getName());
                 }
@@ -216,9 +217,9 @@ public class SchemaInspector {
             Connection connection,
             DataSourceCatalog catalog,
             DdlTableDefinition table,
-            DorisDataModelEnum expectedModel,
+            DorisTableModel expectedModel,
             List<String> expectedKeyFields,
-            DorisDdlGenerator generator) {
+            DdlGenerator generator) {
         return verify(connection, catalog, table, expectedModel, expectedKeyFields, generator, true)
                 .isMatched();
     }
