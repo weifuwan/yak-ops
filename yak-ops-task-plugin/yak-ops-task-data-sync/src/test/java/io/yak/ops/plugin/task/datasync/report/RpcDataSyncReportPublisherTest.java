@@ -78,6 +78,31 @@ class RpcDataSyncReportPublisherTest {
         assertEquals(0, countOutboxFiles());
     }
 
+    @Test
+    void persistsFinalReportWhenWorkerThreadIsInterruptedDuringDelivery() throws Exception {
+        TaskExecutionContext context = new TaskExecutionContext();
+        context.setWorkflowInstanceHost("master:12345");
+        RpcDataSyncReportPublisher publisher = new RpcDataSyncReportPublisher(
+                context,
+                temporaryDirectory,
+                (masterAddress, request) -> {
+                    throw new InterruptedException("Worker thread interrupted");
+                },
+                false);
+
+        Thread.currentThread().interrupt();
+        try {
+            DataSyncReportAck ack = publisher.publish(report("FINAL"));
+
+            assertTrue(ack.isAccepted());
+            assertEquals("QUEUED", ack.getResult());
+            assertTrue(Thread.currentThread().isInterrupted());
+            assertEquals(1, countOutboxFiles());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
     private long countOutboxFiles() throws IOException {
         try (Stream<Path> files = Files.list(temporaryDirectory)) {
             return files.filter(path -> path.getFileName().toString().endsWith(".json")).count();
