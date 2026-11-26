@@ -192,7 +192,7 @@ class DimensionDorisServiceImplTest {
         when(ddlEngine.execute(
                 any(Connection.class), any(DataSourceCatalog.class), any(), any(DdlPlan.class), anyString()))
                 .thenThrow(new DorisSchemaVerificationException(
-                        "Doris 已执行 DROP/CREATE，但物理结构校验未通过：字段类型不一致",
+                        "Doris DDL 已执行，但物理结构校验未通过：字段类型不一致",
                         "CREATE TABLE warehouse.dwd_order_detail (...)"));
 
         DimensionDorisPublishVO published =
