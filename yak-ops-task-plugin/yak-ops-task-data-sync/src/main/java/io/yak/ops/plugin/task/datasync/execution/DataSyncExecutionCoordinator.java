@@ -63,6 +63,10 @@ public class DataSyncExecutionCoordinator {
     }
 
     public void execute(FlinkPipelineExecution execution) throws Exception {
+        execute(execution, null);
+    }
+
+    public void execute(FlinkPipelineExecution execution, String restorePath) throws Exception {
         if (cancelRequested.get()) {
             cancellationConfirmed = true;
             return;
@@ -84,7 +88,7 @@ public class DataSyncExecutionCoordinator {
         }
         activeExecutionService = executionService;
         try {
-            handle = executionService.submit(execution, executionId, context.getTaskInstanceId());
+            handle = executionService.submit(execution, executionId, context.getTaskInstanceId(), restorePath);
             if (cancelRequested.get()) {
                 dispatchCancellation();
             }
@@ -147,6 +151,27 @@ public class DataSyncExecutionCoordinator {
         } else if (!executionStarted.get()) {
             cancellationConfirmed = true;
         }
+    }
+
+    public String triggerSavepoint() throws Exception {
+        DataSyncExecutionHandle current = handle;
+        DataSyncExecutionService executionService = activeExecutionService;
+        if (current == null || executionService == null) {
+            throw new IllegalStateException("CDC execution is not active");
+        }
+        return executionService.triggerSavepoint(current);
+    }
+
+    public String stopWithSavepoint() throws Exception {
+        DataSyncExecutionHandle current = handle;
+        DataSyncExecutionService executionService = activeExecutionService;
+        if (current == null || executionService == null) {
+            throw new IllegalStateException("CDC execution is not active");
+        }
+        String restorePath = executionService.stopWithSavepoint(current);
+        cancellationConfirmed = true;
+        cancelRequested.set(true);
+        return restorePath;
     }
 
     public boolean isCancelRequested() {
