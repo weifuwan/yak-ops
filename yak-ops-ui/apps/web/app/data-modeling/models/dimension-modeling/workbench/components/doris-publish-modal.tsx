@@ -272,8 +272,13 @@ export function DorisPublishModal({
         toast.success(result.noChanges ? "目标表结构已是最新，无需变更" : "Doris 物理表发布成功");
         setConfirmDropOpen(false);
         onOpenChange(false);
+      } else if (result.status === "VERIFY_FAILED") {
+        toast.warning(
+          "DDL 已执行，但物理结构校验未通过。请先查看发布记录中的实际物理结构，不要直接重复删除重建。"
+          + (result.errorMessage ? " " + result.errorMessage : ""),
+        );
       } else {
-        toast.warning(result.errorMessage || "发布未成功，请查看发布记录");
+        toast.warning(result.errorMessage || "DDL 执行失败，请查看发布记录");
       }
     } catch (error) {
       toast.warning(error instanceof Error ? error.message : "Doris 发布失败");
