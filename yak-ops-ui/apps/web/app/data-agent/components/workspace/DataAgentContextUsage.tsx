@@ -100,11 +100,11 @@ function getPopoverPosition(rect: DOMRect): FloatingPosition {
 }
 
 function getTooltipPosition(rect: DOMRect): CSSProperties {
-  const width = Math.min(300, window.innerWidth - 16);
   return {
-    top: Math.max(8, rect.top - 38),
-    left: Math.max(8, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 8)),
-    width,
+    top: Math.max(8, rect.top - 36),
+    left: rect.left + rect.width / 2,
+    maxWidth: "calc(100vw - 16px)",
+    transform: "translateX(-50%)",
   };
 }
 
@@ -160,7 +160,7 @@ function ContextUsageDetails({
       ref={cardRef}
       role="dialog"
       aria-label="上下文用量详情"
-      className="fixed z-[140] overflow-y-auto rounded-2xl border border-[#e8e8ec] bg-white text-[#202124] shadow-[0_12px_32px_rgba(0,0,0,0.14)]"
+      className="yak-context-popover fixed z-[140] overflow-y-auto rounded-2xl border border-[#e8e8ec] bg-white text-[#202124] shadow-[0_12px_32px_rgba(0,0,0,0.14)]"
       style={style}
     >
       <div className="flex items-center justify-between px-4 pb-0 pt-3">
@@ -319,20 +319,44 @@ export function DataAgentContextUsage({
     };
   }, [open]);
 
-  const tooltipText = !hasSession
-    ? "发送消息后显示上下文用量"
-    : loading
-      ? "正在获取上下文用量…"
-      : error
-        ? error
-        : context
-          ? formatPercent(context.ratio) + " · " +
-            formatTokenCount(context.usedTokens) + " / " +
-            formatTokenCount(context.limitTokens) + " 上下文已使用"
-          : "暂无上下文用量数据";
+  const tooltipContent = !hasSession ? (
+    <span>发送消息后显示上下文用量</span>
+  ) : loading ? (
+    <span>正在获取上下文用量…</span>
+  ) : error ? (
+    <span>{error}</span>
+  ) : context ? (
+    <>
+      <span className="font-semibold text-[#202124]">
+        {formatPercent(context.ratio)}
+      </span>
+      <span className="mx-1.5 text-[#b6bbc4]">·</span>
+      <span className="font-semibold tabular-nums text-[#30343b]">
+        {formatTokenCount(context.usedTokens)} / {formatTokenCount(context.limitTokens)}
+      </span>
+      <span className="ml-1 text-[#6b7280]">上下文已使用</span>
+    </>
+  ) : (
+    <span>暂无上下文用量数据</span>
+  );
 
   return (
     <>
+      <style>{`
+        @keyframes yakContextTooltipIn {
+          from { opacity: 0; transform: translate(-50%, 4px) scale(0.98); }
+          to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        }
+        @keyframes yakContextPopoverIn {
+          from { opacity: 0; transform: translateY(7px) scale(0.985); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .yak-context-tooltip { animation: yakContextTooltipIn 150ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+        .yak-context-popover { animation: yakContextPopoverIn 190ms cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: bottom right; }
+        @media (prefers-reduced-motion: reduce) {
+          .yak-context-tooltip, .yak-context-popover { animation: none !important; }
+        }
+      `}</style>
       <button
         ref={triggerRef}
         type="button"
@@ -341,7 +365,7 @@ export function DataAgentContextUsage({
         aria-expanded={open}
         aria-disabled={!hasSession}
         className={
-          "group relative grid size-8 shrink-0 cursor-pointer appearance-none place-items-center rounded-full border-0 p-0 leading-none transition-colors hover:bg-[#f3f4f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b8b8b]/25 " +
+          "group relative grid size-8 shrink-0 cursor-pointer appearance-none place-items-center rounded-full border-0 p-0 leading-none transition-[background-color,transform,box-shadow] duration-200 ease-out hover:scale-[1.04] hover:bg-[#f3f4f6] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b8b8b]/25 motion-reduce:transition-none motion-reduce:hover:transform-none " +
           (open ? "bg-[#f3f4f6]" : "")
         }
         onMouseEnter={showTooltip}
@@ -365,10 +389,10 @@ export function DataAgentContextUsage({
         ? createPortal(
             <div
               role="tooltip"
-              className="pointer-events-none fixed z-[150] rounded-lg border border-[#e8e8ec] bg-white px-3 py-2 text-[11px] leading-4 text-[#4f5661] shadow-[0_5px_18px_rgba(0,0,0,0.12)]"
+              className="yak-context-tooltip pointer-events-none fixed z-[150] w-max whitespace-nowrap rounded-lg border border-[#e8e8ec] bg-white px-2.5 py-1.5 text-[11px] leading-4 text-[#6b7280] shadow-[0_5px_18px_rgba(0,0,0,0.12)]"
               style={tooltipPosition}
             >
-              {tooltipText}
+              {tooltipContent}
             </div>,
             document.body,
           )
