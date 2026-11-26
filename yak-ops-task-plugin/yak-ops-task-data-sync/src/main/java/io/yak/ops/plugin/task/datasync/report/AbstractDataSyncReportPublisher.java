@@ -43,8 +43,8 @@ public abstract class AbstractDataSyncReportPublisher implements DataSyncReportP
         return onDeliveryFailure(request, lastException);
     }
 
-    protected DataSyncReportAck onDeliveryFailure(DataSyncReportRequest request, Exception exception)
-            throws Exception {
+    protected DataSyncReportAck onDeliveryFailure(
+                                                  DataSyncReportRequest request, Exception exception) throws Exception {
         throw exception;
     }
 
