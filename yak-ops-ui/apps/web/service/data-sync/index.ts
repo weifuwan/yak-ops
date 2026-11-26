@@ -19,6 +19,9 @@ import type {
   DataSyncInstancePageParams,
   DataSyncInstanceRecord,
   DataSyncInstanceSummary,
+  DataSyncInstanceAction,
+  DataSyncInstanceActionMetadata,
+  DataSyncInstanceActionResult,
   DataSyncTaskPageParams,
   DataSyncTaskListRecord,
   DataSyncTaskRecord,
@@ -161,7 +164,7 @@ export const getDataSyncInstance = async (
 ): Promise<DataSyncInstanceRecord> => {
   const base = url("");
   const [instance, definition] = await Promise.all([
-    HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id, base), { signal }),
+    HttpUtils.getData<TaskInstanceRecord & DataSyncInstanceActionMetadata>(instanceUrl(id, base), { signal }),
     instanceDefinition(id, base, signal),
   ]);
   return toDataSyncInstanceRecord(instance, definition);
@@ -170,7 +173,7 @@ export const getDataSyncInstance = async (
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
 ): Promise<PageInfo<DataSyncInstanceSummary>> => {
-  const page = await HttpUtils.getData<PageInfo<TaskInstanceRecord & { taskName: string }>>(
+  const page = await HttpUtils.getData<PageInfo<TaskInstanceRecord & { taskName: string } & DataSyncInstanceActionMetadata>>(
     url(
       "/instances?" +
         qp({
@@ -212,13 +215,14 @@ export const listLatestDataSyncTaskInstances = async (
   );
 };
 
-export const cancelDataSyncInstance = async (workflowInstanceId: number): Promise<void> => {
-  await HttpUtils.postData<void>(
-    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
-      "/executors/execute?" + qp({ workflowInstanceId, executeType: "STOP" }),
-    undefined,
+export const operateDataSyncInstance = async (
+  instanceId: string,
+  action: DataSyncInstanceAction,
+): Promise<DataSyncInstanceActionResult> =>
+  HttpUtils.postData<DataSyncInstanceActionResult>(
+    instanceUrl(instanceId) + "/actions",
+    { action },
   );
-};
 
 export const getDataSyncInstanceLogs = async (
   id: string,
