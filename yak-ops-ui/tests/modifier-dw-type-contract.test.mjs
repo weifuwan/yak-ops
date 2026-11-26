@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { buildModifierTree } from "../apps/web/app/data-modeling/indicators/workbench/utils/indicator-tree.ts";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -49,4 +50,72 @@ test("modifier backend validates and filters by DwTypeEnum", () => {
 test("indicator form option resources no longer load concrete warehouse-layer records", () => {
   assert.doesNotMatch(resources, /"dwLayer"/);
   assert.doesNotMatch(optionResolver, /dwLayerApi|case "dwLayer"/);
+});
+
+
+test("modifier data-domain tree keeps the real default domain separate from unassigned modifiers", () => {
+  const defaultDomain = { id: "domain-default", cnName: "默认", enShortName: "default" };
+  const tree = buildModifierTree(
+    [defaultDomain],
+    [
+      { id: "assigned", cnName: "已关联修饰词", domainId: "domain-default" },
+      { id: "unassigned", cnName: "未关联修饰词", domainId: "" },
+      { id: "orphaned", cnName: "失效数据域关联", domainId: "missing-domain" },
+    ],
+    "DATA_DOMAIN",
+  )[0];
+
+  assert.deepEqual(
+    tree.children.map(({ id, title, nodeType, count }) => ({ id, title, nodeType, count })),
+    [
+      { id: "unassigned-domain", title: "未关联数据域", nodeType: "group", count: 2 },
+      { id: "domain-default", title: "默认", nodeType: "dataDomain", count: 1 },
+    ],
+  );
+  assert.equal(tree.count, 3);
+});
+
+test("modifier data-domain tree does not render an empty unassigned group", () => {
+  const tree = buildModifierTree(
+    [{ id: "domain-default", cnName: "默认" }],
+    [{ id: "assigned", cnName: "已关联修饰词", domainId: "domain-default" }],
+    "DATA_DOMAIN",
+  )[0];
+
+  assert.deepEqual(tree.children.map(({ id, title }) => ({ id, title })), [
+    { id: "domain-default", title: "默认" },
+  ]);
+});
+
+test("modifier business-type tree labels unassigned records without impersonating a business category", () => {
+  const tree = buildModifierTree(
+    [{ id: "business-type-1", cnName: "交易业务" }],
+    [
+      { id: "assigned", cnName: "已关联修饰词", busTypeId: "business-type-1" },
+      { id: "unassigned", cnName: "未关联修饰词", busTypeId: "" },
+      { id: "orphaned", cnName: "失效业务分类关联", busTypeId: "missing-business-type" },
+    ],
+    "BUSINESS_TYPE",
+  )[0];
+
+  assert.deepEqual(
+    tree.children.map(({ id, title, nodeType, count }) => ({ id, title, nodeType, count })),
+    [
+      { id: "unassigned-business-type", title: "未关联业务分类", nodeType: "group", count: 2 },
+      { id: "business-type-1", title: "交易业务", nodeType: "businessType", count: 1 },
+    ],
+  );
+  assert.equal(tree.count, 3);
+});
+
+test("modifier business-type tree does not render an empty unassigned group", () => {
+  const tree = buildModifierTree(
+    [{ id: "business-type-1", cnName: "交易业务" }],
+    [{ id: "assigned", cnName: "已关联修饰词", busTypeId: "business-type-1" }],
+    "BUSINESS_TYPE",
+  )[0];
+
+  assert.deepEqual(tree.children.map(({ id, title }) => ({ id, title })), [
+    { id: "business-type-1", title: "交易业务" },
+  ]);
 });
