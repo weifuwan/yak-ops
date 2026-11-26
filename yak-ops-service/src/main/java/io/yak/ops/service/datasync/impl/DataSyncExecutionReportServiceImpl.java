@@ -50,7 +50,7 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
             return DataSyncReportAck.rejected("REJECTED", 0L, validationError);
         }
 
-        TaskInstance taskInstance = taskInstanceDao.queryById(request.getTaskInstanceId());
+        TaskInstance taskInstance = taskInstanceDao.queryByIdForUpdate(request.getTaskInstanceId());
         if (taskInstance == null || !TASK_TYPE.equals(taskInstance.getTaskType())) {
             return DataSyncReportAck.rejected("REJECTED", 0L, "Task instance is not a DATA_SYNC task");
         }
@@ -127,11 +127,14 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
         }
 
         List<DataSyncTableMetrics> tables = new ArrayList<>();
+        boolean finalized = Boolean.TRUE.equals(report.getFinalized());
         for (DataSyncTableReport tableReport : tableReportDao.queryByExecutionId(report.getExecutionId())) {
-            String metricsJson = Boolean.TRUE.equals(report.getFinalized())
-                    && StringUtils.isNotBlank(tableReport.getFinalMetricsJson())
+            String metricsJson = finalized
                     ? tableReport.getFinalMetricsJson()
                     : tableReport.getLatestMetricsJson();
+            if (StringUtils.isBlank(metricsJson)) {
+                continue;
+            }
             DataSyncTableMetrics metrics = JSONUtils.parseObject(metricsJson, DataSyncTableMetrics.class);
             if (metrics != null) {
                 tables.add(metrics);
@@ -162,6 +165,19 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
 
     private void upsertTableReports(
             DataSyncReportRequest request, long collectedAt, Date now, boolean finalReport) {
+        // A report is a complete table-level snapshot. Clear previous values first so
+        // tables missing from this collection are not presented as current or final data.
+        for (DataSyncTableReport existing : tableReportDao.queryByExecutionId(request.getExecutionId())) {
+            existing.setLatestMetricsJson(null);
+            existing.setLatestSequence(request.getSequence());
+            existing.setLatestCollectedAt(collectedAt);
+            existing.setUpdateTime(now);
+            if (finalReport) {
+                existing.setFinalMetricsJson(null);
+                existing.setFinalCollectedAt(collectedAt);
+            }
+            tableReportDao.updateById(existing);
+        }
         if (request.getTables() == null) {
             return;
         }
