@@ -28,8 +28,7 @@ export const canCancelTaskInstance = (status: TaskInstanceStatus): boolean =>
   status === "SUBMITTED_SUCCESS" ||
   status === "DISPATCH" ||
   status === "RUNNING_EXECUTION" ||
-  status === "DELAY_EXECUTION" ||
-  status === "NEED_FAULT_TOLERANCE";
+  status === "DELAY_EXECUTION";
 
 /**
  * Resolve the stop target from the current task lifecycle, never from a
