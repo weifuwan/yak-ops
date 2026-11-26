@@ -17,7 +17,7 @@ Instance actions lock both the task-instance row and its task-definition row. Or
 
 ## Checkpoint collection
 
-The DataSync pipeline builder supplies these defaults under `pipeline.flink-conf`, while preserving user overrides:
+The DataSync pipeline builder supplies these defaults under `pipeline.flink-conf`. The interval and directory can be customized; the storage backend and retention mode are validated because non-durable settings would make persisted restore paths unsafe:
 
 - `execution.checkpointing.interval: 30s`
 - `execution.checkpointing.num-retained: 3` (user values below three are raised to three so the Master never advertises a checkpoint Flink has already discarded)

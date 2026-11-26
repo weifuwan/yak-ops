@@ -97,6 +97,12 @@ public final class DataSyncPipelineBuilder {
         if (!flinkConf.has("execution.checkpointing.interval")) {
             flinkConf.put("execution.checkpointing.interval", "30s");
         }
+        String interval = flinkConf.path("execution.checkpointing.interval").asText().replaceAll("\\s+", "");
+        if (interval.isEmpty() || interval.matches("(?i)^0+(\\.0+)?(ms|s|m|min|h|d)?$")
+                || "PT0S".equalsIgnoreCase(interval)) {
+            throw new IllegalArgumentException(
+                    "pipeline.flink-conf.execution.checkpointing.interval must be a positive duration");
+        }
         if (!flinkConf.has("execution.checkpointing.num-retained")) {
             flinkConf.put("execution.checkpointing.num-retained", 3);
         } else {

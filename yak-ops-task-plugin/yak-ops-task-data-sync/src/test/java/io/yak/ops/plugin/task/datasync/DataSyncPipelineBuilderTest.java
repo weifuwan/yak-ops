@@ -2,6 +2,7 @@ package io.yak.ops.plugin.task.datasync;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.common.utils.JSONUtils;
@@ -54,6 +55,17 @@ class DataSyncPipelineBuilderTest {
                 .path("execution.checkpointing.dir").asText().startsWith("file:"));
         assertEquals("drop.column", pipeline.path("sink").path("exclude.schema.changes").get(0).asText());
         assertFalse(yaml.contains("datasource-id"));
+    }
+
+    @Test
+    void rejectsDisabledCheckpointingInterval() {
+        DataSyncParameters parameters = DataSyncParametersTest.valid();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) parameters.getDefinition().path("pipeline"))
+                .putObject("flink-conf")
+                .put("execution.checkpointing.interval", "0s");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new DataSyncPipelineBuilder().build(context(), parameters));
     }
 
     @Test
