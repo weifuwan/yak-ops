@@ -90,15 +90,15 @@ function SettingsSelect({
 }
 
 /**
- * An environment without explicit worker-group bindings is available to all
- * worker groups. Bound environments are only offered to their assigned groups.
+ * An environment must be explicitly bound to the selected worker group.
+ * An environment without worker-group bindings is not selectable.
  */
 export function isEnvironmentAvailableForWorkerGroup(
   environment: Pick<EnvironmentRecord, "workerGroups">,
   workerGroup: string,
 ): boolean {
   const workerGroups = environment.workerGroups ?? [];
-  return workerGroups.length === 0 || workerGroups.includes(workerGroup);
+  return Boolean(workerGroup) && workerGroups.length > 0 && workerGroups.includes(workerGroup);
 }
 
 export function ExecutionResourceFields({
