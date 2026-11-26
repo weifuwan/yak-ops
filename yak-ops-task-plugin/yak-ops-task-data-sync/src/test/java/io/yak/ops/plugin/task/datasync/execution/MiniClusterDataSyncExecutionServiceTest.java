@@ -48,9 +48,9 @@ class MiniClusterDataSyncExecutionServiceTest {
     }
 
     private static void awaitState(
-            MiniClusterDataSyncExecutionService service,
-            DataSyncExecutionHandle handle,
-            DataSyncExecutionState expected) throws Exception {
+                                   MiniClusterDataSyncExecutionService service,
+                                   DataSyncExecutionHandle handle,
+                                   DataSyncExecutionState expected) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
         DataSyncExecutionState state = service.queryState(handle);
         while (state != expected && System.nanoTime() < deadline) {
