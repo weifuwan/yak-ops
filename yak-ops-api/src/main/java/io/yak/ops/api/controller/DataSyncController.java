@@ -173,9 +173,9 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/instances/{id}/report")
     public Result<DataSyncExecutionReportVO> getInstanceReport(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable long projectCode,
-            @PathVariable int id) {
+                                                               @RequestAttribute(Constants.SESSION_USER) User user,
+                                                               @PathVariable long projectCode,
+                                                               @PathVariable int id) {
         return Result.success(dataSyncService.getInstanceReport(user, projectCode, id));
     }
 
