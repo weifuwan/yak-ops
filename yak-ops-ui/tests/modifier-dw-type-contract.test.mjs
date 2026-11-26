@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { buildModifierTree } from "../apps/web/app/data-modeling/indicators/workbench/utils/indicator-tree.ts";
+import ts from "typescript";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(join(root, path), "utf8");
@@ -17,6 +17,24 @@ const po = read("../../yak-ops-dao/src/main/java/io/yak/ops/dao/entity/ModifierP
 const vo = read("../../yak-ops-modeling/src/main/java/io/yak/ops/modeling/api/vo/modifier/ModifierVO.java");
 const resources = read("../apps/web/service/data-modeling/indicators/index.ts");
 const optionResolver = read("../apps/web/service/data-modeling/indicators/options.ts");
+const indicatorTreeSource = read("../apps/web/app/data-modeling/indicators/workbench/utils/indicator-tree.ts");
+const executableTreeSource = indicatorTreeSource.replace(
+  'import { recordName } from "./indicator-form";',
+  `const recordName = (record) => {
+    const candidates = [record.businessName, record.domainName, record.martName, record.processName, record.cnName, record.name, record.enShortName];
+    const value = candidates.find((item) => item !== undefined && item !== null && String(item).trim() !== "");
+    return value === undefined ? String(record.id || "未命名") : String(value);
+  };`,
+);
+if (executableTreeSource === indicatorTreeSource) {
+  throw new Error("Could not prepare the indicator tree module for the Node test runner");
+}
+const transpiledTree = ts.transpileModule(executableTreeSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+});
+const { buildModifierTree } = await import(
+  `data:text/javascript;base64,${Buffer.from(transpiledTree.outputText).toString("base64")}`
+);
 
 test("modifier form stores an optional warehouse classification enum, not a concrete layer ID", () => {
   assert.match(config, /key: "dwType".*label: "数仓分类".*options: MODIFIER_DW_TYPE_OPTIONS/);
