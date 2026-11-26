@@ -108,6 +108,11 @@ public class DorisDdlGenerator {
         return formatter.format(ddl);
     }
 
+    /** Returns the Doris physical type for schema diagnostics and verification. */
+    public String toDorisType(DdlColumnDefinition column) {
+        return connectorAdapter.toDorisType(column);
+    }
+
     public boolean matches(DorisColumnMetadata actual, DdlColumnDefinition expected) {
         if (!matchesType(actual, expected)) {
             return false;
@@ -118,7 +123,7 @@ public class DorisDdlGenerator {
 
     /** Compares the Doris physical type and its parameters without enforcing nullability. */
     public boolean matchesType(DorisColumnMetadata actual, DdlColumnDefinition expected) {
-        String expectedType = connectorAdapter.toDorisType(expected);
+        String expectedType = toDorisType(expected);
         String expectedBase = normalizeTypeName(expectedType);
         if (!expectedBase.equals(normalizeTypeName(actual.getTypeName()))) {
             return false;
