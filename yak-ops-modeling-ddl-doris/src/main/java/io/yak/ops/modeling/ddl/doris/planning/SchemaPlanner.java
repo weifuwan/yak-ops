@@ -1,6 +1,8 @@
 package io.yak.ops.modeling.ddl.doris.planning;
 
 import io.yak.ops.modeling.ddl.doris.model.DorisTableModel;
+import io.yak.ops.modeling.ddl.doris.schema.DdlGenerator;
+import io.yak.ops.modeling.ddl.doris.schema.SchemaInspector;
 import io.yak.ops.modeling.ddl.model.DdlPublishMode;
 import io.yak.ops.modeling.ddl.doris.schema.DdlGenerator;
 import io.yak.ops.modeling.ddl.doris.schema.SchemaInspector;
@@ -27,20 +29,20 @@ public class SchemaPlanner {
 
     private final SchemaInspector inspector;
     private final DdlGenerator generator;
-    private final ReplicationPolicy backendInspector;
+    private final ReplicationPolicy replicationPolicy;
 
-    public DorisSchemaPlanner(DorisSchemaInspector inspector, DorisDdlGenerator generator) {
-        this(inspector, generator, new DorisBackendInspector());
+    public DorisSchemaPlanner(SchemaInspector inspector, DdlGenerator generator) {
+        this(inspector, generator, new ReplicationPolicy());
     }
 
     @Autowired
-    public DorisSchemaPlanner(
-            DorisSchemaInspector inspector,
-            DorisDdlGenerator generator,
-            DorisBackendInspector backendInspector) {
+    public SchemaPlanner(
+            SchemaInspector inspector,
+            DdlGenerator generator,
+            ReplicationPolicy replicationPolicy) {
         this.inspector = inspector;
         this.generator = generator;
-        this.backendInspector = backendInspector;
+        this.replicationPolicy = replicationPolicy;
     }
 
     public DdlPlan plan(
@@ -53,10 +55,10 @@ public class SchemaPlanner {
         if (request.getPublishMode() == DdlPublishMode.DROP_RECREATE) {
             boolean exists = inspector.tableExists(
                     connection, catalog, request.getTable().getDatabase(), request.getTable().getTableName());
-            ReplicationPlan replication = backendInspector.resolve(
+            ReplicationPlan replication = replicationPolicy.resolve(
                     connection, request.getOptions(DorisOptions.class).getReplicationNum());
             String createDdl = generator.generateCreateTableDdl(
-                    request.getTable(), request.getTableModel(), replication.getReplicationNum());
+                    request.getTable(), request.getOptions(DorisOptions.class).getTableModel(), replication.getReplicationNum());
             statements.add("DROP TABLE IF EXISTS " + qualifiedTable);
             statements.add(createDdl);
             return createPlan(statements, keyFields, replication, exists);
@@ -65,8 +67,8 @@ public class SchemaPlanner {
         DorisPhysicalTable physical = inspector.inspect(
                 connection, catalog, request.getTable().getDatabase(), request.getTable().getTableName());
         if (physical == null) {
-            DorisReplicationPlan replication = backendInspector.resolve(
-                    connection, request.getReplicationNum());
+            ReplicationPlan replication = replicationPolicy.resolve(
+                    connection, request.getOptions(DorisOptions.class).getReplicationNum());
             String createDdl = generator.generateCreateTableDdl(
                     request.getTable(), request.getTableModel(), replication.getReplicationNum());
             statements.add(createDdl);
@@ -88,7 +90,7 @@ public class SchemaPlanner {
             if (expectedColumns.containsKey(actualEntry.getKey())) {
                 continue;
             }
-            DorisColumnMetadata actualColumn = actualEntry.getValue();
+            DdlColumnMetadata actualColumn = actualEntry.getValue();
             if (actualColumn.isPrimaryKey() || physical.getProtectedColumns().contains(actualEntry.getKey())) {
                 throw new IllegalArgumentException(
                         "目标表存在模型中已删除的 Key、分区或分桶字段: " + actualColumn.getName()
@@ -102,7 +104,7 @@ public class SchemaPlanner {
         }
 
         for (Map.Entry<String, DdlColumnDefinition> expected : expectedColumns.entrySet()) {
-            DorisColumnMetadata actual = physical.getColumns().get(expected.getKey());
+            DdlColumnMetadata actual = physical.getColumns().get(expected.getKey());
             DdlColumnDefinition column = expected.getValue();
             if (actual == null) {
                 if (column.isPrimaryKey() || containsIdentifier(keyFields, column.getName())) {
@@ -144,7 +146,7 @@ public class SchemaPlanner {
     }
 
     private void validatePhysicalTableModel(
-            DorisPhysicalTableMetadata physical,
+            DorisPhysicalTable physical,
             DorisTableModel expectedModel,
             List<String> expectedKeyFields) {
         if (physical.getTableModel() != expectedModel) {
@@ -159,13 +161,13 @@ public class SchemaPlanner {
         }
     }
 
-    private boolean hasSchemaDrift(DorisDdlRequest request, DorisPhysicalTableMetadata physical) {
+    private boolean hasSchemaDrift(DdlRequest request, DorisPhysicalTable physical) {
         if (request.getOptions(DorisOptions.class).getPreviousTableModel() != null
-                && request.getPreviousTableModel() != physical.getTableModel()) {
+                && request.getOptions(DorisOptions.class).getPreviousTableModel() != physical.getTableModel()) {
             return true;
         }
         if (!request.getOptions(DorisOptions.class).getPreviousKeyFields().isEmpty()
-                && !sameIdentifiers(request.getPreviousKeyFields(), physical.getKeyFields())) {
+                && !sameIdentifiers(request.getOptions(DorisOptions.class).getPreviousKeyFields(), physical.getKeyFields())) {
             return true;
         }
         String previousSchema = normalizeSchema(request.getOptions(DorisOptions.class).getPreviousPhysicalSchema());
@@ -199,7 +201,7 @@ public class SchemaPlanner {
     private DdlPlan createPlan(
             List<String> statements,
             List<String> keyFields,
-            DorisReplicationPlan replication,
+            ReplicationPlan replication,
             boolean targetTableExists) {
         return new DdlPlan(
                 String.join(";\n\n", statements) + ";",
