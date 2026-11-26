@@ -4,9 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { ScheduleDialog } from "@/app/schedule/dialog/schedule-dialog";
 import { useTaskSchedules } from "@/app/schedule/use-task-schedules";
-import { canManageTaskDefinition } from "@/service/data-sync/execution";
 import {
-  canStopWorkflow, getDataSyncWorkflowInstance, isWorkflowActive, workflowStatusText,
+  getCancelableDataSyncWorkflowInstanceId,
+  canManageTaskDefinition,
+} from "@/service/data-sync/execution";
+import {
+  getDataSyncWorkflowInstance, isWorkflowActive, workflowStatusText,
 } from "@/service/data-sync";
 import { useActiveTaskInstance } from "./use-active-task-instance";
 import { ExecutionSidebar } from "./execution-sidebar";
@@ -15,6 +18,7 @@ import { ExecutionTabs } from "./execution-tabs";
 import { useTaskInformation, useDetailScope } from "./use-task-information";
 import { useExecutionHistory } from "./use-execution-history";
 import { useExecutionActions } from "./use-execution-actions";
+import { dataSyncInstanceStatusMeta } from "../execution/execution-detail";
 
 export function DataSyncTaskDetailPage() {
   const basePath = "/data-sync";
@@ -72,11 +76,11 @@ export function DataSyncTaskDetailPage() {
   });
   const selectedWorkflow = workflowDetailQuery.data ??
     (workflow && String(workflow.id) === workflowInstanceId ? workflow : undefined);
+  const cancelWorkflowInstanceId = getCancelableDataSyncWorkflowInstanceId(workflow, activeInstance);
   const { run, cancel, copyTaskId, running, canceling, pendingWorkflowInstanceId } = useExecutionActions({
     taskId,
     task,
     canStart,
-    selectedInstance,
     activeInstance,
     workflow,
     refreshActiveInstances,
@@ -139,13 +143,15 @@ export function DataSyncTaskDetailPage() {
                 activeWorkflow || activeInstance || pendingWorkflowInstanceId ? (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-[var(--yak-components-muted-text)]">
-                      {activeInstance?.status === "RUNNING_EXECUTION"
-                        ? "运行中"
-                        : workflow
-                          ? workflowStatusText(workflow.state)
-                          : "启动中"}
+                      {pendingWorkflowInstanceId
+                        ? "启动中"
+                        : activeInstance
+                          ? dataSyncInstanceStatusMeta(activeInstance.status, realtime).label
+                          : workflow
+                            ? workflowStatusText(workflow.state)
+                            : "启动中"}
                     </span>
-                    {workflow && canStopWorkflow(workflow.state) ? (
+                    {cancelWorkflowInstanceId ? (
                       <Button variant="secondary" size="sm" isPending={canceling} onClick={() => void cancel()}>
                         停止
                       </Button>
@@ -202,8 +208,6 @@ export function DataSyncTaskDetailPage() {
               onAutoRefreshChange={setAutoRefresh}
               refreshing={refreshing}
               onRefresh={() => void refreshExecution()}
-              canceling={canceling}
-              onCancel={() => void cancel()}
               onViewScheduleHistory={(id) => {
                 setHistoryScheduleId(id);
                 setScheduleOpen(true);
