@@ -7,7 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.yak.ops.modeling.ddl.model.DorisReplicationPlan;
+import io.yak.ops.modeling.ddl.doris.model.ReplicationPlan;
+import io.yak.ops.modeling.ddl.doris.planning.ReplicationPolicy;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -16,9 +17,9 @@ import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class DorisBackendInspectorTest {
+class ReplicationPolicyTest {
 
-    private final DorisBackendInspector inspector = new DorisBackendInspector();
+    private final ReplicationPolicy inspector = new ReplicationPolicy();
 
     @Test
     void shouldAutoSelectReplicaCountFromHealthyDefaultTagBackends() throws Exception {
@@ -33,7 +34,7 @@ class DorisBackendInspectorTest {
                     "{\"location\" : \"online\"}"
                 });
 
-        DorisReplicationPlan plan = inspector.resolve(connection, null);
+        ReplicationPlan plan = inspector.resolve(connection, null);
 
         assertEquals(2, plan.getAvailableBackendCount());
         assertEquals(2, plan.getReplicationNum());
@@ -52,7 +53,7 @@ class DorisBackendInspectorTest {
                     "{\"location\" : \"default\"}"
                 });
 
-        DorisReplicationPlan plan = inspector.resolve(connection, null);
+        ReplicationPlan plan = inspector.resolve(connection, null);
 
         assertEquals(4, plan.getAvailableBackendCount());
         assertEquals(3, plan.getReplicationNum());
@@ -81,7 +82,7 @@ class DorisBackendInspectorTest {
         Connection connection = mock(Connection.class);
         when(connection.createStatement()).thenThrow(new SQLException("permission denied"));
 
-        DorisReplicationPlan plan = inspector.resolve(connection, 1);
+        ReplicationPlan plan = inspector.resolve(connection, 1);
 
         assertEquals(1, plan.getReplicationNum());
         assertNull(plan.getAvailableBackendCount());
