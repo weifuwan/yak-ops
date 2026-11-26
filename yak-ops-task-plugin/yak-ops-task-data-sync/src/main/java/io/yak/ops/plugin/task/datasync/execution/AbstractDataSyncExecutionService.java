@@ -17,7 +17,8 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
 
     @Override
     public final DataSyncExecutionHandle submit(
-            FlinkPipelineExecution execution, String executionId, int taskInstanceId) throws Exception {
+                                                  FlinkPipelineExecution execution, String executionId,
+                                                  int taskInstanceId) throws Exception {
         if (execution == null || executionId == null || executionId.trim().isEmpty()) {
             throw new IllegalArgumentException("Execution and executionId are required");
         }
@@ -51,7 +52,8 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
     }
 
     protected abstract DataSyncExecutionHandle doSubmit(
-            FlinkPipelineExecution execution, String executionId, int taskInstanceId) throws Exception;
+                                                          FlinkPipelineExecution execution, String executionId,
+                                                          int taskInstanceId) throws Exception;
 
     protected abstract DataSyncExecutionState doQueryState(DataSyncExecutionHandle handle) throws Exception;
 
