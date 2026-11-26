@@ -132,6 +132,30 @@ public class TaskInstanceMapperTest extends BaseDaoTest {
         }
     }
 
+    @Test
+    public void testQueryByProjectAndTaskTypeOnlyReturnsValidDataSyncInstances() {
+        WorkflowInstance workflowInstance = insertProcessInstance();
+        long taskCode = 990002L;
+        TaskInstance validInstance = insertDataSyncTaskInstance(
+                workflowInstance.getId(), taskCode, TaskExecutionStatus.KILL, Flag.YES);
+        TaskInstance invalidInstance = insertDataSyncTaskInstance(
+                workflowInstance.getId(), taskCode, TaskExecutionStatus.NEED_FAULT_TOLERANCE, Flag.NO);
+
+        try {
+            IPage<TaskInstance> page = taskInstanceMapper.queryByProjectAndTaskType(
+                    new Page<>(1, 10), 1L, "DATA_SYNC", taskCode, null, null);
+
+            Assertions.assertEquals(1, page.getTotal());
+            Assertions.assertEquals(1, page.getRecords().size());
+            Assertions.assertEquals(validInstance.getId(), page.getRecords().get(0).getId());
+            Assertions.assertEquals(Flag.YES, page.getRecords().get(0).getFlag());
+        } finally {
+            taskInstanceMapper.deleteById(invalidInstance.getId());
+            taskInstanceMapper.deleteById(validInstance.getId());
+            workflowInstanceMapper.deleteById(workflowInstance.getId());
+        }
+    }
+
     /**
      * test update
      */
