@@ -425,7 +425,8 @@ public class ExecutorServiceImpl extends BaseServiceImpl implements ExecutorServ
                         ? "default" : sourceWorkflowInstance.getTenantCode())
                 .environmentCode(sourceWorkflowInstance.getEnvironmentCode())
                 .startParamList(startParamList)
-                .dryRun(sourceWorkflowInstance.getDryRun() > 0 ? Flag.YES : Flag.NO)
+                .dryRun(sourceWorkflowInstance.getDryRun() != null && sourceWorkflowInstance.getDryRun() > 0
+                        ? Flag.YES : Flag.NO)
                 .build();
         triggerWorkflowDTOValidator.validate(triggerWorkflowDTO);
         return executorClient.triggerWorkflowDefinition().execute(triggerWorkflowDTO);
