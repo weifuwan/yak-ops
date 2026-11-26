@@ -69,12 +69,13 @@ jobs:
       - name: Data modeling E2E regression contract tests
         working-directory: yak-ops-ui
         run: npm run test:modeling-e2e-regression
+      - name: Data modeling overview visual contract tests
+        working-directory: yak-ops-ui
+        run: npm run test:modeling-overview
       - name: Workflow logic node branch contract tests
         working-directory: yak-ops-ui
         run: npm run test:workflow-logic
       - name: Shell task editor contract tests
         working-directory: yak-ops-ui
         run: npm run test:shell-editor
-      - name: Data modeling overview visual contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:modeling-overview
+
