@@ -143,7 +143,12 @@ public class DataSyncExecutionCoordinator {
     private void dispatchCancellation() throws Exception {
         DataSyncExecutionHandle current = handle;
         if (current != null && cancelDispatched.compareAndSet(false, true)) {
-            executionService.cancel(current);
+            try {
+                executionService.cancel(current);
+            } catch (Exception exception) {
+                cancelDispatched.set(false);
+                throw exception;
+            }
         }
     }
 
@@ -249,7 +254,10 @@ public class DataSyncExecutionCoordinator {
                 .build();
         try {
             DataSyncReportAck ack = reportPublisher.publish(request);
-            if (!ack.isAccepted()) {
+            if (ack == null) {
+                log.warn("Master returned an empty CDC report acknowledgement, executionId={}, sequence={}",
+                        current.getExecutionId(), sequence);
+            } else if (!ack.isAccepted()) {
                 log.warn("Master rejected CDC report, executionId={}, sequence={}, result={}, message={}",
                         current.getExecutionId(), sequence, ack.getResult(), ack.getMessage());
             }
