@@ -60,10 +60,13 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
                     .submittedAt(System.currentTimeMillis())
                     .build();
         } catch (Exception exception) {
-            if (client != null) {
-                client.close();
+            try {
+                if (client != null) {
+                    client.close();
+                }
+            } finally {
+                miniCluster.closeAsync().get(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             }
-            miniCluster.closeAsync().get(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             throw exception;
         }
     }
