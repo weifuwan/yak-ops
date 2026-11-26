@@ -215,12 +215,14 @@ export function ExecutionResourceFields({
             disabled={
               disabled ||
               workerGroupsQuery.isPending ||
-              workerGroupsQuery.isError
+              workerGroupsQuery.isError ||
+              environmentsQuery.isPending ||
+              environmentsQuery.isError
             }
             onChange={handleWorkerGroupChange}
             placeholder={
-              workerGroupsQuery.isPending
-                ? "正在加载 Worker 分组"
+              workerGroupsQuery.isPending || environmentsQuery.isPending
+                ? "正在加载执行资源"
                 : "请选择 Worker 分组"
             }
           />
