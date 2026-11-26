@@ -6,6 +6,7 @@ import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MetricOptions;
 import org.apache.flink.configuration.RestOptions;
+import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 
@@ -14,8 +15,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 
 /** MiniCluster-backed execution service used by the current embedded deployment. */
 public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecutionService {
