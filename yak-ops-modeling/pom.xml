@@ -34,54 +34,20 @@
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-dao</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-modeling-ddl-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-modeling-ddl-doris</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-datasource-api</artifactId>
         </dependency>
 
-        <!-- Same published Doris SDK artifact and version used by Yak-OPS Flink CDC. -->
-        <dependency>
-            <groupId>org.apache.doris</groupId>
-            <artifactId>flink-doris-connector-1.20</artifactId>
-            <version>25.1.0</version>
-            <exclusions>
-                <!-- Commons Lang is centrally versioned by the Yak-OPS BOM (3.17.0). -->
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-lang3</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-core</artifactId>
-            <version>1.20.3</version>
-            <exclusions>
-                <!-- Commons Lang is centrally versioned by the Yak-OPS BOM (3.17.0). -->
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-lang3</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-table-common</artifactId>
-            <version>1.20.3</version>
-            <exclusions>
-                <!-- Commons Lang is centrally versioned by the Yak-OPS BOM (3.17.0). -->
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-lang3</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>commons-collections</groupId>
-            <artifactId>commons-collections</artifactId>
-            <version>3.2.2</version>
-        </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
