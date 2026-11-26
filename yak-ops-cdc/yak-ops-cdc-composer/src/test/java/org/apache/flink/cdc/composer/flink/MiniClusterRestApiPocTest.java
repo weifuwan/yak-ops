@@ -4,6 +4,7 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.MetricOptions;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.runtime.jobgraph.JobGraph;
@@ -21,6 +22,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,7 +50,7 @@ class MiniClusterRestApiPocTest {
             String restUrl = client.getWebInterfaceURL();
             assertTrue(restUrl.startsWith("http://"), "MiniCluster must expose an HTTP REST URL");
 
-            JobGraph jobGraph = createJobGraph(8_000L, false);
+            JobGraph jobGraph = createJobGraph(5_000L, false);
             JobID jobId = client.submitJob(jobGraph).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             JobVertex source = findVertex(jobGraph, "p0-source");
             JobVertex sink = findVertex(jobGraph, "p0-sink");
@@ -105,7 +107,7 @@ class MiniClusterRestApiPocTest {
         MiniClusterClient client = new MiniClusterClient(new Configuration(), miniCluster);
         try {
             String restUrl = client.getWebInterfaceURL();
-            JobGraph jobGraph = createJobGraph(1_500L, true);
+            JobGraph jobGraph = createJobGraph(5_000L, true);
             JobID jobId = client.submitJob(jobGraph).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             JobVertex source = findVertex(jobGraph, "p0-source");
             JobVertex sink = findVertex(jobGraph, "p0-sink");
@@ -126,6 +128,7 @@ class MiniClusterRestApiPocTest {
         Configuration configuration = new Configuration();
         configuration.set(RestOptions.ADDRESS, "127.0.0.1");
         configuration.set(RestOptions.BIND_ADDRESS, "127.0.0.1");
+        configuration.set(MetricOptions.METRIC_FETCHER_UPDATE_INTERVAL, Duration.ofMillis(100));
 
         MiniClusterConfiguration miniClusterConfiguration =
                 new MiniClusterConfiguration.Builder()
@@ -171,14 +174,14 @@ class MiniClusterRestApiPocTest {
             String restUrl, JobID jobId, JobVertex vertex, String metricName, long expected)
             throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        Exception lastException = null;
+        Throwable lastException = null;
         while (System.nanoTime() < deadline) {
             try {
                 long actual = sumSubtaskMetric(restUrl, jobId, vertex, metricName);
                 if (actual == expected) {
                     return;
                 }
-            } catch (Exception exception) {
+            } catch (Exception | AssertionError exception) {
                 lastException = exception;
             }
             Thread.sleep(200L);
@@ -212,14 +215,14 @@ class MiniClusterRestApiPocTest {
                 return metricId;
             }
         }
-        throw new AssertionError(
+        throw new IllegalStateException(
                 "Metric " + metricName + " was not present in REST metric list: " + response);
     }
 
     private static long findMetricValue(String response) {
         Matcher matcher = Pattern.compile("\"value\"\\s*:\\s*\"?(\\d+)\"?").matcher(response);
         if (!matcher.find()) {
-            throw new AssertionError("Metric value was not present in REST response: " + response);
+            throw new IllegalStateException("Metric value was not present in REST response: " + response);
         }
         return Long.parseLong(matcher.group(1));
     }
