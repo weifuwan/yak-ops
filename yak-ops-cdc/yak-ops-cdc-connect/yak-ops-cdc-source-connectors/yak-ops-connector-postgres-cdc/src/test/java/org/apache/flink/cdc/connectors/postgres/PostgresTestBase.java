@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
 
@@ -65,6 +66,7 @@ import static java.lang.Thread.sleep;
  * Basic class for testing PostgreSQL source, this contains a PostgreSQL container which enables wal
  * log.
  */
+@Testcontainers(disabledWithoutDocker = true)
 public abstract class PostgresTestBase extends AbstractTestBase {
     protected static final Logger LOG = LoggerFactory.getLogger(PostgresTestBase.class);
     public static final Pattern COMMENT_PATTERN = Pattern.compile("^(.*)--.*$");
