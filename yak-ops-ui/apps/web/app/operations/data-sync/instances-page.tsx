@@ -271,13 +271,13 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-[var(--yak-components-table-border)] bg-white">
+      <div className="min-h-0 flex-1">
         <Table<DataSyncInstanceSummary>
           className="min-h-full [&_th]:!bg-[#fafafa] [&_th]:!text-[var(--yak-components-muted-text)]"
           columns={columns}
           dataSource={query.data?.totalList ?? []}
           rowKey="id"
-          bordered={false}
+          bordered
           size="medium"
           loading={query.isPending}
           scroll={{ x: 1080 }}
