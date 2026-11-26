@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 
-import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -24,6 +24,7 @@ class MiniClusterDataSyncExecutionServiceTest {
         environment.addSource(new BlockingSource())
                 .name("data-sync-lifecycle-source")
                 .addSink(new RichSinkFunction<Long>() {
+
                     @Override
                     public void invoke(Long value, Context context) {
                         // The test only needs a running sink operator.
