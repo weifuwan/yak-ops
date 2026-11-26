@@ -19,12 +19,4 @@ public abstract class AbstractDdlDialect implements DdlDialect {
         return optionType.cast(options);
     }
 
-    protected String quoteIdentifier(String value, char quote) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException("数据库标识符不能为空");
-        }
-        String escaped = String.valueOf(quote) + value.replace(String.valueOf(quote), String.valueOf(quote) + quote)
-                + quote;
-        return escaped;
-    }
 }
