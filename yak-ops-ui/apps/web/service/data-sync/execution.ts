@@ -17,8 +17,7 @@ export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
   status === "SUBMITTED_SUCCESS" ||
   status === "DISPATCH" ||
   status === "RUNNING_EXECUTION" ||
-  status === "DELAY_EXECUTION" ||
-  status === "NEED_FAULT_TOLERANCE";
+  status === "DELAY_EXECUTION";
 
 export const canManageTaskDefinition = (
   ready: boolean,
