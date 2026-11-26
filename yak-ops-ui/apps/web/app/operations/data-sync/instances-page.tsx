@@ -206,7 +206,8 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
   ];
 
   return (
-    <OperationsPageShell
+    <>
+      <OperationsPageShell
       title={syncType === "REALTIME" ? "实时实例" : "离线实例"}
       extra={<Button size="sm" variant="secondary" onClick={() => void query.refetch()}>刷新</Button>}
     >
@@ -305,13 +306,14 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
         {confirmAction ? (
           <div className="space-y-2 text-sm">
             <p>{ACTION_DESCRIPTIONS[confirmAction.action]}</p>
-            <div className="rounded-md bg-[var(--yak-components-panel-subtle)] px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
+            <div className="rounded-md bg-[#f7f8fa] px-3 py-2 text-xs text-[var(--yak-components-muted-text)]">
               <div>任务：{confirmAction.instance.taskName || `同步任务 #${confirmAction.instance.taskId}`}</div>
               <div className="mt-1">实例：#{confirmAction.instance.id}</div>
             </div>
           </div>
         ) : null}
       </Modal>
+    </>
   );
 }
 
