@@ -62,6 +62,8 @@ operations:
     description: |
       校验 pipeline 参数并渲染生成的 YAML，不产生任何写入。创建或修改任务前必须先预览，
       以便尽早发现参数错误并向用户展示将要生成的内容。
+      parameters_json 必须是 {"definition":{"source":{},"sink":{},"route":[],"pipeline":{}}}
+      的 JSON 对象文本；完整骨架与字段规则见技能 data-sync-create，项目没有现成任务时也用它。
     params:
       - { name: parameters_json, type: string, required: true, description: pipeline 参数字符串（JSON 对象），通常从 get_sync_task 复制后修改, location: body, as: parameters, json: true }
       - { name: name, type: string, required: false, description: 预览使用的任务名, location: body, default: preview }
@@ -200,6 +202,8 @@ operations:
     summary: 创建数据同步任务（需确认）
     description: |
       创建新的数据同步任务。参数可从已有任务（get_sync_task）复制并修改，且必须先通过 preview_sync_task 校验。
+      parameters_json 的结构是 {"definition":{"source":{},"sink":{},"route":[],"pipeline":{}}}；
+      项目没有现成任务时使用技能 data-sync-create 的骨架，禁止猜字段层级。
       新建任务的 datasource-id、database、表名和字段必须来自数据源目录工具
       （list_data_sources / get_data_source / list_data_source_tables / list_data_source_columns），禁止编造。
       新建任务默认离线（OFFLINE），需发布后才可被执行。
@@ -217,6 +221,7 @@ operations:
     description: |
       修改任务定义。先 get_sync_task 读当前定义，修改 parameters，经 preview 校验后提交；
       必须带上任务当前 revision 作为 expectedRevision（乐观锁，过期会被服务端拒绝）。
+      parameters_json 结构见技能 data-sync-create。
     params:
       - { name: task_code, type: integer, required: true, description: 任务编码, location: path }
       - { name: parameters_json, type: string, required: true, description: 完整 pipeline 参数字符串（JSON 对象）, location: body, as: parameters, json: true }
