@@ -61,12 +61,13 @@ export function TableExecutionResults({
     ? report.version === 1
       ? report.tables.some((table) => table.step === "INCREMENTAL")
       : report.stages.some((stage) => stage.step === "INCREMENTAL")
-    : record.steps.includes("INCREMENTAL");
+    : false;
   const hasFull = report
     ? report.version === 1
       ? report.tables.some((table) => table.step === "FULL")
       : report.stages.some((stage) => stage.step === "FULL")
-    : record.steps.includes("FULL");
+    : false;
+  const hasSchema = Boolean(report && record.steps.includes("SCHEMA"));
 
   const rows: TableExecutionRow[] = mappings.map((mapping, index) => {
     const stageTable =
@@ -126,7 +127,7 @@ export function TableExecutionResults({
       minWidth: 180,
       render: (_value, row) => <span className="break-all">{row.target}</span>,
     },
-    ...(record.steps.includes("SCHEMA")
+    ...(hasSchema
       ? [
           {
             key: "schema",
@@ -333,8 +334,8 @@ export function TableExecutionResults({
       size="small"
       scroll={{
         x:
-          (showCdcMetrics ? 1550 : 1180) +
-          (record.steps.includes("SCHEMA") ? 150 : 0) +
+          (showCdcMetrics ? 1600 : 1180) +
+          (hasSchema ? 150 : 0) +
           (hasFull ? 150 : 0) +
           (hasIncremental ? 150 : 0),
       }}

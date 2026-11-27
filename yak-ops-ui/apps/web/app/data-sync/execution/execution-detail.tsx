@@ -115,6 +115,7 @@ const TABLE_SKELETON_WIDTHS = [
   24,
   24,
   24,
+  24,
   28,
   20,
   "82%",
@@ -147,15 +148,15 @@ export function DataSyncExecutionDetailSkeleton({ controls }: { controls?: React
       </div>
 
       <div className="min-w-0 overflow-x-auto pt-4">
-        <div className="min-w-[1640px]">
-          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_75px_90px_90px_90px_75px_75px_75px_90px_70px_160px_160px_80px] items-center gap-3 bg-[#f2f4f7] px-3 py-2">
+        <div className="min-w-[1820px]">
+          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_75px_90px_90px_90px_75px_75px_75px_80px_90px_70px_160px_160px_80px] items-center gap-3 bg-[#f2f4f7] px-3 py-2">
             {TABLE_SKELETON_WIDTHS.map((width, index) => (
               <div key={index} className="min-w-0">
                 <Skeleton width={width} height={12} />
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_75px_90px_90px_90px_75px_75px_75px_90px_70px_160px_160px_80px] items-center gap-3 border-b border-[#eef0f3] px-3 py-3">
+          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_75px_90px_90px_90px_75px_75px_75px_80px_90px_70px_160px_160px_80px] items-center gap-3 border-b border-[#eef0f3] px-3 py-3">
             {TABLE_SKELETON_WIDTHS.map((width, index) => (
               <div key={index} className="min-w-0">
                 <Skeleton width={width} height={12} />
