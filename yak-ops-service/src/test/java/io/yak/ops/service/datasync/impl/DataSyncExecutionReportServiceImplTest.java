@@ -250,6 +250,13 @@ class DataSyncExecutionReportServiceImplTest {
         when(tableReportDao.queryByExecutionIdAndPartialTableMapping(
                 "execution-1", "source_db.orders", "target_db.orders_target"))
                 .thenReturn(legacy);
+        when(tableReportDao.clearSnapshotFields(
+                org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.Date.class),
+                org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(1);
 
         DataSyncReportRequest request = request(2L, "SNAPSHOT");
         request.setTables(java.util.Collections.singletonList(DataSyncTableMetrics.builder()
