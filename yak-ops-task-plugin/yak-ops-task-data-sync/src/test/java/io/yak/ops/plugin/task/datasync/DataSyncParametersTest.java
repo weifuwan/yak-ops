@@ -140,6 +140,26 @@ class DataSyncParametersTest {
         assertFalse(mappings.get(0).isDatabaseScope());
     }
 
+
+    @Test
+    void exposesDatabaseScopeMappingPattern() {
+        DataSyncParameters parameters = valid();
+        ObjectNode definition = (ObjectNode) parameters.getDefinition();
+        ((ObjectNode) definition.path("source")).put("tables", "src_db.*");
+        definition.putArray("route")
+                .addObject()
+                .put("source-table", "src_db.*")
+                .put("sink-table", "dst_db.<>")
+                .put("replace-symbol", "<>");
+
+        List<DataSyncTableMapping> mappings = parameters.getTableMappings();
+
+        assertEquals(1, mappings.size());
+        assertEquals("src_db.*", mappings.get(0).getSourceTable());
+        assertEquals("dst_db.<>", mappings.get(0).getSinkTable());
+        assertTrue(mappings.get(0).isDatabaseScope());
+    }
+
     @Test
     void acceptsMultipleOneToOneTableMappings() {
         DataSyncParameters parameters = valid();
