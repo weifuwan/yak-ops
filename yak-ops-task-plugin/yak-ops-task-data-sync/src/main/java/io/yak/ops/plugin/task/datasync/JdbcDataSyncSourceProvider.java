@@ -16,7 +16,17 @@ import java.util.Set;
 public final class JdbcDataSyncSourceProvider implements DataSyncSourceProvider {
 
     private static final Set<DbType> SUPPORTED_TYPES =
-            Set.of(DbType.MYSQL, DbType.POSTGRESQL);
+            Set.of(
+                    DbType.MYSQL,
+                    DbType.POSTGRESQL,
+                    DbType.ORACLE,
+                    DbType.SQLSERVER,
+                    DbType.DB2,
+                    DbType.DAMENG,
+                    DbType.OCEANBASE,
+                    DbType.CLICKHOUSE,
+                    DbType.STARROCKS,
+                    DbType.DORIS);
 
     @Override
     public DbType getDbType() {
