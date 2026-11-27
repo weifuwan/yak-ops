@@ -17,8 +17,8 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
 
     @Override
     public final DataSyncExecutionHandle submit(
-            FlinkPipelineExecution execution, String executionId,
-            int taskInstanceId, String restorePath) throws Exception {
+                                                FlinkPipelineExecution execution, String executionId,
+                                                int taskInstanceId, String restorePath) throws Exception {
         if (execution == null || executionId == null || executionId.trim().isEmpty()) {
             throw new IllegalArgumentException("Execution and executionId are required");
         }
@@ -76,8 +76,8 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
     }
 
     protected abstract DataSyncExecutionHandle doSubmit(
-            FlinkPipelineExecution execution, String executionId,
-            int taskInstanceId, String restorePath) throws Exception;
+                                                        FlinkPipelineExecution execution, String executionId,
+                                                        int taskInstanceId, String restorePath) throws Exception;
 
     protected abstract String doTriggerSavepoint(DataSyncExecutionHandle handle) throws Exception;
 
@@ -86,7 +86,7 @@ public abstract class AbstractDataSyncExecutionService implements DataSyncExecut
     protected abstract DataSyncExecutionState doQueryState(DataSyncExecutionHandle handle) throws Exception;
 
     protected abstract DataSyncRecoveryPointSnapshot doGetLatestCompletedCheckpoint(
-            DataSyncExecutionHandle handle) throws Exception;
+                                                                                    DataSyncExecutionHandle handle) throws Exception;
 
     protected abstract void doCancel(DataSyncExecutionHandle handle) throws Exception;
 

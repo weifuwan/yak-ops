@@ -9,8 +9,8 @@ import org.apache.flink.configuration.MetricOptions;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.core.execution.SavepointFormatType;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.jobgraph.JobVertex;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 
@@ -40,8 +40,8 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
 
     @Override
     protected DataSyncExecutionHandle doSubmit(
-            FlinkPipelineExecution execution, String executionId,
-            int taskInstanceId, String restorePath) throws Exception {
+                                               FlinkPipelineExecution execution, String executionId,
+                                               int taskInstanceId, String restorePath) throws Exception {
         JobGraph jobGraph = execution.getJobGraph();
         if (restorePath != null && !restorePath.trim().isEmpty()) {
             jobGraph.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(restorePath, false));

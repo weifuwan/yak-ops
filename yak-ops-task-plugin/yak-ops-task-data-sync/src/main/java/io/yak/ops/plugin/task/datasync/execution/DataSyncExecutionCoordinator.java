@@ -73,7 +73,7 @@ public class DataSyncExecutionCoordinator {
     }
 
     public void execute(
-            FlinkPipelineExecution execution, List<DataSyncTableMapping> tableMappings) throws Exception {
+                        FlinkPipelineExecution execution, List<DataSyncTableMapping> tableMappings) throws Exception {
         execute(execution, tableMappings, null, null);
     }
 
@@ -82,16 +82,16 @@ public class DataSyncExecutionCoordinator {
     }
 
     public void execute(
-            FlinkPipelineExecution execution, String restorePath, String recoveredFromRecoveryPointId)
+                        FlinkPipelineExecution execution, String restorePath, String recoveredFromRecoveryPointId)
             throws Exception {
         execute(execution, Collections.emptyList(), restorePath, recoveredFromRecoveryPointId);
     }
 
     public void execute(
-            FlinkPipelineExecution execution,
-            List<DataSyncTableMapping> tableMappings,
-            String restorePath,
-            String recoveredFromRecoveryPointId) throws Exception {
+                        FlinkPipelineExecution execution,
+                        List<DataSyncTableMapping> tableMappings,
+                        String restorePath,
+                        String recoveredFromRecoveryPointId) throws Exception {
         if (cancelRequested.get()) {
             cancellationConfirmed = true;
             return;
@@ -244,9 +244,9 @@ public class DataSyncExecutionCoordinator {
     }
 
     private DataSyncRecoveryPointSnapshot collectLatestCheckpointOrReuse(
-            DataSyncExecutionService executionService,
-            DataSyncExecutionHandle current,
-            DataSyncRecoveryPointSnapshot previous) throws InterruptedException {
+                                                                         DataSyncExecutionService executionService,
+                                                                         DataSyncExecutionHandle current,
+                                                                         DataSyncRecoveryPointSnapshot previous) throws InterruptedException {
         try {
             DataSyncRecoveryPointSnapshot latest = executionService.getLatestCompletedCheckpoint(current);
             if (latest == null) {

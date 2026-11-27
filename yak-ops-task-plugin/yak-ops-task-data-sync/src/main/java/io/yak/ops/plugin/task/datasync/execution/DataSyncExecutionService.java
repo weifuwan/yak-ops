@@ -6,7 +6,7 @@ import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 public interface DataSyncExecutionService {
 
     default DataSyncExecutionHandle submit(
-            FlinkPipelineExecution execution, String executionId, int taskInstanceId) throws Exception {
+                                           FlinkPipelineExecution execution, String executionId, int taskInstanceId) throws Exception {
         return submit(execution, executionId, taskInstanceId, null);
     }
 
