@@ -11,5 +11,9 @@ public interface DataSyncSourceProvider {
 
     String getConnectorType();
 
+    default boolean supports(DbType type, String connectorType) {
+        return getDbType() == type && getConnectorType().equalsIgnoreCase(connectorType);
+    }
+
     Map<String, String> connectionOptions(DataSourceParameters source, long taskInstanceId, int parallelism);
 }
