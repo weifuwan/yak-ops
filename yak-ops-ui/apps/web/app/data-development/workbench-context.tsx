@@ -22,6 +22,7 @@ export type WorkflowWorkbenchTab =
       id: string;
       kind: "workflow";
       workflowCode: number;
+      workflow: WorkflowDefinitionRecord;
       title: string;
       version: number;
       releaseState: string;
@@ -132,6 +133,7 @@ const toWorkflowTab = (workflow: WorkflowDefinitionRecord): WorkflowWorkbenchTab
   id: "workflow:" + workflow.code,
   kind: "workflow",
   workflowCode: workflow.code,
+  workflow,
   title: workflow.name,
   version: workflow.version,
   releaseState: workflow.releaseState,
@@ -337,6 +339,7 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
       tab.kind === "workflow" && tab.workflowCode === workflow.code
         ? {
             ...tab,
+            workflow,
             title: workflow.name,
             version: workflow.version,
             releaseState: workflow.releaseState,
@@ -349,7 +352,10 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
   const updateWorkflowReleaseState = (workflowCode: number, releaseState: string) => {
     setTabs((current) => current.map((tab) => {
       if (tab.kind !== "workflow" && tab.kind !== "task") return tab;
-      return tab.workflowCode === workflowCode ? { ...tab, releaseState } : tab;
+      if (tab.workflowCode !== workflowCode) return tab;
+      return tab.kind === "workflow"
+        ? { ...tab, releaseState, workflow: { ...tab.workflow, releaseState } }
+        : { ...tab, releaseState };
     }));
   };
 
@@ -389,9 +395,11 @@ export function DataDevelopmentWorkbenchProvider({ children }: PropsWithChildren
   const updateTabTitle = (id: string, title: string) => {
     setTabs((current) => current.map((tab) => {
       if (tab.id !== id) return tab;
-      return tab.kind === "task"
-        ? { ...tab, title, task: { ...tab.task, name: title } }
-        : { ...tab, title };
+      if (tab.kind === "task") return { ...tab, title, task: { ...tab.task, name: title } };
+      if (tab.kind === "workflow") {
+        return { ...tab, title, workflow: { ...tab.workflow, name: title } };
+      }
+      return { ...tab, title };
     }));
   };
 
