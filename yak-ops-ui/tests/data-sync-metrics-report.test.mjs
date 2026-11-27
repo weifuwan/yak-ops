@@ -87,7 +87,7 @@ test("table metrics are matched by source and sink path, ignoring case", () => {
 });
 
 test("CDC counters are integrated into the existing per-table execution table", () => {
-  assert.match(executionDetail, /<TableExecutionResults record=\{record\}/);
+  assert.match(executionDetail, /<TableExecutionResults\s+record=\{record\}/);
   assert.match(executionDetail, /statusIcon=\{<ExecutionStatusIcon/);
   assert.doesNotMatch(executionDetail, /DataSyncMetricsPanel/);
   assert.doesNotMatch(tableResults, /DataSyncMetricsPanel/);
