@@ -13,4 +13,7 @@ public interface DataSyncTableReportDao extends IDao<DataSyncTableReport> {
     List<DataSyncTableReport> queryByExecutionId(String executionId);
 
     DataSyncTableReport queryByExecutionIdAndTableKey(String executionId, String tableKey);
+
+    DataSyncTableReport queryByExecutionIdAndPartialTableMapping(
+            String executionId, String sourceTable, String sinkTable);
 }
