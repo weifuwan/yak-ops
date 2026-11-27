@@ -207,7 +207,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const workflowCodeParam = searchParams.get("workflowCode");
   const requestedWorkflowCode =
-    workflowCodeParam && /^\\d+$/.test(workflowCodeParam)
+    workflowCodeParam && /^\d+$/.test(workflowCodeParam)
       ? Number(workflowCodeParam)
       : undefined;
   const {
