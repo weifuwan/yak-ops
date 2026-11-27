@@ -101,7 +101,7 @@ public class TaskDefinition {
 
     private TimeoutFlag timeoutFlag;
 
-    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private TaskTimeoutStrategy timeoutNotifyStrategy;
 
     /**
