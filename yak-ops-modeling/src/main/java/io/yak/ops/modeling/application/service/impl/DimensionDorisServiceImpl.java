@@ -377,15 +377,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
 
     private DimensionDorisPublishPO latestSuccessfulPublish(
             String tableId, Integer datasourceId, String database, String table) {
-        List<DimensionDorisPublishPO> records = dimensionDorisPublishDao.queryList(
-                new QueryWrapper<DimensionDorisPublishPO>()
-                        .eq("table_id", tableId)
-                        .eq("datasource_id", datasourceId)
-                        .eq("target_database", database)
-                        .eq("target_table", table)
-                        .eq("status", DorisPublishStatusEnum.SUCCESS)
-                        .orderByDesc("create_time"));
-        return safeList(records).stream().findFirst().orElse(null);
+        return dimensionDorisPublishDao.queryLatestSuccessful(
+                tableId, datasourceId, database, table);
     }
 
     private DorisDataModelEnum inferPreviousTableModel(DimensionDorisPublishPO previous) {

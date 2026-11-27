@@ -75,7 +75,8 @@ class DimensionDorisServiceImplTest {
         when(dimensionTableDao.queryById("table-id")).thenReturn(table());
         when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
-        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryLatestSuccessful(
+                anyString(), any(), anyString(), anyString())).thenReturn(null);
         when(sessionFactory.open(any(DdlConnectionInfo.class)))
                 .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
@@ -90,6 +91,8 @@ class DimensionDorisServiceImplTest {
         assertEquals("CREATE TABLE ddl", preview.getDdl());
         assertEquals(64, preview.getDdlHash().length());
         assertFalse(Boolean.TRUE.equals(preview.getNoChanges()));
+        verify(dimensionDorisPublishDao).queryLatestSuccessful(
+                "table-id", 100, "warehouse", "dwd_order_detail");
         verify(dimensionDorisPublishDao, never()).insert(any());
     }
 
@@ -137,7 +140,8 @@ class DimensionDorisServiceImplTest {
         when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryLatestSuccessful(
+                anyString(), any(), anyString(), anyString())).thenReturn(null);
         when(sessionFactory.open(any(DdlConnectionInfo.class)))
                 .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
@@ -179,7 +183,8 @@ class DimensionDorisServiceImplTest {
         when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryLatestSuccessful(
+                anyString(), any(), anyString(), anyString())).thenReturn(null);
         when(sessionFactory.open(any(DdlConnectionInfo.class)))
                 .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
@@ -245,7 +250,8 @@ class DimensionDorisServiceImplTest {
 
         service.preview("table-id", dto, dorisDatasource());
 
-        verify(dimensionDorisPublishDao, never()).queryList(any());
+        verify(dimensionDorisPublishDao, never()).queryLatestSuccessful(
+                anyString(), any(), anyString(), anyString());
     }
 
     @Test
@@ -254,7 +260,8 @@ class DimensionDorisServiceImplTest {
         when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryLatestSuccessful(
+                anyString(), any(), anyString(), anyString())).thenReturn(null);
         when(sessionFactory.open(any(DdlConnectionInfo.class)))
                 .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
@@ -289,7 +296,8 @@ class DimensionDorisServiceImplTest {
         when(dimensionTableFieldDao.queryList(any())).thenReturn(Collections.singletonList(
                 field("customer_id", DimensionDataTypeEnum.BIGINT)));
         when(versionManagementDao.queryList(any())).thenReturn(Collections.emptyList());
-        when(dimensionDorisPublishDao.queryList(any())).thenReturn(Collections.emptyList());
+        when(dimensionDorisPublishDao.queryLatestSuccessful(
+                anyString(), any(), anyString(), anyString())).thenReturn(null);
         when(sessionFactory.open(any(DdlConnectionInfo.class)))
                 .thenReturn(new DdlSession("DORIS", connection, catalog, "warehouse"));
         when(ddlEngine.plan(any(DdlSession.class), any(DdlRequest.class)))
