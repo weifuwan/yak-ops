@@ -192,18 +192,29 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
         if (table == null) {
             return null;
         }
-        String normalized = normalizeTable(table);
-        CounterSet exact = counters.get(normalized);
+        CounterSet exact = counters.get(table);
         if (exact != null) {
             return exact;
         }
+
+        String normalized = normalizeTable(table);
+        CounterSet caseInsensitiveMatch = null;
         for (Map.Entry<String, CounterSet> entry : counters.entrySet()) {
-            String candidate = normalizeTable(entry.getKey());
-            if (candidate.equals(normalized) || candidate.endsWith("." + normalized)) {
+            String candidate = entry.getKey();
+            if (candidate.equals(table) || candidate.endsWith("." + table)) {
                 return entry.getValue();
             }
+            String normalizedCandidate = normalizeTable(candidate);
+            if (normalizedCandidate.equals(normalized)
+                    || normalizedCandidate.endsWith("." + normalized)) {
+                if (caseInsensitiveMatch != null && caseInsensitiveMatch != entry.getValue()) {
+                    // Do not silently associate two case-distinct physical tables.
+                    return null;
+                }
+                caseInsensitiveMatch = entry.getValue();
+            }
         }
-        return null;
+        return caseInsensitiveMatch;
     }
 
     private static String normalizeTable(String table) {
