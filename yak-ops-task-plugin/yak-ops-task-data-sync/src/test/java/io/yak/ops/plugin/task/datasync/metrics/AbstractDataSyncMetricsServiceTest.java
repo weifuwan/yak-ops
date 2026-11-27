@@ -49,13 +49,13 @@ class AbstractDataSyncMetricsServiceTest {
         assertEquals("AVAILABLE", table.getMetricsState());
     }
 
-
     @Test
     void correlatesDifferentSourceAndSinkNamesUsingTheConfiguredRoute() throws Exception {
         Map<String, Long> rawMetrics = new LinkedHashMap<>();
         rawMetrics.put("source.namespace.source_db.schema..table.orders.numSnapshotRecords", 10L);
         rawMetrics.put("source.namespace.source_db.schema..table.orders.numInsertDMLRecords", 2L);
-        rawMetrics.put("sink.namespace..schema.target_db.table.orders_target.numCommittedRecords", 12L);
+        rawMetrics.put(
+                "sink.namespace..schema.target_db.table.orders_target.numCommittedRecords", 12L);
 
         AbstractDataSyncMetricsService service = new AbstractDataSyncMetricsService() {
 
