@@ -7,9 +7,8 @@ import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionHandle;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionState;
 import io.yak.ops.plugin.task.datasync.execution.MiniClusterDataSyncExecutionService;
 
-import org.apache.flink.cdc.connectors.mysql.source.metrics.MySqlSourceReaderMetrics;
-
 import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
+import org.apache.flink.cdc.connectors.mysql.source.metrics.MySqlSourceReaderMetrics;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.MetricGroup;
@@ -17,12 +16,12 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 
-import io.debezium.data.Envelope;
-import io.debezium.relational.TableId;
-
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+
+import io.debezium.data.Envelope;
+import io.debezium.relational.TableId;
 
 /**
  * Exercises the production MiniCluster execution service and production REST metrics collector
