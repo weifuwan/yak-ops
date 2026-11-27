@@ -63,20 +63,18 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
 
   const toggleStep = (step: "FULL" | "INCREMENTAL", checked: boolean) => {
     if (step === "INCREMENTAL" && sourceType !== "MYSQL") return;
-    setSteps((current) => {
-      const next = new Set(current);
-      if (checked) next.add(step);
-      else next.delete(step);
-      const result = ["SCHEMA", "FULL", "INCREMENTAL"].filter((item) =>
-        next.has(item as DataSyncStep),
-      ) as DataSyncStep[];
-      if (!result.includes("INCREMENTAL")) {
-        setScope((currentScope) =>
-          currentScope === "DATABASE" ? "MULTI_TABLE" : currentScope,
-        );
-      }
-      return result;
-    });
+    const next = new Set(steps);
+    if (checked) next.add(step);
+    else next.delete(step);
+    const result = ["SCHEMA", "FULL", "INCREMENTAL"].filter((item) =>
+      next.has(item as DataSyncStep),
+    ) as DataSyncStep[];
+    setSteps(result);
+    if (!result.includes("INCREMENTAL")) {
+      setScope((currentScope) =>
+        currentScope === "DATABASE" ? "MULTI_TABLE" : currentScope,
+      );
+    }
   };
 
   const next = () => {
