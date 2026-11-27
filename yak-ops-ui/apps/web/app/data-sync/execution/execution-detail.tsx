@@ -5,10 +5,11 @@ import { formatScheduleTime } from "@/app/schedule/schedule-presentation";
 import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";
 import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
+import { findMetricsTableReport } from "@/service/data-sync/report";
 
 import { ExecutionProgressBar } from "./execution-progress-bar";
 import { ExecutionStages } from "./execution-stages";
-import { TableExecutionResults } from "./table-execution-results";
+import { DataSyncMetricsPanel, TableExecutionResults } from "./table-execution-results";
 import "./execution-detail.css";
 
 export const isActiveDataSyncInstance = (record?: Pick<DataSyncInstanceRecord, "status">): boolean =>
@@ -84,8 +85,8 @@ export const dataSyncDurationText = (
 const tablePath = (database?: string, schema?: string, table?: string) =>
   [database, schema, table].filter(Boolean).join(".") || "-";
 
-const rowCountText = (value?: number) =>
-  value === undefined ? "-" : value.toLocaleString("zh-CN");
+const rowCountText = (value?: number | null) =>
+  value == null ? "-" : value.toLocaleString("zh-CN");
 
 function ExecutionProgressCard({ record }: DetailProps) {
   const realtime = record.syncType === "REALTIME";
@@ -170,8 +171,8 @@ interface TableExecutionRow {
   sourceTable: string;
   targetTable: string;
   status: DataSyncInstanceStatus;
-  readRows?: number;
-  writeRows?: number;
+  readRows?: number | null;
+  writeRows?: number | null;
   startTime?: string;
   finishTime?: string;
   duration: string;
@@ -185,29 +186,25 @@ export function DataSyncExecutionDetailContent({
   const realtime = record.syncType === "REALTIME";
   const meta = dataSyncInstanceStatusMeta(record.status, realtime);
   const snapshot = record.definitionSnapshot;
-  const rows: TableExecutionRow[] = snapshot
-    ? [
-        {
-          id: record.id,
-          sourceTable: tablePath(
-            snapshot.source.database,
-            snapshot.source.schema,
-            snapshot.source.table,
-          ),
-          targetTable: tablePath(
-            snapshot.target.database,
-            snapshot.target.schema,
-            snapshot.target.table,
-          ),
-          status: record.status,
-          readRows: record.readRows,
-          writeRows: record.writeRows,
-          startTime: record.startTime,
-          finishTime: record.finishTime,
-          duration: dataSyncDurationText(record),
-        },
-      ]
-    : [];
+  const mappings = snapshot?.tableMappings?.length
+    ? snapshot.tableMappings
+    : snapshot
+      ? [{ source: snapshot.source, target: snapshot.target, writeMode: "UPSERT" as const }]
+      : [];
+  const rows: TableExecutionRow[] = mappings.map((mapping, index) => {
+    const metrics = findMetricsTableReport(record.metricsReport?.tables, mapping);
+    return {
+      id: record.id + "-" + index,
+      sourceTable: tablePath(mapping.source.database, mapping.source.schema, mapping.source.table),
+      targetTable: tablePath(mapping.target.database, mapping.target.schema, mapping.target.table),
+      status: record.status,
+      readRows: metrics ? metrics.readRecords : index === 0 ? record.readRows : undefined,
+      writeRows: metrics ? metrics.committedRecords : index === 0 ? record.writeRows : undefined,
+      startTime: record.startTime,
+      finishTime: record.finishTime,
+      duration: dataSyncDurationText(record),
+    };
+  });
   const columns: TableColumns<TableExecutionRow> = [
     {
       key: "sourceTable",
@@ -294,15 +291,18 @@ export function DataSyncExecutionDetailContent({
         {record.scope === "DATABASE" || record.executionReport ? (
           <TableExecutionResults record={record} />
         ) : (
-          <Table<TableExecutionRow>
-            columns={columns}
-            dataSource={rows}
-            rowKey="id"
-            size="small"
-            scroll={{ x: 1180 }}
-            pagination={false}
-            emptyText="暂无表级执行数据"
-          />
+          <>
+            <Table<TableExecutionRow>
+              columns={columns}
+              dataSource={rows}
+              rowKey="id"
+              size="small"
+              scroll={{ x: 1180 }}
+              pagination={false}
+              emptyText="暂无表级执行数据"
+            />
+            <DataSyncMetricsPanel record={record} />
+          </>
         )}
       </div>
     </div>
