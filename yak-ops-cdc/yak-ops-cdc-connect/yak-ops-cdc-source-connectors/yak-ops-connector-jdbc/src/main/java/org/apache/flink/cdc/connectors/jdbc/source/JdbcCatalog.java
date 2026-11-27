@@ -74,10 +74,17 @@ public final class JdbcCatalog {
     }
 
     public List<String> listNamespaces() {
-        try (Connection connection = openConnection(config);
-                ResultSet resultSet = connection.getMetaData().getCatalogs()) {
+        try (Connection connection = openConnection(config)) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            JdbcDialect dialect = JdbcDialect.create(metadata);
+            if (dialect.isCatalogBased()) {
+                throw new UnsupportedOperationException(
+                        "Catalog-based JDBC databases do not expose a separate namespace level");
+            }
             List<String> values = new ArrayList<>();
-            while (resultSet.next()) values.add(resultSet.getString("TABLE_CAT"));
+            try (ResultSet resultSet = metadata.getCatalogs()) {
+                while (resultSet.next()) values.add(resultSet.getString("TABLE_CAT"));
+            }
             return values;
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to list JDBC namespaces", e);
