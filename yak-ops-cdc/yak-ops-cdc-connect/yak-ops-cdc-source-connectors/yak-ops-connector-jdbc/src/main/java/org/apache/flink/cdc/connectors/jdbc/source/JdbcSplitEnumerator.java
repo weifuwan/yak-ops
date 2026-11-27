@@ -19,6 +19,8 @@ public final class JdbcSplitEnumerator
     private final JdbcSourceConfig config;
     private final JdbcEnumeratorState restoredState;
     private final Queue<JdbcSourceSplit> pending = new ArrayDeque<>();
+    private final java.util.Map<Integer, Queue<JdbcSourceSplit>> pendingByReader =
+            new java.util.HashMap<>();
 
     private boolean started;
     private boolean enumerationCompleted;
@@ -39,6 +41,9 @@ public final class JdbcSplitEnumerator
         started = true;
         if (restoredState != null) {
             pending.addAll(restoredState.getPendingSplits());
+            restoredState.getPendingSplitsByReader().forEach(
+                    (reader, splits) ->
+                            pendingByReader.put(reader, new ArrayDeque<>(splits)));
             enumerationCompleted = restoredState.isEnumerationCompleted();
         }
         if (!enumerationCompleted) {
@@ -86,12 +91,20 @@ public final class JdbcSplitEnumerator
 
     @Override
     public void addSplitsBack(List<JdbcSourceSplit> splits, int subtaskId) {
-        pending.addAll(splits);
-        assignPending();
+        pendingByReader
+                .computeIfAbsent(subtaskId, ignored -> new ArrayDeque<>())
+                .addAll(splits);
     }
 
     @Override
     public void addReader(int subtaskId) {
+        Queue<JdbcSourceSplit> returned = pendingByReader.remove(subtaskId);
+        if (returned != null && !returned.isEmpty()) {
+            while (!returned.isEmpty()) {
+                context.assignSplit(returned.remove(), subtaskId);
+            }
+            context.signalNoMoreSplits(subtaskId);
+        }
         if (started) assignPending();
     }
 
@@ -100,7 +113,10 @@ public final class JdbcSplitEnumerator
 
     @Override
     public JdbcEnumeratorState snapshotState(long checkpointId) {
-        return new JdbcEnumeratorState(new ArrayList<>(pending), enumerationCompleted);
+        java.util.Map<Integer, List<JdbcSourceSplit>> returned = new java.util.HashMap<>();
+        pendingByReader.forEach(
+                (reader, splits) -> returned.put(reader, new ArrayList<>(splits)));
+        return new JdbcEnumeratorState(new ArrayList<>(pending), returned, enumerationCompleted);
     }
 
     @Override
