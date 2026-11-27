@@ -77,6 +77,9 @@ public class JdbcTableWriter implements AutoCloseable {
         }
     }
 
+    /**
+     * Flushes buffered rows and advances committed counters only after JDBC confirms success.
+     */
     public void flush() throws IOException {
         outputFormat.flush();
         if (pendingRecords > 0) {
