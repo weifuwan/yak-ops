@@ -46,10 +46,12 @@ export function StageProgress({
   stale: boolean;
   label: string;
 }) {
+  if (status === "SUCCESS" || status === "FORCED_SUCCESS") {
+    return <ExecutionProgressBar status={status} realtime={false} ariaLabel={label} />;
+  }
   if (!stage || stage.status === "UNKNOWN") {
     // Missing stage observations should not make a running instance look idle.
-    // A successful instance also guarantees that every configured stage completed.
-    if (status === "RUNNING_EXECUTION" || status === "SUCCESS" || status === "FORCED_SUCCESS") {
+    if (status === "RUNNING_EXECUTION") {
       return (
         <ExecutionProgressBar
           status={status}
