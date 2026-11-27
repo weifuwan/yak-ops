@@ -83,16 +83,20 @@ export const dataSyncDurationText = (
 
 function ExecutionProgressCard({ record }: DetailProps) {
   const realtime = record.syncType === "REALTIME";
-  const summary =
-    record.executionReport && record.executionReport.version !== 1
-      ? record.executionReport
-      : undefined;
+  const report = record.executionReport;
+  const summary = report && report.version !== 1 ? report : undefined;
+  const batchReport = report?.version === 1 ? report : undefined;
 
   return (
     <div className="grid min-h-28 place-items-center border border-[#eef0f3] bg-white px-3 py-3 text-center">
       <div className="w-full">
-        {realtime || summary || record.steps.includes("SCHEMA") ? (
-          <ExecutionStages status={record.status} steps={record.steps} summary={summary} />
+        {realtime || summary || batchReport || record.steps.includes("SCHEMA") ? (
+          <ExecutionStages
+            status={record.status}
+            steps={record.steps}
+            summary={summary}
+            batchReport={batchReport}
+          />
         ) : (
           <ExecutionProgressBar
             status={record.status}
