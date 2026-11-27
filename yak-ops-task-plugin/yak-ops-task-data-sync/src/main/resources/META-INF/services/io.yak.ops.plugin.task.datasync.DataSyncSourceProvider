@@ -1,1 +1,2 @@
 io.yak.ops.plugin.task.datasync.MySQLDataSyncSourceProvider
+io.yak.ops.plugin.task.datasync.JdbcDataSyncSourceProvider
