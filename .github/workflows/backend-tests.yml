@@ -43,6 +43,7 @@ on:
       - 'yak-ops-authentication/**'
       - 'yak-ops-bom/**'
       - 'yak-ops-common/**'
+      - 'yak-ops-cdc/**'
       - 'yak-ops-dao/**'
       - 'yak-ops-dao-plugin/**'
       - 'yak-ops-datasource-plugin/**'
