@@ -64,15 +64,30 @@ final class JdbcEnumeratorState implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private final List<JdbcSourceSplit> pendingSplits;
+    private final java.util.Map<Integer, List<JdbcSourceSplit>> pendingSplitsByReader;
     private final boolean enumerationCompleted;
 
-    JdbcEnumeratorState(List<JdbcSourceSplit> pendingSplits, boolean enumerationCompleted) {
+    JdbcEnumeratorState(
+            List<JdbcSourceSplit> pendingSplits,
+            java.util.Map<Integer, List<JdbcSourceSplit>> pendingSplitsByReader,
+            boolean enumerationCompleted) {
         this.pendingSplits = Collections.unmodifiableList(new ArrayList<>(pendingSplits));
+        java.util.Map<Integer, List<JdbcSourceSplit>> copy = new java.util.HashMap<>();
+        pendingSplitsByReader.forEach(
+                (reader, splits) ->
+                        copy.put(
+                                reader,
+                                Collections.unmodifiableList(new ArrayList<>(splits))));
+        this.pendingSplitsByReader = Collections.unmodifiableMap(copy);
         this.enumerationCompleted = enumerationCompleted;
     }
 
     List<JdbcSourceSplit> getPendingSplits() {
         return pendingSplits;
+    }
+
+    java.util.Map<Integer, List<JdbcSourceSplit>> getPendingSplitsByReader() {
+        return pendingSplitsByReader;
     }
 
     boolean isEnumerationCompleted() {
