@@ -105,6 +105,12 @@
                 <artifactId>janino</artifactId>
                 <version>${cdc.janino.version}</version>
             </dependency>
+            <dependency>
+                <!-- Keep the Janino API aligned with the compiler implementation. -->
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>commons-compiler</artifactId>
+                <version>${cdc.janino.version}</version>
+            </dependency>
 
             <dependency>
                 <!-- Used for translation of expression -->

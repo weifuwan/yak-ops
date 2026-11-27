@@ -280,6 +280,8 @@ jobs:
               "org/apache/flink/cdc/connectors/oracle/table/OracleTableSourceFactory.class",
               "org/locationtech/jts/io/WKBReader.class",
               "org/locationtech/jts/geom/Coordinate.class",
+              "oracle/xdb/XMLType.class",
+              "oracle/xml/parser/v2/DOMParser.class",
           }
 
           with ZipFile(jar) as archive:

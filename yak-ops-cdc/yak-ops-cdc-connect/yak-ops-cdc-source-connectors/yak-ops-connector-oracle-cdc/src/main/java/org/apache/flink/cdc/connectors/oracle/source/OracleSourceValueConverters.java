@@ -32,8 +32,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.source.SourceRecord;
 
-import java.sql.Types;
-
 /** Oracle Value Converters for cdc. */
 public class OracleSourceValueConverters extends OracleValueConverters {
 
@@ -47,8 +45,9 @@ public class OracleSourceValueConverters extends OracleValueConverters {
             return io.debezium.data.geometry.Geometry.builder();
         }
 
+        // Oracle FLOAT is a NUMBER subtype, not an IEEE-754 float. Let Debezium
+        // preserve it as VariableScaleDecimal instead of narrowing it to float32.
         switch (column.jdbcType()) {
-            case Types.FLOAT:
             case OracleTypes.BINARY_FLOAT:
                 logger.debug(
                         "Building schema for column {} of type {} named {} with constraints ({},{})",
@@ -70,12 +69,10 @@ public class OracleSourceValueConverters extends OracleValueConverters {
         }
         switch (column.jdbcType()) {
             case OracleTypes.BINARY_FLOAT:
-            case Types.FLOAT:
-                // When the value instance of float,convert it to float type.
                 return data -> convertFloat(column, fieldDefn, data);
+            default:
+                return super.converter(column, fieldDefn);
         }
-
-        return super.converter(column, fieldDefn);
     }
 
     /**
