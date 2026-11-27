@@ -92,12 +92,12 @@ class DorisDialectTest {
                 Collections.singletonList(column(
                         "customer_id", DdlDataType.BIGINT, null, null, null, true))));
 
-        assertTrue(plan.getDdl().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
-        assertTrue(plan.getDdl().contains("DISTRIBUTED BY HASH(`customer_id`)"));
+        assertTrue(plan.getDdlContent().contains("CREATE TABLE `warehouse`.`dwd_order_detail`"));
+        assertTrue(plan.getDdlContent().contains("DISTRIBUTED BY HASH(`customer_id`)"));
         assertTrue(Pattern.compile("(?is).*['\"\\x60]?replication_num['\"\\x60]?\\s*=\\s*['\"\\x60]?1['\"\\x60]?.*")
-                .matcher(plan.getDdl())
-                .matches(), plan.getDdl());
-        assertTrue(plan.getDdl().contains("(\n    `customer_id`"));
+                .matcher(plan.getDdlContent())
+                .matches(), plan.getDdlContent());
+        assertTrue(plan.getDdlContent().contains("(\n    `customer_id`"));
         assertTrue(!plan.isNoChanges());
     }
 
@@ -116,10 +116,10 @@ class DorisDialectTest {
                 Arrays.asList(primaryId, column(
                         "customer_name", DdlDataType.VARCHAR, 128, null, null, true))));
 
-        assertTrue(plan.getDdl().contains("UNIQUE KEY(`customer_id`)"));
-        assertTrue(plan.getDdl().contains("`customer_id` BIGINT NOT NULL COMMENT"));
-        assertTrue(plan.getDdl().contains("`customer_name` VARCHAR(384) NULL COMMENT"));
-        assertTrue(plan.getDdl().contains(",\n    `customer_name`"));
+        assertTrue(plan.getDdlContent().contains("UNIQUE KEY(`customer_id`)"));
+        assertTrue(plan.getDdlContent().contains("`customer_id` BIGINT NOT NULL COMMENT"));
+        assertTrue(plan.getDdlContent().contains("`customer_name` VARCHAR(384) NULL COMMENT"));
+        assertTrue(plan.getDdlContent().contains(",\n    `customer_name`"));
     }
 
     @Test
@@ -154,8 +154,8 @@ class DorisDialectTest {
                 Collections.<String>emptyList(),
                 Arrays.asList(keyField, valueField)));
 
-        assertTrue(plan.getDdl().contains("`customer_id` BIGINT NOT NULL COMMENT"));
-        assertTrue(plan.getDdl().contains(
+        assertTrue(plan.getDdlContent().contains("`customer_id` BIGINT NOT NULL COMMENT"));
+        assertTrue(plan.getDdlContent().contains(
                 "`customer_name` VARCHAR(384) NOT NULL COMMENT 'customer name, (display)'"));
     }
 
