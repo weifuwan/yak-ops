@@ -62,7 +62,9 @@ public final class JdbcDataSourceFactory implements DataSourceFactory {
         }
 
         int parallelism =
-                context.getPipelineConfiguration().get(PipelineOptions.PIPELINE_PARALLELISM);
+                context.getPipelineConfiguration() == null
+                        ? 1
+                        : context.getPipelineConfiguration().get(PipelineOptions.PIPELINE_PARALLELISM);
         JdbcSourceConfig config =
                 new JdbcSourceConfig(
                         source.get(JdbcSourceOptions.URL),
