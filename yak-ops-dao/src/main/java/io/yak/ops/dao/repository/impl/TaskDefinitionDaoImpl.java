@@ -112,6 +112,11 @@ public class TaskDefinitionDaoImpl extends BaseDao<TaskDefinition, TaskDefinitio
     }
 
     @Override
+    public TaskDefinition queryByCodeForUpdate(long taskCode) {
+        return mybatisMapper.queryByCodeForUpdate(taskCode);
+    }
+
+    @Override
     public IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
                                                     String taskType, String keyword, Long taskCode,
                                                     Integer releaseState, List<Long> taskCodes, TaskExecuteType taskExecuteType) {

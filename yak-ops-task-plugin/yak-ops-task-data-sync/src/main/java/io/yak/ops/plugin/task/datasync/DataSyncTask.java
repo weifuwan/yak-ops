@@ -6,6 +6,7 @@ import io.yak.ops.plugin.task.api.TaskCallBack;
 import io.yak.ops.plugin.task.api.TaskConstants;
 import io.yak.ops.plugin.task.api.TaskException;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.plugin.task.api.model.Property;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.stream.StreamTask;
 
@@ -35,7 +36,15 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
     @Override
     public void handle(TaskCallBack callback) throws TaskException {
         try {
-            jobRunner.execute(parameters);
+            Property restorePathParameter = taskRequest.getPrepareParamsMap() == null
+                    ? null
+                    : taskRequest.getPrepareParamsMap().get(DataSyncRuntimeOptions.RESTORE_PATH);
+            String restorePath = restorePathParameter == null ? null : restorePathParameter.getValue();
+            Property recoveryPointIdParameter = taskRequest.getPrepareParamsMap() == null
+                    ? null
+                    : taskRequest.getPrepareParamsMap().get(DataSyncRuntimeOptions.RECOVERY_POINT_ID);
+            String recoveryPointId = recoveryPointIdParameter == null ? null : recoveryPointIdParameter.getValue();
+            jobRunner.execute(parameters, restorePath, recoveryPointId);
             setExitStatusCode(jobRunner.isCancellationConfirmed()
                     ? TaskConstants.EXIT_CODE_KILL
                     : TaskConstants.EXIT_CODE_SUCCESS);
@@ -63,8 +72,13 @@ public class DataSyncTask extends AbstractTask implements StreamTask {
     }
 
     @Override
-    public void savePoint() {
-        throw new UnsupportedOperationException("DATA_SYNC savepoints are not yet supported");
+    public String savePoint() throws Exception {
+        return jobRunner.triggerSavepoint();
+    }
+
+    @Override
+    public String stopWithSavepoint() throws Exception {
+        return jobRunner.stopWithSavepoint();
     }
 
     @Override

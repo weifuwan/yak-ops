@@ -151,7 +151,7 @@ export function DataSyncTaskDetailPage() {
                             ? workflowStatusText(workflow.state)
                             : "启动中"}
                     </span>
-                    {cancelWorkflowInstanceId ? (
+                    {cancelWorkflowInstanceId && activeInstance?.id ? (
                       <Button variant="secondary" size="sm" isPending={canceling} onClick={() => void cancel()}>
                         停止
                       </Button>

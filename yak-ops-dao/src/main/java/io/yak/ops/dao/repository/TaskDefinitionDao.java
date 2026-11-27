@@ -48,6 +48,9 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
      */
     TaskDefinition queryByCode(long taskCode);
 
+    /** Locks the task definition to serialize actions across different historical instances. */
+    TaskDefinition queryByCodeForUpdate(long taskCode);
+
     IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
                                              String taskType, String keyword, Long taskCode,
                                              Integer releaseState, List<Long> taskCodes, TaskExecuteType taskExecuteType);

@@ -195,7 +195,7 @@ public class RecoverFailureTaskCommandHandler extends AbstractCommandHandler {
         if (taskInstance == null) {
             return false;
         }
-        return taskInstance.getState() == TaskExecutionStatus.FAILURE
+        return taskInstance.getState().isFailure()
                 || taskInstance.getState() == TaskExecutionStatus.KILL;
     }
 

@@ -31,6 +31,14 @@ final class DataSyncJobRunner {
     }
 
     void execute(DataSyncParameters parameters) throws Exception {
+        execute(parameters, null, null);
+    }
+
+    void execute(DataSyncParameters parameters, String restorePath) throws Exception {
+        execute(parameters, restorePath, null);
+    }
+
+    void execute(DataSyncParameters parameters, String restorePath, String recoveryPointId) throws Exception {
         if (coordinator.isCancelRequested()) {
             return;
         }
@@ -45,9 +53,17 @@ final class DataSyncJobRunner {
         FlinkPipelineComposer composer =
                 FlinkPipelineComposer.ofMiniCluster(flinkConfig, Collections.emptyList());
         FlinkPipelineExecution execution = (FlinkPipelineExecution) composer.compose(pipeline);
-        coordinator.execute(execution, parameters.getTableMappings());
+        coordinator.execute(execution, parameters.getTableMappings(), restorePath, recoveryPointId);
         log.info("DATA_SYNC completed, taskInstanceId={}, cancelled={}",
                 context.getTaskInstanceId(), coordinator.isCancellationConfirmed());
+    }
+
+    String triggerSavepoint() throws Exception {
+        return coordinator.triggerSavepoint();
+    }
+
+    String stopWithSavepoint() throws Exception {
+        return coordinator.stopWithSavepoint();
     }
 
     void cancel() throws InterruptedException, ExecutionException {

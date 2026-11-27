@@ -7,11 +7,14 @@ import org.apache.flink.client.program.MiniClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MetricOptions;
 import org.apache.flink.configuration.RestOptions;
+import org.apache.flink.core.execution.SavepointFormatType;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobVertex;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
 
+import java.io.File;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
@@ -25,11 +28,24 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
 
     private final Map<String, RuntimeExecution> executions = new ConcurrentHashMap<>();
 
+    private final FlinkRestDataSyncRecoveryPointService recoveryPointService;
+
+    public MiniClusterDataSyncExecutionService() {
+        this(new FlinkRestDataSyncRecoveryPointService());
+    }
+
+    MiniClusterDataSyncExecutionService(FlinkRestDataSyncRecoveryPointService recoveryPointService) {
+        this.recoveryPointService = recoveryPointService;
+    }
+
     @Override
     protected DataSyncExecutionHandle doSubmit(
                                                FlinkPipelineExecution execution, String executionId,
-                                               int taskInstanceId) throws Exception {
+                                               int taskInstanceId, String restorePath) throws Exception {
         JobGraph jobGraph = execution.getJobGraph();
+        if (restorePath != null && !restorePath.trim().isEmpty()) {
+            jobGraph.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(restorePath, false));
+        }
         int parallelism = Math.max(1, execution.getParallelism());
         for (JobVertex vertex : jobGraph.getVertices()) {
             parallelism = Math.max(parallelism, vertex.getParallelism());
@@ -83,6 +99,40 @@ public class MiniClusterDataSyncExecutionService extends AbstractDataSyncExecuti
         JobStatus status = runtime.client.getJobStatus(runtime.jobId)
                 .get(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         return DataSyncExecutionState.from(status);
+    }
+
+    @Override
+    protected String doTriggerSavepoint(DataSyncExecutionHandle handle) throws Exception {
+        RuntimeExecution runtime = requireRuntime(handle);
+        return runtime.client.triggerSavepoint(
+                runtime.jobId, savepointDirectory(), SavepointFormatType.CANONICAL)
+                .get(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    @Override
+    protected String doStopWithSavepoint(DataSyncExecutionHandle handle) throws Exception {
+        RuntimeExecution runtime = requireRuntime(handle);
+        return runtime.client.stopWithSavepoint(
+                runtime.jobId, false, savepointDirectory(), SavepointFormatType.CANONICAL)
+                .get(OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private String savepointDirectory() {
+        String configured = System.getProperty("yak.ops.data-sync.savepoint-directory");
+        if (configured == null || configured.trim().isEmpty()) {
+            configured = System.getenv("YAK_OPS_DATA_SYNC_SAVEPOINT_DIRECTORY");
+        }
+        if (configured != null && !configured.trim().isEmpty()) {
+            return configured.trim();
+        }
+        return new File(new File(System.getProperty("user.dir"), "data"),
+                "yak-ops/data-sync/savepoints").toURI().toString();
+    }
+
+    @Override
+    protected DataSyncRecoveryPointSnapshot doGetLatestCompletedCheckpoint(DataSyncExecutionHandle handle)
+            throws Exception {
+        return recoveryPointService.latestCompletedCheckpoint(handle);
     }
 
     @Override

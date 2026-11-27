@@ -21,6 +21,9 @@ import type {
   DataSyncMetricsExecutionReport,
   DataSyncInstanceSummary,
   DataSyncTaskExecutionState,
+  DataSyncInstanceAction,
+  DataSyncInstanceActionMetadata,
+  DataSyncInstanceActionResult,
   DataSyncTaskPageParams,
   DataSyncTaskListRecord,
   DataSyncTaskRecord,
@@ -163,7 +166,7 @@ export const getDataSyncInstance = async (
 ): Promise<DataSyncInstanceRecord> => {
   const base = url("");
   const [instance, definition] = await Promise.all([
-    HttpUtils.getData<TaskInstanceRecord>(instanceUrl(id, base), { signal }),
+    HttpUtils.getData<TaskInstanceRecord & DataSyncInstanceActionMetadata>(instanceUrl(id, base), { signal }),
     instanceDefinition(id, base, signal),
   ]);
   return toDataSyncInstanceRecord(instance, definition);
@@ -182,7 +185,7 @@ export const getDataSyncInstanceReport = async (
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
 ): Promise<PageInfo<DataSyncInstanceSummary>> => {
-  const page = await HttpUtils.getData<PageInfo<TaskInstanceRecord & { taskName: string }>>(
+  const page = await HttpUtils.getData<PageInfo<TaskInstanceRecord & { taskName: string } & DataSyncInstanceActionMetadata>>(
     url(
       "/instances?" +
         qp({
@@ -208,6 +211,12 @@ export const listDataSyncInstances = async (
       startTime: instance.startTime ?? undefined,
       finishTime: instance.endTime ?? undefined,
       createTime: instance.createTime ?? undefined,
+      workflowStatus: instance.workflowStatus,
+      availableActions: instance.availableActions ?? [],
+      recoveryPointAvailable: instance.recoveryPointAvailable ?? false,
+      recoveryPointTime: instance.recoveryPointTime,
+      recoveryPointUsedByWorkflowInstanceId: instance.recoveryPointUsedByWorkflowInstanceId,
+      recoveryUnavailableReason: instance.recoveryUnavailableReason,
     })),
   };
 };
@@ -235,13 +244,14 @@ export const listDataSyncTaskExecutionStates = async (
   );
 };
 
-export const cancelDataSyncInstance = async (workflowInstanceId: number): Promise<void> => {
-  await HttpUtils.postData<void>(
-    YAK_OPS_API_PREFIX + "/projects/" + encodeURIComponent(requireActiveProjectCode()) +
-      "/executors/execute?" + qp({ workflowInstanceId, executeType: "STOP" }),
-    undefined,
+export const operateDataSyncInstance = async (
+  instanceId: string,
+  action: DataSyncInstanceAction,
+): Promise<DataSyncInstanceActionResult> =>
+  HttpUtils.postData<DataSyncInstanceActionResult>(
+    instanceUrl(instanceId) + "/actions",
+    { action },
   );
-};
 
 export const getDataSyncInstanceLogs = async (
   id: string,

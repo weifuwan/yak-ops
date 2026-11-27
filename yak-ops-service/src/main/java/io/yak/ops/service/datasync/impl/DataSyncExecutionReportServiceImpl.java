@@ -4,13 +4,16 @@ import io.yak.ops.common.service.BaseServiceImpl;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSyncExecutionReport;
 import io.yak.ops.dao.entity.DataSyncTableReport;
+import io.yak.ops.dao.entity.DataSyncRecoveryPoint;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.repository.DataSyncExecutionReportDao;
 import io.yak.ops.dao.repository.DataSyncTableReportDao;
+import io.yak.ops.dao.repository.DataSyncRecoveryPointDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.extract.master.transportor.DataSyncExecutionMetrics;
 import io.yak.ops.extract.master.transportor.DataSyncReportAck;
 import io.yak.ops.extract.master.transportor.DataSyncReportRequest;
+import io.yak.ops.extract.master.transportor.DataSyncRecoveryPointReport;
 import io.yak.ops.extract.master.transportor.DataSyncTableMetrics;
 import io.yak.ops.service.datasync.DataSyncExecutionReportService;
 import io.yak.ops.service.datasync.model.DataSyncExecutionReportDetail;
@@ -41,6 +44,7 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
     private final DataSyncExecutionReportDao executionReportDao;
     private final DataSyncTableReportDao tableReportDao;
     private final TaskInstanceDao taskInstanceDao;
+    private final DataSyncRecoveryPointDao recoveryPointDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -116,6 +120,8 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
         }
 
         upsertTableReports(request, collectedAt, now, finalReport);
+        persistRecoveryPoint(request, taskInstance, now);
+        linkRecoveredExecution(request, taskInstance);
         return DataSyncReportAck.accepted("ACCEPTED", incomingSequence);
     }
 
@@ -161,6 +167,55 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
                         report.getFinalSnapshotJson(), DataSyncExecutionMetrics.class))
                 .tables(tables)
                 .build();
+    }
+
+    private void persistRecoveryPoint(DataSyncReportRequest request, TaskInstance taskInstance, Date now) {
+        DataSyncRecoveryPointReport report = request.getRecoveryPoint();
+        if (report == null) {
+            return;
+        }
+        if (!"CHECKPOINT".equals(report.getRecoveryType())
+                || StringUtils.isBlank(report.getRecoveryPointId())
+                || StringUtils.isBlank(report.getRestorePath())
+                || report.getCompletedAt() == null
+                || report.getCompletedAt() <= 0L) {
+            log.warn("Ignoring invalid Flink recovery point report, executionId={}", request.getExecutionId());
+            return;
+        }
+
+        Date completedAt = new Date(report.getCompletedAt());
+        DataSyncRecoveryPoint point = DataSyncRecoveryPoint.builder()
+                .taskInstanceId(taskInstance.getId())
+                .projectCode(taskInstance.getProjectCode())
+                .taskCode(taskInstance.getTaskCode())
+                .taskDefinitionVersion(taskInstance.getTaskDefinitionVersion())
+                .executionId(request.getExecutionId())
+                .jobId(request.getJobId())
+                .recoveryPointId(report.getRecoveryPointId())
+                .checkpointId(report.getCheckpointId())
+                .runtimeMode(request.getDeploymentMode())
+                .recoveryType(report.getRecoveryType())
+                .restorePath(report.getRestorePath())
+                .state("AVAILABLE")
+                .createdAt(completedAt == null ? now : completedAt)
+                .completedAt(completedAt)
+                .build();
+        recoveryPointDao.saveCheckpointIfAbsent(point);
+    }
+
+    private void linkRecoveredExecution(DataSyncReportRequest request, TaskInstance taskInstance) {
+        if (StringUtils.isBlank(request.getRecoveredFromRecoveryPointId())
+                || taskInstance.getWorkflowInstanceId() <= 0) {
+            return;
+        }
+        boolean linked = recoveryPointDao.markUsedByInstance(
+                request.getRecoveredFromRecoveryPointId(),
+                taskInstance.getId(),
+                taskInstance.getWorkflowInstanceId());
+        if (!linked) {
+            log.warn("Could not link recovered CDC execution to recovery point, recoveryPointId={}, taskInstanceId={}",
+                    request.getRecoveredFromRecoveryPointId(), taskInstance.getId());
+        }
     }
 
     private void upsertTableReports(

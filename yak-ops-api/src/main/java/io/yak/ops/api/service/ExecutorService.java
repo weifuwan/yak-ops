@@ -6,6 +6,7 @@ import io.yak.ops.api.dto.workflowInstance.WorkflowExecuteResponse;
 import io.yak.ops.api.enums.ExecuteType;
 import io.yak.ops.common.enums.TaskDependType;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.entity.WorkflowInstance;
 import io.yak.ops.dao.entity.WorkflowDefinition;
 
 import java.util.List;
@@ -68,6 +69,15 @@ public interface ExecutorService {
      * force start Task Instance
      */
     void forceStartTaskInstance(User loginUser, int queueId);
+
+    /**
+     * Start a new data-sync workflow from the source instance's pinned workflow version.
+     */
+    Integer triggerDataSyncWorkflowInstance(User loginUser,
+                                            long projectCode,
+                                            WorkflowInstance sourceWorkflowInstance,
+                                            WorkflowDefinition workflowDefinition,
+                                            Map<String, String> startParams);
 
     /**
      * execute stream task instance

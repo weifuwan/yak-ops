@@ -1,6 +1,7 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.extract.master.transportor.DataSyncExecutionMetrics;
+import io.yak.ops.extract.master.transportor.DataSyncRecoveryPointReport;
 import io.yak.ops.extract.master.transportor.DataSyncReportAck;
 import io.yak.ops.extract.master.transportor.DataSyncReportRequest;
 import io.yak.ops.extract.master.transportor.DataSyncTableMetrics;
@@ -39,6 +40,7 @@ public class DataSyncExecutionCoordinator {
     private volatile DataSyncExecutionHandle handle;
     private volatile DataSyncExecutionService activeExecutionService;
     private volatile boolean cancellationConfirmed;
+    private final AtomicBoolean stopWithSavepointRequested = new AtomicBoolean();
 
     public DataSyncExecutionCoordinator(TaskExecutionContext context) {
         this(context,
@@ -67,11 +69,29 @@ public class DataSyncExecutionCoordinator {
     }
 
     public void execute(FlinkPipelineExecution execution) throws Exception {
-        execute(execution, Collections.emptyList());
+        execute(execution, Collections.emptyList(), null, null);
     }
 
     public void execute(
                         FlinkPipelineExecution execution, List<DataSyncTableMapping> tableMappings) throws Exception {
+        execute(execution, tableMappings, null, null);
+    }
+
+    public void execute(FlinkPipelineExecution execution, String restorePath) throws Exception {
+        execute(execution, Collections.emptyList(), restorePath, null);
+    }
+
+    public void execute(
+                        FlinkPipelineExecution execution, String restorePath, String recoveredFromRecoveryPointId)
+            throws Exception {
+        execute(execution, Collections.emptyList(), restorePath, recoveredFromRecoveryPointId);
+    }
+
+    public void execute(
+                        FlinkPipelineExecution execution,
+                        List<DataSyncTableMapping> tableMappings,
+                        String restorePath,
+                        String recoveredFromRecoveryPointId) throws Exception {
         if (cancelRequested.get()) {
             cancellationConfirmed = true;
             return;
@@ -84,6 +104,7 @@ public class DataSyncExecutionCoordinator {
         }
         String executionId = UUID.randomUUID().toString();
         DataSyncExecutionSnapshot latestSnapshot = null;
+        DataSyncRecoveryPointSnapshot latestRecoveryPoint = null;
         long sequence = 0L;
         long nextMetricsTime = 0L;
         DataSyncExecutionState finalState = DataSyncExecutionState.CREATED;
@@ -93,7 +114,7 @@ public class DataSyncExecutionCoordinator {
         }
         activeExecutionService = executionService;
         try {
-            handle = executionService.submit(execution, executionId, context.getTaskInstanceId());
+            handle = executionService.submit(execution, executionId, context.getTaskInstanceId(), restorePath);
             handle.setTableMappings(tableMappings == null
                     ? Collections.emptyList()
                     : new ArrayList<>(tableMappings));
@@ -106,13 +127,19 @@ public class DataSyncExecutionCoordinator {
                 long now = System.currentTimeMillis();
                 if (latestSnapshot == null || now >= nextMetricsTime || finalState.isTerminal()) {
                     latestSnapshot = collectOrReuse(handle, latestSnapshot);
-                    publish(handle, ++sequence, "SNAPSHOT", finalState, latestSnapshot);
+                    latestRecoveryPoint = collectLatestCheckpointOrReuse(
+                            executionService, handle, latestRecoveryPoint);
+                    publish(handle, ++sequence, "SNAPSHOT", finalState, latestSnapshot,
+                            latestRecoveryPoint, recoveredFromRecoveryPointId);
                     nextMetricsTime = now + METRICS_POLL_INTERVAL_MILLIS;
                 }
 
                 if (finalState.isTerminal()) {
                     DataSyncExecutionSnapshot finalSnapshot = collectOrReuse(handle, latestSnapshot);
-                    publish(handle, ++sequence, "FINAL", finalState, finalSnapshot);
+                    latestRecoveryPoint = collectLatestCheckpointOrReuse(
+                            executionService, handle, latestRecoveryPoint);
+                    publish(handle, ++sequence, "FINAL", finalState, finalSnapshot,
+                            latestRecoveryPoint, recoveredFromRecoveryPointId);
                     if (finalState == DataSyncExecutionState.CANCELED) {
                         cancellationConfirmed = true;
                     }
@@ -161,6 +188,40 @@ public class DataSyncExecutionCoordinator {
         }
     }
 
+    public String triggerSavepoint() throws Exception {
+        DataSyncExecutionHandle current = handle;
+        DataSyncExecutionService executionService = activeExecutionService;
+        if (current == null || executionService == null) {
+            throw new IllegalStateException("CDC execution is not active");
+        }
+        return executionService.triggerSavepoint(current);
+    }
+
+    public String stopWithSavepoint() throws Exception {
+        if (!stopWithSavepointRequested.compareAndSet(false, true)) {
+            throw new IllegalStateException("CDC stop with savepoint is already in progress");
+        }
+        DataSyncExecutionHandle current = handle;
+        DataSyncExecutionService executionService = activeExecutionService;
+        if (current == null || executionService == null) {
+            stopWithSavepointRequested.set(false);
+            throw new IllegalStateException("CDC execution is not active");
+        }
+        try {
+            String restorePath = executionService.stopWithSavepoint(current);
+            if (restorePath == null || restorePath.trim().isEmpty()) {
+                throw new IllegalStateException("Flink did not return a savepoint path");
+            }
+            cancellationConfirmed = true;
+            cancelDispatched.set(true);
+            cancelRequested.set(true);
+            return restorePath;
+        } catch (Exception exception) {
+            stopWithSavepointRequested.set(false);
+            throw exception;
+        }
+    }
+
     public boolean isCancelRequested() {
         return cancelRequested.get();
     }
@@ -179,6 +240,30 @@ public class DataSyncExecutionCoordinator {
                 cancelDispatched.set(false);
                 throw exception;
             }
+        }
+    }
+
+    private DataSyncRecoveryPointSnapshot collectLatestCheckpointOrReuse(
+                                                                         DataSyncExecutionService executionService,
+                                                                         DataSyncExecutionHandle current,
+                                                                         DataSyncRecoveryPointSnapshot previous) throws InterruptedException {
+        try {
+            DataSyncRecoveryPointSnapshot latest = executionService.getLatestCompletedCheckpoint(current);
+            if (latest == null) {
+                return previous;
+            }
+            if (previous == null
+                    || !java.util.Objects.equals(previous.getRecoveryPointId(), latest.getRecoveryPointId())) {
+                return latest;
+            }
+            return latest.getCompletedAt() >= previous.getCompletedAt() ? latest : previous;
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw interrupted;
+        } catch (Exception exception) {
+            log.warn("Failed to collect latest Flink checkpoint, executionId={}",
+                    current.getExecutionId(), exception);
+            return previous;
         }
     }
 
@@ -226,7 +311,9 @@ public class DataSyncExecutionCoordinator {
                          long sequence,
                          String reportType,
                          DataSyncExecutionState state,
-                         DataSyncExecutionSnapshot snapshot) {
+                         DataSyncExecutionSnapshot snapshot,
+                         DataSyncRecoveryPointSnapshot recoveryPoint,
+                         String recoveredFromRecoveryPointId) {
         DataSyncExecutionMetrics summary = DataSyncExecutionMetrics.builder()
                 .readRecords(snapshot.getReadRecords())
                 .snapshotRecords(snapshot.getSnapshotRecords())
@@ -275,6 +362,14 @@ public class DataSyncExecutionCoordinator {
                 .metricsError(snapshot.getErrorMessage())
                 .summary(summary)
                 .tables(tables)
+                .recoveryPoint(recoveryPoint == null ? null : DataSyncRecoveryPointReport.builder()
+                        .recoveryPointId(recoveryPoint.getRecoveryPointId())
+                        .checkpointId(recoveryPoint.getCheckpointId())
+                        .recoveryType(recoveryPoint.getRecoveryType())
+                        .restorePath(recoveryPoint.getRestorePath())
+                        .completedAt(recoveryPoint.getCompletedAt())
+                        .build())
+                .recoveredFromRecoveryPointId(recoveredFromRecoveryPointId)
                 .build();
         try {
             DataSyncReportAck ack = reportPublisher.publish(request);

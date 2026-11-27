@@ -5,9 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -15,15 +18,19 @@ import static org.mockito.Mockito.when;
 
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.DataSyncInstanceAction;
 import io.yak.ops.api.enums.DataSyncScope;
 import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.ProjectService;
+import io.yak.ops.api.service.ExecutorService;
+import io.yak.ops.api.service.TaskInstanceService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
 import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
+import io.yak.ops.api.vo.DataSyncInstanceActionResultVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskExecutionStateVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
@@ -34,6 +41,7 @@ import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.common.enums.WorkflowExecutionStatus;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSource;
+import io.yak.ops.dao.entity.DataSyncRecoveryPoint;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskInstance;
 import io.yak.ops.dao.entity.User;
@@ -46,6 +54,7 @@ import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.model.DataSyncTaskWorkflowRow;
 import io.yak.ops.dao.model.WorkflowInstanceSummaryDto;
 import io.yak.ops.dao.repository.DataSourceDao;
+import io.yak.ops.dao.repository.DataSyncRecoveryPointDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
@@ -54,6 +63,7 @@ import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
 import io.yak.ops.extract.master.transportor.DataSyncExecutionMetrics;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.service.datasync.DataSyncExecutionReportService;
+import io.yak.ops.plugin.task.datasync.DataSyncRuntimeOptions;
 import io.yak.ops.service.datasync.model.DataSyncExecutionReportDetail;
 import io.yak.ops.spi.enums.DbType;
 
@@ -62,7 +72,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -94,9 +106,21 @@ class DataSyncServiceImplTest {
     private WorkflowDefinitionService workflowDefinitionService;
     @Mock
     private DataSyncExecutionReportService dataSyncExecutionReportService;
+    @Mock
+    private DataSyncRecoveryPointDao dataSyncRecoveryPointDao;
+    @Mock
+    private TaskInstanceService taskInstanceService;
+    @Mock
+    private ExecutorService executorService;
 
     @InjectMocks
     private DataSyncServiceImpl service;
+
+    @BeforeEach
+    void stubTaskDefinitionActionLock() {
+        lenient().when(taskDefinitionDao.queryByCodeForUpdate(anyLong()))
+                .thenAnswer(invocation -> taskDefinition(invocation.getArgument(0)));
+    }
 
     @Test
     void executionStatsAggregateProjectScopedDailyStates() {
@@ -763,4 +787,323 @@ class DataSyncServiceImplTest {
 
         verifyNoInteractions(workflowTaskRelationDao, workflowDefinitionDao);
     }
+
+    @Test
+    void latestActiveInstancesExcludeFaultToleranceState() {
+        when(taskDefinitionDao.queryByCodes(any()))
+                .thenReturn(Collections.singletonList(taskDefinition(99L)));
+        when(taskInstanceDao.queryLatestByTaskCodes(eq(PROJECT_CODE), eq("DATA_SYNC"), any(), any()))
+                .thenReturn(Collections.emptyList());
+
+        service.latestInstances(testUser(), PROJECT_CODE, Collections.singletonList(99L), true);
+
+        verify(taskInstanceDao).queryLatestByTaskCodes(
+                eq(PROJECT_CODE),
+                eq("DATA_SYNC"),
+                any(),
+                argThat(states -> Arrays.equals(states, new int[]{
+                        TaskExecutionStatus.SUBMITTED_SUCCESS.getCode(),
+                        TaskExecutionStatus.DISPATCH.getCode(),
+                        TaskExecutionStatus.RUNNING_EXECUTION.getCode(),
+                        TaskExecutionStatus.DELAY_EXECUTION.getCode()})));
+    }
+
+    @Test
+    void stopRealtimeInstancePersistsTheSavepointBeforeReturning() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.RUNNING_EXECUTION);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.RUNNING_EXECUTION);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(null);
+        when(taskInstanceService.stopTaskWithSavepoint(user, PROJECT_CODE, 42))
+                .thenReturn("file:///yak-ops/savepoints/savepoint-42");
+        when(dataSyncRecoveryPointDao.insertPending(any(DataSyncRecoveryPoint.class))).thenAnswer(invocation -> {
+            DataSyncRecoveryPoint point = invocation.getArgument(0);
+            point.setId(55L);
+            return true;
+        });
+        when(dataSyncRecoveryPointDao.markAvailable(
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any(),
+                any(), any(), eq("LOCAL_MINICLUSTER"))).thenReturn(true);
+
+        DataSyncInstanceActionResultVO result =
+                service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.STOP);
+
+        assertEquals(DataSyncInstanceAction.STOP, result.getAction());
+        assertEquals(42, result.getSourceInstanceId());
+        verify(taskInstanceService).stopTaskWithSavepoint(user, PROJECT_CODE, 42);
+        verify(dataSyncRecoveryPointDao).insertPending(argThat(point ->
+                "CREATING".equals(point.getState())
+                        && "SAVEPOINT".equals(point.getRecoveryType())
+                        && point.getRecoveryPointId() != null
+                        && point.getTaskInstanceId() == 42));
+        verify(dataSyncRecoveryPointDao).markAvailable(
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any(),
+                any(), any(), eq("LOCAL_MINICLUSTER"));
+    }
+
+    @Test
+    void retriesSavepointMetadataPersistenceAfterATransientFailure() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.RUNNING_EXECUTION);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.RUNNING_EXECUTION);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(null);
+        when(dataSyncRecoveryPointDao.insertPending(any(DataSyncRecoveryPoint.class))).thenAnswer(invocation -> {
+            DataSyncRecoveryPoint point = invocation.getArgument(0);
+            point.setId(55L);
+            return true;
+        });
+        when(taskInstanceService.stopTaskWithSavepoint(user, PROJECT_CODE, 42))
+                .thenReturn("file:///yak-ops/savepoints/savepoint-42");
+        when(dataSyncRecoveryPointDao.markAvailable(
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any(),
+                any(), any(), eq("LOCAL_MINICLUSTER"))).thenReturn(false, true);
+
+        service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.STOP);
+
+        verify(dataSyncRecoveryPointDao, times(2)).markAvailable(
+                eq(55L), eq("file:///yak-ops/savepoints/savepoint-42"), any(),
+                any(), any(), eq("LOCAL_MINICLUSTER"));
+        verify(dataSyncRecoveryPointDao, never()).markFailed(55L);
+    }
+
+    @Test
+    void failedStopKeepsAFailedRecoveryPointForAuditAndRetry() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.RUNNING_EXECUTION);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.RUNNING_EXECUTION);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(null);
+        when(dataSyncRecoveryPointDao.insertPending(any(DataSyncRecoveryPoint.class))).thenAnswer(invocation -> {
+            DataSyncRecoveryPoint point = invocation.getArgument(0);
+            point.setId(56L);
+            return true;
+        });
+        when(taskInstanceService.stopTaskWithSavepoint(user, PROJECT_CODE, 42))
+                .thenThrow(new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "worker stop failed"));
+        when(dataSyncRecoveryPointDao.markFailed(56L)).thenReturn(true);
+
+        assertThrows(ServiceException.class,
+                () -> service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.STOP));
+
+        verify(dataSyncRecoveryPointDao).markFailed(56L);
+    }
+
+    @Test
+    void retryingStopReturnsExistingRecoveryPointWithoutStoppingTwice() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.RUNNING_EXECUTION);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.RUNNING_EXECUTION);
+        DataSyncRecoveryPoint point = availableRecoveryPoint(55L);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(point);
+
+        DataSyncInstanceActionResultVO result =
+                service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.STOP);
+
+        assertEquals(DataSyncInstanceAction.STOP, result.getAction());
+        verifyNoInteractions(taskInstanceService);
+        verify(dataSyncRecoveryPointDao, never()).insertPending(any(DataSyncRecoveryPoint.class));
+    }
+
+    @Test
+    void resumeUsesPinnedWorkflowVersionAndMarksSavepointUsed() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.KILL);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.STOP);
+        DataSyncRecoveryPoint point = availableRecoveryPoint(55L);
+        WorkflowDefinition definition = workflowVersion(5);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(eq(101L), any(int[].class)))
+                .thenReturn(Collections.emptyList());
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(point);
+        when(workflowDefinitionService.queryWorkflowDefinitionThrowExceptionIfNotFound(101L, 5))
+                .thenReturn(definition);
+        when(executorService.triggerDataSyncWorkflowInstance(
+                eq(user), eq(PROJECT_CODE), eq(workflow), eq(definition), any()))
+                .thenReturn(99);
+        when(dataSyncRecoveryPointDao.markUsed(55L, 99)).thenReturn(true);
+
+        DataSyncInstanceActionResultVO result =
+                service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.RESUME);
+
+        assertEquals(99, result.getNewWorkflowInstanceId());
+        verify(executorService).triggerDataSyncWorkflowInstance(
+                eq(user),
+                eq(PROJECT_CODE),
+                eq(workflow),
+                eq(definition),
+                argThat(params -> "file:///yak-ops/savepoints/savepoint-42"
+                        .equals(params.get(DataSyncRuntimeOptions.RESTORE_PATH))
+                        && point.getRecoveryPointId().equals(params.get(DataSyncRuntimeOptions.RECOVERY_POINT_ID))));
+        verify(dataSyncRecoveryPointDao).markUsed(55L, 99);
+    }
+
+    @Test
+    void rerunStartsFromScratchAndSupersedesOldSavepoint() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.KILL);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.STOP);
+        DataSyncRecoveryPoint point = availableRecoveryPoint(55L);
+        WorkflowDefinition definition = workflowVersion(5);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(eq(101L), any(int[].class)))
+                .thenReturn(Collections.emptyList());
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(point);
+        when(workflowDefinitionService.queryWorkflowDefinitionThrowExceptionIfNotFound(101L, 5))
+                .thenReturn(definition);
+        when(executorService.triggerDataSyncWorkflowInstance(
+                eq(user), eq(PROJECT_CODE), eq(workflow), eq(definition), any()))
+                .thenReturn(100);
+        when(dataSyncRecoveryPointDao.markAllAvailableSuperseded(42)).thenReturn(true);
+
+        DataSyncInstanceActionResultVO result =
+                service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.RERUN);
+
+        assertEquals(100, result.getNewWorkflowInstanceId());
+        verify(executorService).triggerDataSyncWorkflowInstance(
+                eq(user), eq(PROJECT_CODE), eq(workflow), eq(definition),
+                argThat(Map::isEmpty));
+        verify(dataSyncRecoveryPointDao).markAllAvailableSuperseded(42);
+        verify(dataSyncRecoveryPointDao, never()).markUsed(anyLong(), anyInt());
+    }
+
+    @Test
+    void recoverFailureUsesLatestCheckpointAndLinksTheNewExecution() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.NEED_FAULT_TOLERANCE);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.FAILURE);
+        DataSyncRecoveryPoint point = availableCheckpoint(57L);
+        WorkflowDefinition definition = workflowVersion(5);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(eq(101L), any(int[].class)))
+                .thenReturn(Collections.emptyList());
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(point);
+        when(workflowDefinitionService.queryWorkflowDefinitionThrowExceptionIfNotFound(101L, 5))
+                .thenReturn(definition);
+        when(executorService.triggerDataSyncWorkflowInstance(
+                eq(user), eq(PROJECT_CODE), eq(workflow), eq(definition), any()))
+                .thenReturn(101);
+        when(dataSyncRecoveryPointDao.markUsed(57L, 101)).thenReturn(true);
+        when(dataSyncRecoveryPointDao.markAllAvailableSuperseded(42)).thenReturn(true);
+
+        DataSyncInstanceActionResultVO result =
+                service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.RECOVER_FAILURE);
+
+        assertEquals(101, result.getNewWorkflowInstanceId());
+        verify(executorService).triggerDataSyncWorkflowInstance(
+                eq(user),
+                eq(PROJECT_CODE),
+                eq(workflow),
+                eq(definition),
+                argThat(params -> "file:///yak-ops/checkpoints/chk-12"
+                        .equals(params.get(DataSyncRuntimeOptions.RESTORE_PATH))
+                        && point.getRecoveryPointId().equals(params.get(DataSyncRuntimeOptions.RECOVERY_POINT_ID))));
+        verify(dataSyncRecoveryPointDao).markUsed(57L, 101);
+        verify(dataSyncRecoveryPointDao).markAllAvailableSuperseded(42);
+    }
+
+    @Test
+    void failoverBlocksManualRecoveryEvenWhenSavepointExists() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.NEED_FAULT_TOLERANCE);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.FAILOVER);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(availableRecoveryPoint(55L));
+
+        assertThrows(ServiceException.class,
+                () -> service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.RECOVER_FAILURE));
+
+        verifyNoInteractions(executorService, taskInstanceService);
+    }
+
+    @Test
+    void failureRecoveryIsRejectedWhenNoSavepointExists() {
+        User user = testUser();
+        TaskInstance instance = streamTaskInstance(42, TaskExecutionStatus.FAILURE);
+        WorkflowInstance workflow = actionWorkflow(34, WorkflowExecutionStatus.FAILURE);
+        when(taskInstanceDao.queryByIdForUpdate(42)).thenReturn(instance);
+        when(workflowInstanceDao.queryById(34)).thenReturn(workflow);
+        when(dataSyncRecoveryPointDao.queryByTaskInstanceId(42)).thenReturn(null);
+
+        assertThrows(ServiceException.class,
+                () -> service.performInstanceAction(user, PROJECT_CODE, 42, DataSyncInstanceAction.RECOVER_FAILURE));
+
+        verifyNoInteractions(executorService);
+    }
+
+    private static TaskInstance streamTaskInstance(int id, TaskExecutionStatus state) {
+        TaskInstance instance = taskInstance(id);
+        instance.setTaskExecuteType(TaskExecuteType.STREAM);
+        instance.setTaskDefinitionVersion(4);
+        instance.setState(state);
+        instance.setHost("worker-1");
+        return instance;
+    }
+
+    private static WorkflowInstance actionWorkflow(int id, WorkflowExecutionStatus state) {
+        WorkflowInstance workflow = new WorkflowInstance();
+        workflow.setId(id);
+        workflow.setProjectCode(PROJECT_CODE);
+        workflow.setWorkflowDefinitionCode(101L);
+        workflow.setWorkflowDefinitionVersion(5);
+        workflow.setState(state);
+        workflow.setWorkerGroup("default");
+        workflow.setTenantCode("default");
+        workflow.setDryRun(0);
+        return workflow;
+    }
+
+    private static WorkflowDefinition workflowVersion(int version) {
+        WorkflowDefinition definition = workflow(101L, 99L);
+        definition.setVersion(version);
+        definition.setReleaseState(ReleaseState.OFFLINE);
+        return definition;
+    }
+
+    private static DataSyncRecoveryPoint availableCheckpoint(long id) {
+        DataSyncRecoveryPoint point = new DataSyncRecoveryPoint();
+        point.setId(id);
+        point.setTaskInstanceId(42);
+        point.setProjectCode(PROJECT_CODE);
+        point.setTaskCode(99L);
+        point.setTaskDefinitionVersion(4);
+        point.setRuntimeMode("LOCAL_MINICLUSTER");
+        point.setExecutionId("execution-1");
+        point.setJobId("job-1");
+        point.setRecoveryPointId("execution-1:checkpoint:12");
+        point.setCheckpointId("12");
+        point.setRecoveryType("CHECKPOINT");
+        point.setRestorePath("file:///yak-ops/checkpoints/chk-12");
+        point.setCompletedAt(new java.util.Date());
+        point.setState("AVAILABLE");
+        return point;
+    }
+
+    private static DataSyncRecoveryPoint availableRecoveryPoint(long id) {
+        DataSyncRecoveryPoint point = new DataSyncRecoveryPoint();
+        point.setId(id);
+        point.setTaskInstanceId(42);
+        point.setProjectCode(PROJECT_CODE);
+        point.setTaskCode(99L);
+        point.setTaskDefinitionVersion(4);
+        point.setRuntimeMode("LOCAL_MINICLUSTER");
+        point.setRecoveryPointId("execution-1:savepoint:55");
+        point.setRecoveryType("SAVEPOINT");
+        point.setRestorePath("file:///yak-ops/savepoints/savepoint-42");
+        point.setCompletedAt(new java.util.Date());
+        point.setState("AVAILABLE");
+        return point;
+    }
+
+
 }

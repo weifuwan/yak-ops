@@ -21,9 +21,12 @@ import io.yak.ops.api.validator.workflow.TriggerWorkflowDTO;
 import io.yak.ops.api.validator.workflow.TriggerWorkflowDTOValidator;
 import io.yak.ops.api.validator.workflow.TriggerWorkflowRequestTransformer;
 import io.yak.ops.common.enums.CommandType;
+import io.yak.ops.common.enums.FailureStrategy;
 import io.yak.ops.common.enums.Flag;
 import io.yak.ops.common.enums.ReleaseState;
+import io.yak.ops.common.enums.Priority;
 import io.yak.ops.common.enums.TaskDependType;
+import io.yak.ops.common.enums.WarningType;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.Command;
 import io.yak.ops.dao.entity.TaskDefinition;
@@ -38,10 +41,15 @@ import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
 import io.yak.ops.dao.repository.WorkflowInstanceDao;
 import io.yak.ops.dao.repository.WorkflowTaskRelationDao;
+import io.yak.ops.plugin.task.api.enums.DataType;
+import io.yak.ops.plugin.task.api.enums.Direct;
+import io.yak.ops.plugin.task.api.model.Property;
 import io.yak.ops.plugin.task.api.utils.TaskTypeUtils;
 import io.yak.ops.service.command.CommandService;
 import io.yak.ops.service.process.ProcessService;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -115,6 +123,17 @@ public class ExecutorServiceImpl extends BaseServiceImpl implements ExecutorServ
                 || triggerWorkflowDTO.getWorkflowDefinition().getProjectCode() != triggerRequest.getProjectCode()) {
             throw new ServiceException(Status.WORKFLOW_DEFINITION_NOT_EXIST,
                     String.valueOf(triggerRequest.getWorkflowDefinitionCode()));
+        }
+        // Serialize ordinary manual runs with instance actions for DataSync tasks.
+        WorkflowDefinition workflowDefinition = triggerWorkflowDTO.getWorkflowDefinition();
+        TaskDefinition taskDefinition = taskDefinitionDao.queryByCode(workflowDefinition.getCode());
+        if (taskDefinition != null && "DATA_SYNC".equals(taskDefinition.getTaskType())) {
+            TaskDefinition lockedTaskDefinition = taskDefinitionDao.queryByCodeForUpdate(workflowDefinition.getCode());
+            if (lockedTaskDefinition == null
+                    || !"DATA_SYNC".equals(lockedTaskDefinition.getTaskType())
+                    || lockedTaskDefinition.getProjectCode() != triggerRequest.getProjectCode()) {
+                throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+            }
         }
         // todo: use validator chain
         triggerWorkflowDTOValidator.validate(triggerWorkflowDTO);
@@ -365,6 +384,63 @@ public class ExecutorServiceImpl extends BaseServiceImpl implements ExecutorServ
         taskGroupQueue.setForceStart(Flag.YES.getCode());
         taskGroupQueue.setUpdateTime(new Date());
         taskGroupQueueMapper.updateById(taskGroupQueue);
+    }
+
+    @Override
+    @Transactional
+    public Integer triggerDataSyncWorkflowInstance(
+            User loginUser,
+            long projectCode,
+            WorkflowInstance sourceWorkflowInstance,
+            WorkflowDefinition workflowDefinition,
+            Map<String, String> startParams) {
+        projectService.checkHasProjectWritePermissionThrowException(loginUser, projectCode);
+        if (sourceWorkflowInstance == null || workflowDefinition == null
+                || !java.util.Objects.equals(sourceWorkflowInstance.getProjectCode(), projectCode)
+                || !java.util.Objects.equals(workflowDefinition.getProjectCode(), projectCode)
+                || !java.util.Objects.equals(sourceWorkflowInstance.getWorkflowDefinitionCode(),
+                        workflowDefinition.getCode())
+                || sourceWorkflowInstance.getWorkflowDefinitionVersion() != workflowDefinition.getVersion()) {
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+        }
+
+        List<Property> startParamList = new ArrayList<>();
+        if (startParams != null) {
+            startParams.forEach((key, value) -> {
+                if (key == null || key.trim().isEmpty()) {
+                    throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "startParams");
+                }
+                startParamList.add(new Property(key.trim(), Direct.IN, DataType.VARCHAR, value));
+            });
+        }
+
+        // A historical definition version may be stored offline after a later publish cycle.
+        workflowDefinition.setReleaseState(ReleaseState.ONLINE);
+        TriggerWorkflowDTO triggerWorkflowDTO = TriggerWorkflowDTO.builder()
+                .loginUser(loginUser)
+                .workflowDefinition(workflowDefinition)
+                .startNodes(Collections.emptyList())
+                .failureStrategy(sourceWorkflowInstance.getFailureStrategy() == null
+                        ? FailureStrategy.CONTINUE : sourceWorkflowInstance.getFailureStrategy())
+                .taskDependType(sourceWorkflowInstance.getTaskDependType() == null
+                        ? TaskDependType.TASK_POST : sourceWorkflowInstance.getTaskDependType())
+                .execType(CommandType.START_PROCESS)
+                .warningType(sourceWorkflowInstance.getWarningType() == null
+                        ? WarningType.NONE : sourceWorkflowInstance.getWarningType())
+                .warningGroupId(sourceWorkflowInstance.getWarningGroupId())
+                .workflowInstancePriority(sourceWorkflowInstance.getWorkflowInstancePriority() == null
+                        ? Priority.MEDIUM : sourceWorkflowInstance.getWorkflowInstancePriority())
+                .workerGroup(sourceWorkflowInstance.getWorkerGroup() == null
+                        ? "default" : sourceWorkflowInstance.getWorkerGroup())
+                .tenantCode(sourceWorkflowInstance.getTenantCode() == null
+                        ? "default" : sourceWorkflowInstance.getTenantCode())
+                .environmentCode(sourceWorkflowInstance.getEnvironmentCode())
+                .startParamList(startParamList)
+                .dryRun(sourceWorkflowInstance.getDryRun() > 0
+                        ? Flag.YES : Flag.NO)
+                .build();
+        triggerWorkflowDTOValidator.validate(triggerWorkflowDTO);
+        return executorClient.triggerWorkflowDefinition().execute(triggerWorkflowDTO);
     }
 
     @Override

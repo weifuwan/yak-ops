@@ -141,7 +141,7 @@ test("data-sync detail exposes one task-level stop action and never cancels sele
     detailPage,
     /getCancelableDataSyncWorkflowInstanceId\(workflow, activeInstance\)/,
   );
-  assert.match(detailPage, /cancelWorkflowInstanceId \? \(/);
+  assert.match(detailPage, /cancelWorkflowInstanceId && activeInstance\?\.id \? \(/);
   assert.match(
     detailPage,
     /dataSyncInstanceStatusMeta\(activeInstance\.status, realtime\)\.label/,

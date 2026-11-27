@@ -25,34 +25,47 @@ public class StreamingTaskInstanceOperatorImpl implements IStreamingTaskInstance
     private PhysicalTaskExecutorRepository physicalTaskExecutorRepository;
 
     @Override
-    public TaskInstanceTriggerSavepointResponse triggerSavepoint(TaskInstanceTriggerSavepointRequest taskInstanceTriggerSavepointRequest) {
-        log.info("Receive triggerSavepoint request: {}", taskInstanceTriggerSavepointRequest);
+    public TaskInstanceTriggerSavepointResponse triggerSavepoint(
+            TaskInstanceTriggerSavepointRequest request) {
+        return execute(request, false);
+    }
 
+    @Override
+    public TaskInstanceTriggerSavepointResponse stopWithSavepoint(
+            TaskInstanceTriggerSavepointRequest request) {
+        return execute(request, true);
+    }
+
+    private TaskInstanceTriggerSavepointResponse execute(
+            TaskInstanceTriggerSavepointRequest request, boolean stop) {
+        int taskInstanceId = request.getTaskInstanceId();
+        log.info("Receive {} request for taskInstanceId={}",
+                stop ? "stopWithSavepoint" : "triggerSavepoint", taskInstanceId);
         try {
-            int taskInstanceId = taskInstanceTriggerSavepointRequest.getTaskInstanceId();
             LogUtils.setTaskInstanceIdMDC(taskInstanceId);
-            final Optional<ITaskExecutor> taskExecutorOptional = physicalTaskExecutorRepository.get(taskInstanceId);
+            Optional<ITaskExecutor> taskExecutorOptional = physicalTaskExecutorRepository.get(taskInstanceId);
             if (!taskExecutorOptional.isPresent()) {
-                log.error("Cannot find WorkerTaskExecutor for taskInstance: {}", taskInstanceId);
-                return TaskInstanceTriggerSavepointResponse.fail("Cannot find TaskExecutionContext");
+                return TaskInstanceTriggerSavepointResponse.fail(
+                        "Cannot find running task executor for taskInstanceId=" + taskInstanceId);
             }
-            final PhysicalTaskExecutor taskExecutor = (PhysicalTaskExecutor) taskExecutorOptional.get();
+            PhysicalTaskExecutor taskExecutor = (PhysicalTaskExecutor) taskExecutorOptional.get();
             AbstractTask task = taskExecutor.getPhysicalTask();
-            if (task == null) {
-                log.error("Cannot find StreamTask for taskInstance:{}", taskInstanceId);
-                return TaskInstanceTriggerSavepointResponse.fail("Cannot find StreamTask");
-            }
             if (!(task instanceof StreamTask)) {
-                log.warn("The taskInstance: {} is not StreamTask", taskInstanceId);
-                return TaskInstanceTriggerSavepointResponse.fail("The taskInstance is not StreamTask");
+                return TaskInstanceTriggerSavepointResponse.fail("The taskInstance is not a StreamTask");
             }
             try {
-                ((StreamTask) task).savePoint();
-            } catch (Exception e) {
-                log.error("StreamTask: {} call savePoint error", taskInstanceId, e);
-                return TaskInstanceTriggerSavepointResponse.fail("StreamTask call savePoint error: " + e.getMessage());
+                String path = stop
+                        ? ((StreamTask) task).stopWithSavepoint()
+                        : ((StreamTask) task).savePoint();
+                if (path == null || path.trim().isEmpty()) {
+                    return TaskInstanceTriggerSavepointResponse.fail("Flink did not return a savepoint path");
+                }
+                return TaskInstanceTriggerSavepointResponse.success(path);
+            } catch (Exception exception) {
+                log.error("StreamTask {} {} failed", taskInstanceId,
+                        stop ? "stopWithSavepoint" : "savePoint", exception);
+                return TaskInstanceTriggerSavepointResponse.fail(exception.getMessage());
             }
-            return TaskInstanceTriggerSavepointResponse.success();
         } finally {
             LogUtils.removeTaskInstanceIdMDC();
         }

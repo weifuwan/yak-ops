@@ -2,11 +2,16 @@ package io.yak.ops.api.service.impl;
 
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.enums.DataSyncInstanceAction;
 import io.yak.ops.api.enums.DataSyncScope;
+import io.yak.ops.api.enums.ExecuteType;
 import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.enums.Status;
 import io.yak.ops.api.exceptions.ServiceException;
 import io.yak.ops.api.service.DataSyncService;
+import io.yak.ops.api.service.DataSyncInstanceActionPolicy;
+import io.yak.ops.api.service.ExecutorService;
+import io.yak.ops.api.service.TaskInstanceService;
 import io.yak.ops.api.service.ProjectService;
 import io.yak.ops.api.service.WorkflowDefinitionService;
 import io.yak.ops.api.utils.PageInfo;
@@ -14,6 +19,7 @@ import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
+import io.yak.ops.api.vo.DataSyncInstanceActionResultVO;
 import io.yak.ops.api.vo.DataSyncMetricsSnapshotVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTableReportVO;
@@ -31,6 +37,7 @@ import io.yak.ops.common.enums.WorkflowExecutionTypeEnum;
 import io.yak.ops.common.utils.CodeGenerateUtils;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.entity.DataSource;
+import io.yak.ops.dao.entity.DataSyncRecoveryPoint;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.TaskInstance;
@@ -44,6 +51,7 @@ import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
 import io.yak.ops.dao.model.DataSyncTaskWorkflowRow;
 import io.yak.ops.dao.repository.DataSourceDao;
+import io.yak.ops.dao.repository.DataSyncRecoveryPointDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
 import io.yak.ops.dao.repository.WorkflowDefinitionDao;
@@ -55,6 +63,7 @@ import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.enums.TaskExecutionStatus;
 import io.yak.ops.plugin.task.api.parameters.resource.DataSourceParameters;
 import io.yak.ops.plugin.task.datasync.DataSyncParameters;
+import io.yak.ops.plugin.task.datasync.DataSyncRuntimeOptions;
 import io.yak.ops.plugin.task.datasync.DataSyncPipelineBuilder;
 import io.yak.ops.service.datasync.DataSyncExecutionReportService;
 import io.yak.ops.service.datasync.model.DataSyncExecutionReportDetail;
@@ -75,6 +84,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -104,6 +114,9 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     private final WorkflowTaskRelationDao workflowTaskRelationDao;
     private final WorkflowDefinitionService workflowDefinitionService;
     private final DataSyncExecutionReportService dataSyncExecutionReportService;
+    private final DataSyncRecoveryPointDao dataSyncRecoveryPointDao;
+    private final TaskInstanceService taskInstanceService;
+    private final ExecutorService executorService;
     private final DataSyncPipelineBuilder dataSyncPipelineBuilder = new DataSyncPipelineBuilder();
 
     @Override
@@ -507,8 +520,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 TaskExecutionStatus.SUBMITTED_SUCCESS.getCode(),
                 TaskExecutionStatus.DISPATCH.getCode(),
                 TaskExecutionStatus.RUNNING_EXECUTION.getCode(),
-                TaskExecutionStatus.DELAY_EXECUTION.getCode(),
-                TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()} : null;
+                TaskExecutionStatus.DELAY_EXECUTION.getCode()} : null;
         return toInstanceVOs(taskInstanceDao.queryLatestByTaskCodes(
                 projectCode, TASK_TYPE, new ArrayList<>(requested), states));
     }
@@ -546,7 +558,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         List<TaskInstance> latestTaskInstances = taskInstanceDao.queryLatestByTaskCodes(
                 projectCode, TASK_TYPE, requestedCodes, null);
         Map<Long, DataSyncInstanceVO> taskInstancesByCode = latestTaskInstances.stream()
-                .collect(Collectors.toMap(TaskInstance::getTaskCode, instance -> toInstanceVO(instance, null)));
+                .collect(Collectors.toMap(TaskInstance::getTaskCode, instance -> toInstanceVO(instance, null, null)));
 
         List<WorkflowInstance> latestWorkflows =
                 workflowInstanceDao.queryLatestByWorkflowDefinitionCodes(projectCode, workflowCodes);
@@ -576,7 +588,222 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     @Override
     public DataSyncInstanceVO getInstance(User user, long projectCode, int instanceId) {
         TaskInstance instance = requireInstance(user, projectCode, instanceId);
-        return toInstanceVO(instance, workflowInstanceDao.queryById(instance.getWorkflowInstanceId()));
+        return toInstanceVOs(Collections.singletonList(instance)).get(0);
+    }
+
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DataSyncInstanceActionResultVO performInstanceAction(
+            User user, long projectCode, int instanceId, DataSyncInstanceAction action) {
+        authorizeWrite(user, projectCode);
+        if (action == null) {
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "action");
+        }
+
+        TaskInstance instance = taskInstanceDao.queryByIdForUpdate(instanceId);
+        if (instance == null || instance.getProjectCode() != projectCode || !TASK_TYPE.equals(instance.getTaskType())
+                ) {
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+        }
+        TaskDefinition lockedDefinition = taskDefinitionDao.queryByCodeForUpdate(instance.getTaskCode());
+        if (lockedDefinition == null || lockedDefinition.getProjectCode() != projectCode
+                || !TASK_TYPE.equals(lockedDefinition.getTaskType())) {
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+        }
+        WorkflowInstance workflow = instance.getWorkflowInstanceId() > 0
+                ? workflowInstanceDao.queryById(instance.getWorkflowInstanceId())
+                : null;
+        DataSyncRecoveryPoint recoveryPoint = instance.getTaskExecuteType() == TaskExecuteType.STREAM
+                ? dataSyncRecoveryPointDao.queryByTaskInstanceId(instanceId)
+                : null;
+        boolean recoveryPointAvailable = hasUsableRecoveryPoint(recoveryPoint);
+
+        List<DataSyncInstanceAction> availableActions =
+                DataSyncInstanceActionPolicy.availableActions(instance, workflow, recoveryPointAvailable);
+        if (!availableActions.contains(action)) {
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                    "当前实例状态不允许执行操作：" + action);
+        }
+
+        boolean stream = instance.getTaskExecuteType() == TaskExecuteType.STREAM;
+        Integer newWorkflowInstanceId = null;
+
+        switch (action) {
+            case STOP:
+                if (stream) {
+                    if (recoveryPoint != null
+                            && "SAVEPOINT".equals(recoveryPoint.getRecoveryType())
+                            && hasUsableRecoveryPoint(recoveryPoint)) {
+                        // A retried stop request returns the already persisted Savepoint.
+                        break;
+                    }
+                    if (recoveryPoint != null && "CREATING".equals(recoveryPoint.getState())) {
+                        throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                                "该实例的恢复点正在生成，请稍后刷新");
+                    }
+
+                    DataSyncRecoveryPoint point = DataSyncRecoveryPoint.builder()
+                            .taskInstanceId(instanceId)
+                            .projectCode(projectCode)
+                            .taskCode(instance.getTaskCode())
+                            .taskDefinitionVersion(instance.getTaskDefinitionVersion())
+                            .recoveryPointId("savepoint:" + UUID.randomUUID())
+                            .runtimeMode("LOCAL_MINICLUSTER")
+                            .recoveryType("SAVEPOINT")
+                            .state("CREATING")
+                            .createdAt(new Date())
+                            .build();
+                    if (!dataSyncRecoveryPointDao.insertPending(point)) {
+                        throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                                "无法创建恢复点记录，请刷新实例状态后重试");
+                    }
+                    String restorePath = null;
+                    Date completedAt = null;
+                    try {
+                        restorePath = taskInstanceService.stopTaskWithSavepoint(user, projectCode, instanceId);
+                        if (restorePath == null || restorePath.trim().isEmpty()) {
+                            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                                    "Flink 未返回可用的恢复点");
+                        }
+                        completedAt = new Date();
+                        DataSyncExecutionReportDetail report = null;
+                        try {
+                            report = dataSyncExecutionReportService.getLatestReport(instanceId);
+                        } catch (RuntimeException reportException) {
+                            log.warn("Could not read the latest CDC report after Savepoint creation, taskInstanceId={}",
+                                    instanceId, reportException);
+                        }
+                        point.setExecutionId(report == null ? null : report.getExecutionId());
+                        point.setJobId(report == null ? null : report.getJobId());
+                        if (report != null && report.getDeploymentMode() != null) {
+                            point.setRuntimeMode(report.getDeploymentMode());
+                        }
+                        if (!dataSyncRecoveryPointDao.markAvailable(
+                                point.getId(), restorePath, completedAt,
+                                point.getExecutionId(), point.getJobId(), point.getRuntimeMode())) {
+                            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                                    "恢复点保存失败，请检查任务状态后重试");
+                        }
+                    } catch (RuntimeException exception) {
+                        if (restorePath != null && !restorePath.trim().isEmpty()) {
+                            try {
+                                boolean persisted = dataSyncRecoveryPointDao.markAvailable(
+                                        point.getId(), restorePath,
+                                        completedAt == null ? new Date() : completedAt,
+                                        point.getExecutionId(), point.getJobId(), point.getRuntimeMode());
+                                if (persisted) {
+                                    log.warn("Recovered Savepoint metadata after a transient persistence failure, "
+                                            + "taskInstanceId={}, recoveryPointId={}",
+                                            instanceId, point.getRecoveryPointId());
+                                    break;
+                                }
+                                DataSyncRecoveryPoint persistedPoint =
+                                        dataSyncRecoveryPointDao.queryByTaskInstanceId(instanceId);
+                                if (persistedPoint != null
+                                        && point.getId().equals(persistedPoint.getId())
+                                        && hasUsableRecoveryPoint(persistedPoint)) {
+                                    break;
+                                }
+                            } catch (RuntimeException retryException) {
+                                exception.addSuppressed(retryException);
+                                log.error("Savepoint was created but recovery metadata could not be persisted, "
+                                                + "taskInstanceId={}, recoveryPointId={}, restorePath={}",
+                                        instanceId, point.getRecoveryPointId(), restorePath, retryException);
+                            }
+                        }
+                        try {
+                            if (point.getId() != null && !dataSyncRecoveryPointDao.markFailed(point.getId())) {
+                                log.warn("Could not mark failed Savepoint attempt, taskInstanceId={}, recoveryPointId={}",
+                                        instanceId, point.getRecoveryPointId());
+                            }
+                        } catch (RuntimeException persistenceException) {
+                            exception.addSuppressed(persistenceException);
+                            log.error("Could not persist failed Savepoint state, taskInstanceId={}",
+                                    instanceId, persistenceException);
+                        }
+                        throw exception;
+                    }
+                } else {
+                    requireWorkflowInstance(workflow, instanceId);
+                    executorService.controlWorkflowInstance(user, workflow.getId(), ExecuteType.STOP);
+                }
+                break;
+            case RESUME:
+            case RECOVER_FAILURE:
+                if (stream) {
+                    if (!recoveryPointAvailable || recoveryPoint.getRestorePath() == null
+                            || recoveryPoint.getRestorePath().trim().isEmpty()) {
+                        throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                                "该实例没有可用的恢复点，无法恢复执行");
+                    }
+                    ensureNoActiveWorkflow(workflow);
+                    newWorkflowInstanceId = startStreamDataSyncInstance(user, projectCode, workflow, recoveryPoint);
+                    if (!dataSyncRecoveryPointDao.markUsed(recoveryPoint.getId(), newWorkflowInstanceId)) {
+                        throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                                "恢复点已被其他操作使用，请刷新实例状态");
+                    }
+                    dataSyncRecoveryPointDao.markAllAvailableSuperseded(instanceId);
+                } else {
+                    requireWorkflowInstance(workflow, instanceId);
+                    executorService.controlWorkflowInstance(
+                            user,
+                            workflow.getId(),
+                            action == DataSyncInstanceAction.RESUME
+                                    ? ExecuteType.RECOVER_SUSPENDED_PROCESS
+                                    : ExecuteType.START_FAILURE_TASK_PROCESS);
+                }
+                break;
+            case RERUN:
+                if (stream) {
+                    ensureNoActiveWorkflow(workflow);
+                    newWorkflowInstanceId = startStreamDataSyncInstance(user, projectCode, workflow, null);
+                    dataSyncRecoveryPointDao.markAllAvailableSuperseded(instanceId);
+                } else {
+                    requireWorkflowInstance(workflow, instanceId);
+                    executorService.controlWorkflowInstance(user, workflow.getId(), ExecuteType.REPEAT_RUNNING);
+                }
+                break;
+            default:
+                throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "action");
+        }
+
+        return DataSyncInstanceActionResultVO.builder()
+                .action(action)
+                .sourceInstanceId(instanceId)
+                .newWorkflowInstanceId(newWorkflowInstanceId)
+                .build();
+    }
+
+    private Integer startStreamDataSyncInstance(
+            User user, long projectCode, WorkflowInstance sourceWorkflow, DataSyncRecoveryPoint recoveryPoint) {
+        WorkflowDefinition definition = workflowDefinitionService.queryWorkflowDefinitionThrowExceptionIfNotFound(
+                sourceWorkflow.getWorkflowDefinitionCode(), sourceWorkflow.getWorkflowDefinitionVersion());
+        Map<String, String> startParams;
+        if (recoveryPoint == null) {
+            startParams = Collections.emptyMap();
+        } else {
+            startParams = new java.util.LinkedHashMap<>();
+            startParams.put(DataSyncRuntimeOptions.RESTORE_PATH, recoveryPoint.getRestorePath());
+            startParams.put(DataSyncRuntimeOptions.RECOVERY_POINT_ID, recoveryPoint.getRecoveryPointId());
+        }
+        return executorService.triggerDataSyncWorkflowInstance(
+                user, projectCode, sourceWorkflow, definition, startParams);
+    }
+
+    private void ensureNoActiveWorkflow(WorkflowInstance sourceWorkflow) {
+        if (workflowInstanceDao.queryByWorkflowDefinitionCodeAndStatus(
+                sourceWorkflow.getWorkflowDefinitionCode(), WorkflowExecutionStatus.NOT_TERMINAL_STATES).size() > 0) {
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR,
+                    "该数据同步任务已有运行中的实例，请先停止当前实例");
+        }
+    }
+
+    private static void requireWorkflowInstance(WorkflowInstance workflow, int instanceId) {
+        if (workflow == null) {
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION,
+                    "实例缺少关联工作流：" + instanceId);
+        }
     }
 
     @Override
@@ -763,19 +990,46 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
     }
 
     private List<DataSyncInstanceVO> toInstanceVOs(List<TaskInstance> instances) {
-        Set<Integer> ids = instances.stream()
+        Set<Integer> workflowIds = instances.stream()
                 .map(TaskInstance::getWorkflowInstanceId)
                 .filter(id -> id > 0)
                 .collect(Collectors.toSet());
-        Map<Integer, WorkflowInstance> workflows = ids.isEmpty() ? Collections.emptyMap()
-                : workflowInstanceDao.queryByIds(ids).stream()
+        Map<Integer, WorkflowInstance> workflows = workflowIds.isEmpty() ? Collections.emptyMap()
+                : workflowInstanceDao.queryByIds(workflowIds).stream()
                         .collect(Collectors.toMap(WorkflowInstance::getId, Function.identity()));
+
+        List<Integer> instanceIds = instances.stream()
+                .map(TaskInstance::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        Map<Integer, DataSyncRecoveryPoint> recoveryPoints = new java.util.HashMap<>();
+        if (!instanceIds.isEmpty()) {
+            dataSyncRecoveryPointDao.queryByTaskInstanceIds(instanceIds).forEach(point -> {
+                DataSyncRecoveryPoint existing = recoveryPoints.get(point.getTaskInstanceId());
+                if (existing == null
+                        || (hasUsableRecoveryPoint(point) && !hasUsableRecoveryPoint(existing))) {
+                    recoveryPoints.put(point.getTaskInstanceId(), point);
+                }
+            });
+        }
+
         return instances.stream()
-                .map(instance -> toInstanceVO(instance, workflows.get(instance.getWorkflowInstanceId())))
+                .map(instance -> toInstanceVO(
+                        instance,
+                        workflows.get(instance.getWorkflowInstanceId()),
+                        recoveryPoints.get(instance.getId())))
                 .collect(Collectors.toList());
     }
 
-    private static DataSyncInstanceVO toInstanceVO(TaskInstance instance, WorkflowInstance workflow) {
+    private DataSyncInstanceVO toInstanceVO(
+            TaskInstance instance, WorkflowInstance workflow, DataSyncRecoveryPoint recoveryPoint) {
+        boolean stream = instance.getTaskExecuteType() == TaskExecuteType.STREAM;
+        boolean recoveryRequired = stream && (instance.getState() == TaskExecutionStatus.KILL
+                || instance.getState() == TaskExecutionStatus.PAUSE
+                || instance.getState() == TaskExecutionStatus.FAILURE
+                || instance.getState() == TaskExecutionStatus.NEED_FAULT_TOLERANCE);
+        List<DataSyncInstanceAction> availableActions = DataSyncInstanceActionPolicy.availableActions(
+                instance, workflow, hasUsableRecoveryPoint(recoveryPoint));
         return DataSyncInstanceVO.builder()
                 .id(String.valueOf(instance.getId()))
                 .definitionId(String.valueOf(instance.getTaskCode()))
@@ -783,17 +1037,68 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .definitionVersion(instance.getTaskDefinitionVersion())
                 .taskType(TASK_TYPE)
                 .executeType(instance.getTaskExecuteType())
-                .triggerType(workflow == null || workflow.getCommandType() == null ? null
-                        : workflow.getCommandType().name())
+                .triggerType(workflow == null
+                        ? (stream ? "MANUAL" : null)
+                        : (workflow.getCommandType() == null ? null : workflow.getCommandType().name()))
                 .status(instance.getState())
+                .workflowStatus(workflow == null ? null : workflow.getState())
+                .availableActions(availableActions)
+                .recoveryPointAvailable(hasUsableRecoveryPoint(recoveryPoint))
+                .recoveryPointTime(recoveryPoint == null
+                        ? null
+                        : (recoveryPoint.getCompletedAt() == null
+                                ? recoveryPoint.getCreatedAt() : recoveryPoint.getCompletedAt()))
+                .recoveryPointUsedByWorkflowInstanceId(recoveryPoint == null
+                        ? null : recoveryPoint.getUsedByWorkflowInstanceId())
+                .recoveryPointUsedByInstanceId(recoveryPoint == null
+                        ? null : recoveryPoint.getUsedByInstanceId())
+                .recoveryUnavailableReason(recoveryUnavailableReason(recoveryRequired, recoveryPoint))
                 .createTime(instance.getFirstSubmitTime())
                 .startTime(instance.getStartTime())
                 .endTime(instance.getEndTime())
                 .runtimeEngine("FLINK")
                 .runtimeId(instance.getAppLink())
                 .host(instance.getHost())
-                .workflowInstanceId(instance.getWorkflowInstanceId())
+                .workflowInstanceId(instance.getWorkflowInstanceId() > 0
+                        ? instance.getWorkflowInstanceId()
+                        : null)
                 .build();
+    }
+
+    private static boolean hasUsableRecoveryPoint(DataSyncRecoveryPoint recoveryPoint) {
+        return recoveryPoint != null
+                && "AVAILABLE".equals(recoveryPoint.getState())
+                && recoveryPoint.getRestorePath() != null
+                && !recoveryPoint.getRestorePath().trim().isEmpty();
+    }
+
+    private static String recoveryUnavailableReason(
+            boolean recoveryRequired, DataSyncRecoveryPoint recoveryPoint) {
+        if (!recoveryRequired) {
+            return null;
+        }
+        if (recoveryPoint == null) {
+            return "当前实例没有可用恢复点";
+        }
+        if ("CREATING".equals(recoveryPoint.getState())) {
+            return "恢复点正在生成";
+        }
+        if ("FAILED".equals(recoveryPoint.getState())) {
+            return "恢复点生成失败";
+        }
+        if ("USED".equals(recoveryPoint.getState())) {
+            return "恢复点已使用";
+        }
+        if ("SUPERSEDED".equals(recoveryPoint.getState())) {
+            return "恢复点已被新实例替代";
+        }
+        if ("EXPIRED".equals(recoveryPoint.getState())) {
+            return "恢复点已过期";
+        }
+        if ("AVAILABLE".equals(recoveryPoint.getState()) && !hasUsableRecoveryPoint(recoveryPoint)) {
+            return "恢复点路径不可用";
+        }
+        return "当前实例没有可用恢复点";
     }
 
     private DataSource[] validate(String name, JsonNode parameters, long projectCode) {

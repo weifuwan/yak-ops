@@ -17,7 +17,7 @@ export const INSTANCE_STATUS_ITEMS: Record<string, string> = {
   DISPATCH: "调度中",
   RUNNING_EXECUTION: "运行中",
   DELAY_EXECUTION: "延迟执行",
-  NEED_FAULT_TOLERANCE: "故障恢复",
+  NEED_FAULT_TOLERANCE: "待容错处理",
   SUCCESS: "成功",
   FORCED_SUCCESS: "强制成功",
   FAILURE: "失败",
@@ -30,7 +30,6 @@ export const ACTIVE_INSTANCE_STATES = new Set<DataSyncInstanceStatus>([
   "DISPATCH",
   "RUNNING_EXECUTION",
   "DELAY_EXECUTION",
-  "NEED_FAULT_TOLERANCE",
 ]);
 
 export const ACTIVE_WORKFLOW_STATES = new Set([

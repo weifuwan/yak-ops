@@ -1,7 +1,7 @@
 import type {
   TaskInstanceDefinitionRecord, TaskInstanceRecord, TaskInstanceStatus,
 } from "../task-execution/types";
-import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
+import type { DataSyncInstanceActionMetadata, DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
 import { canStopWorkflow, type WorkflowExecutionStatus } from "./workflow-state";
 import {
   pipelineDatabaseRoute,
@@ -17,8 +17,7 @@ export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
   status === "SUBMITTED_SUCCESS" ||
   status === "DISPATCH" ||
   status === "RUNNING_EXECUTION" ||
-  status === "DELAY_EXECUTION" ||
-  status === "NEED_FAULT_TOLERANCE";
+  status === "DELAY_EXECUTION";
 
 export const canManageTaskDefinition = (
   ready: boolean,
@@ -29,8 +28,7 @@ export const canCancelTaskInstance = (status: TaskInstanceStatus): boolean =>
   status === "SUBMITTED_SUCCESS" ||
   status === "DISPATCH" ||
   status === "RUNNING_EXECUTION" ||
-  status === "DELAY_EXECUTION" ||
-  status === "NEED_FAULT_TOLERANCE";
+  status === "DELAY_EXECUTION";
 
 /**
  * Resolve the stop target from the current task lifecycle, never from a
@@ -48,7 +46,7 @@ export const getCancelableDataSyncWorkflowInstanceId = (
 };
 
 export function toDataSyncInstanceRecord(
-  instance: TaskInstanceRecord,
+  instance: TaskInstanceRecord & DataSyncInstanceActionMetadata,
   version: TaskInstanceDefinitionRecord,
 ): DataSyncInstanceRecord {
   if (instance.taskType !== "DATA_SYNC" ||
@@ -97,6 +95,12 @@ export function toDataSyncInstanceRecord(
     startTime: instance.startTime ?? undefined,
     finishTime: instance.endTime ?? undefined,
     errorMessage: instance.failureCode ?? undefined,
+    workflowStatus: instance.workflowStatus,
+    availableActions: instance.availableActions ?? [],
+    recoveryPointAvailable: instance.recoveryPointAvailable ?? false,
+    recoveryPointTime: instance.recoveryPointTime,
+    recoveryPointUsedByWorkflowInstanceId: instance.recoveryPointUsedByWorkflowInstanceId,
+    recoveryUnavailableReason: instance.recoveryUnavailableReason,
     createTime: instance.createTime ?? undefined,
     definitionSnapshot: {
       tableMappings, scope, steps,

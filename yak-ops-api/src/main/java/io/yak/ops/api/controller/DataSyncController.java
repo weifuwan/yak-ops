@@ -4,6 +4,7 @@ import io.yak.ops.api.audit.OperatorLog;
 import io.yak.ops.api.audit.enums.AuditType;
 import io.yak.ops.api.dto.datasync.DataSyncPublishRequest;
 import io.yak.ops.api.dto.datasync.DataSyncTaskRequest;
+import io.yak.ops.api.dto.datasync.DataSyncInstanceActionRequest;
 import io.yak.ops.api.enums.DataSyncScope;
 import io.yak.ops.api.enums.DataSyncType;
 import io.yak.ops.api.service.DataSyncService;
@@ -13,6 +14,7 @@ import io.yak.ops.api.vo.DataSyncDefinitionVO;
 import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
+import io.yak.ops.api.vo.DataSyncInstanceActionResultVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTaskExecutionStateVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
@@ -178,6 +180,19 @@ public class DataSyncController extends BaseController {
     public Result<DataSyncInstanceVO> getInstance(@RequestAttribute(Constants.SESSION_USER) User user,
                                                   @PathVariable long projectCode, @PathVariable int id) {
         return Result.success(dataSyncService.getInstance(user, projectCode, id));
+    }
+
+    @PostMapping("/instances/{id}/actions")
+    @Operation(summary = "operateDataSyncInstance", description = "Perform an allowed action on a data synchronization instance")
+    public Result<DataSyncInstanceActionResultVO> operateInstance(
+            @RequestAttribute(Constants.SESSION_USER) User user,
+            @PathVariable long projectCode,
+            @PathVariable int id,
+            @RequestBody DataSyncInstanceActionRequest request) {
+        if (request == null || request.getAction() == null) {
+            throw new IllegalArgumentException("action is required");
+        }
+        return Result.success(dataSyncService.performInstanceAction(user, projectCode, id, request.getAction()));
     }
 
     @GetMapping("/instances/{id}/report")
