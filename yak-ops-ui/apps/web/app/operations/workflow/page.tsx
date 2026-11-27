@@ -15,12 +15,14 @@ import {
   SelectItemText,
   SelectTrigger,
   SelectValue,
+  Switch,
   Table,
   toast,
   type DateRange,
   type TableColumns,
 } from "@yak-ops/yak-ui";
 
+import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { listDataSyncWorkflowNames } from "@/service/data-sync";
 import { listWorkflowDefinitionNames } from "@/service/workflow/definition";
@@ -41,6 +43,7 @@ import {
   ACTIVE_WORKFLOW_STATES,
   WORKFLOW_STATE_ITEMS,
   durationText,
+  triggerText,
   workflowStateText,
 } from "../presentation";
 
@@ -150,7 +153,9 @@ export function WorkflowInstancesOperationsPage() {
   const [state, setState] = useState("ALL");
   const [businessType, setBusinessType] = useState("ALL");
   const [pageNo, setPageNo] = useState(1);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [selected, setSelected] = useState<WorkflowInstanceSummary>();
+  const refreshSeconds = 5;
 
   const query = useQuery({
     queryKey: [
@@ -176,7 +181,7 @@ export function WorkflowInstancesOperationsPage() {
           businessType === "ALL" ? undefined : (businessType as WorkflowBusinessType),
       }),
     enabled: Boolean(scope),
-    refetchInterval: 5000,
+    refetchInterval: autoRefresh ? refreshSeconds * 1000 : false,
   });
 
   const definitionsQuery = useQuery({
@@ -251,21 +256,69 @@ export function WorkflowInstancesOperationsPage() {
       title: "工作流 / 实例",
       minWidth: 250,
       render: (_value, record) => (
-        <div className="min-w-0">
-          <div className="truncate text-xs font-medium">{displayName(record)}</div>
-          <div className="mt-0.5 text-xs text-[var(--yak-components-muted-text)]">
-            实例 #{record.id} · 定义 #{record.workflowDefinitionCode}
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="truncate text-sm font-medium text-[var(--yak-components-panel-text)]">
+            {displayName(record)}
+          </div>
+          <div className="truncate text-xs leading-4 text-[var(--yak-components-muted-text)]">
+            <span>实例 #{record.id}</span>
+            <span className="mx-1.5">·</span>
+            <span>定义 #{record.workflowDefinitionCode}</span>
           </div>
         </div>
       ),
     },
     { key: "business", title: "业务类型", width: 110, render: (_v, r) => businessLabel(r) },
-    { key: "state", title: "实例状态", width: 110, render: (_v, r) => workflowStateText(r.state) },
-    { key: "commandType", title: "启动方式", width: 120, render: (_v, r) => r.commandType || "-" },
-    { key: "executorName", title: "执行人", width: 120, render: (_v, r) => r.executorName || "-" },
-    { key: "duration", title: "运行耗时", width: 110, render: (_v, r) => r.duration || durationText(r.startTime, r.endTime) },
-    { key: "startTime", title: "开始时间", width: 180, render: (_v, r) => r.startTime || "-" },
-    { key: "endTime", title: "结束时间", width: 180, render: (_v, r) => r.endTime || "-" },
+    {
+      key: "state",
+      title: "实例状态",
+      width: 110,
+      render: (_v, r) => (
+        <ExecutionStatusIndicator status={r.state} label={workflowStateText(r.state)} />
+      ),
+    },
+    {
+      key: "commandType",
+      title: "启动方式",
+      width: 120,
+      render: (_v, r) => (
+        <span className="whitespace-nowrap text-xs">{triggerText(r.commandType)}</span>
+      ),
+    },
+    {
+      key: "executorName",
+      title: "执行人",
+      width: 120,
+      render: (_v, r) => (
+        <span className="whitespace-nowrap text-xs">{r.executorName || "-"}</span>
+      ),
+    },
+    {
+      key: "duration",
+      title: "运行耗时",
+      width: 110,
+      render: (_v, r) => (
+        <span className="whitespace-nowrap text-xs font-medium tabular-nums">
+          {r.duration || durationText(r.startTime, r.endTime)}
+        </span>
+      ),
+    },
+    {
+      key: "startTime",
+      title: "开始时间",
+      width: 180,
+      render: (_v, r) => (
+        <span className="whitespace-nowrap text-xs tabular-nums">{r.startTime || "-"}</span>
+      ),
+    },
+    {
+      key: "endTime",
+      title: "结束时间",
+      width: 180,
+      render: (_v, r) => (
+        <span className="whitespace-nowrap text-xs tabular-nums">{r.endTime || "-"}</span>
+      ),
+    },
     {
       key: "actions",
       title: "操作",
@@ -274,14 +327,19 @@ export function WorkflowInstancesOperationsPage() {
       align: "center",
       render: (_v, record) => (
         <div className="flex items-center justify-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => setSelected(record)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="px-2 text-xs font-medium !text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]"
+            onClick={() => setSelected(record)}
+          >
             详情
           </Button>
           {ACTIVE_WORKFLOW_STATES.has(record.state) ? (
             <Button
               variant="ghost"
               size="sm"
-              className="text-[var(--yak-color-danger)]"
+              className="px-2 text-xs !text-[var(--yak-color-danger)] hover:!text-[var(--yak-color-danger)]"
               isPending={stopMutation.isPending}
               onClick={() => stopMutation.mutate(record.id)}
             >
@@ -296,7 +354,14 @@ export function WorkflowInstancesOperationsPage() {
   const taskColumns: TableColumns<WorkflowInstanceTask> = [
     { key: "name", title: "节点名称", minWidth: 180, dataIndex: "name" },
     { key: "taskType", title: "类型", width: 110, dataIndex: "taskType" },
-    { key: "state", title: "状态", width: 110, render: (_v, r) => workflowStateText(r.state) },
+    {
+      key: "state",
+      title: "状态",
+      width: 110,
+      render: (_v, r) => (
+        <ExecutionStatusIndicator status={r.state} label={workflowStateText(r.state)} />
+      ),
+    },
     { key: "duration", title: "耗时", width: 100, render: (_v, r) => r.duration || durationText(r.startTime, r.endTime) },
     { key: "startTime", title: "开始时间", width: 170, render: (_v, r) => r.startTime || "-" },
     { key: "endTime", title: "结束时间", width: 170, render: (_v, r) => r.endTime || "-" },
@@ -307,7 +372,8 @@ export function WorkflowInstancesOperationsPage() {
       title="工作流实例"
       extra={<Button size="sm" variant="secondary" onClick={() => void query.refetch()}>刷新</Button>}
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
         <SelectField
           value={businessType}
           items={BUSINESS_ITEMS}
@@ -379,16 +445,27 @@ export function WorkflowInstancesOperationsPage() {
         >
           搜索
         </Button>
+        </div>
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
+          <span>自动刷新</span>
+          <Switch
+            size="small"
+            checked={autoRefresh}
+            onCheckedChange={setAutoRefresh}
+            aria-label="自动刷新"
+          />
+          {autoRefresh ? <span>每 {refreshSeconds} 秒</span> : null}
+        </label>
       </div>
       <div className="min-h-0 flex-1">
         <Table<WorkflowInstanceSummary>
-          className="min-h-full [&_td]:!text-xs"
+          className="min-h-full [&_th]:!text-[var(--yak-components-muted-text)]"
           columns={columns}
           dataSource={query.data?.totalList ?? []}
           rowKey="id"
           bordered
           size="medium"
-          loading={query.isPending || query.isFetching}
+          loading={query.isPending}
           scroll={{ x: 1380 }}
           emptyText={query.isError ? "工作流实例加载失败" : "暂无工作流实例"}
           pagination={
