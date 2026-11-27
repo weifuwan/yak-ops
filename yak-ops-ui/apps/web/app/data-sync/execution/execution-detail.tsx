@@ -2,7 +2,6 @@ import { Button, Skeleton, type BadgeProps } from "@yak-ops/yak-ui";
 import type { ReactNode } from "react";
 
 import { formatScheduleTime } from "@/app/schedule/schedule-presentation";
-import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";
 import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
 
@@ -41,24 +40,6 @@ export const dataSyncInstanceStatusMeta = (
       return { label: realtime ? "已停止" : "已取消", tone: "neutral" };
   }
 };
-
-export function ExecutionStatusIcon({
-  status,
-  realtime,
-}: {
-  status: DataSyncInstanceStatus;
-  realtime: boolean;
-}) {
-  const { label } = dataSyncInstanceStatusMeta(status, realtime);
-  return (
-    <ExecutionStatusIndicator
-      status={status}
-      label={label}
-      size={14}
-      showLabel={false}
-    />
-  );
-}
 
 export const dataSyncTriggerText = (triggerType?: string) => {
   if (triggerType === "START_PROCESS") return "手动";
@@ -179,20 +160,9 @@ export function DataSyncExecutionDetailContent({
   controls,
   onViewScheduleHistory,
 }: DetailProps) {
-  const realtime = record.syncType === "REALTIME";
-  const meta = dataSyncInstanceStatusMeta(record.status, realtime);
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-xs text-[#667085]" role="status">
-          <span>执行状态：</span>
-          <span aria-hidden="true">
-            <ExecutionStatusIcon status={record.status} realtime={realtime} />
-          </span>
-          <span>{meta.label}</span>
-        </div>
-        {controls ? <div className="flex items-center gap-3">{controls}</div> : null}
-      </div>
+      {controls ? <div className="flex justify-end">{controls}</div> : null}
       {record.triggerType === "SCHEDULE" ? (
         <div className="flex flex-wrap items-center gap-3 text-xs text-[#667085]">
           {record.scheduledTime ? (
@@ -212,7 +182,6 @@ export function DataSyncExecutionDetailContent({
       <div className="min-w-0 pt-4">
         <TableExecutionResults
           record={record}
-          statusIcon={<ExecutionStatusIcon status={record.status} realtime={realtime} />}
           duration={dataSyncDurationText(record)}
         />
       </div>
