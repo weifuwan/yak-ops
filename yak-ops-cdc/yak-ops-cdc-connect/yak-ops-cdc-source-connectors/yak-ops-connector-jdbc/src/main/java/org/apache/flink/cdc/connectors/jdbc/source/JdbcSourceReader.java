@@ -184,8 +184,14 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
 
         Connection connection = JdbcCatalog.openConnection(config);
         activeConnection = connection;
+        boolean cursorTransaction = false;
         try (Connection ignored = connection) {
-            connection.setAutoCommit(false);
+            String product =
+                    connection.getMetaData().getDatabaseProductName().toLowerCase(java.util.Locale.ROOT);
+            cursorTransaction = product.contains("mysql") || product.contains("postgres");
+            if (cursorTransaction) {
+                connection.setAutoCommit(false);
+            }
             JdbcDialect dialect = JdbcDialect.create(connection.getMetaData());
             String currentSchema = null;
             try {
@@ -253,12 +259,16 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
                     }
                 }
             }
-            connection.commit();
+            if (cursorTransaction) {
+                connection.commit();
+            }
         } catch (Exception e) {
-            try {
-                connection.rollback();
-            } catch (SQLException rollbackFailure) {
-                e.addSuppressed(rollbackFailure);
+            if (cursorTransaction) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackFailure) {
+                    e.addSuppressed(rollbackFailure);
+                }
             }
             throw e;
         } finally {
