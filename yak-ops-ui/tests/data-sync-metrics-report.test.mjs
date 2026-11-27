@@ -66,6 +66,24 @@ test("table metrics are matched by source and sink path, ignoring case", () => {
   };
   assert.equal(findMetricsTableReport([matched], mapping), matched);
   assert.equal(findMetricsTableReport([], mapping), undefined);
+
+  const sharedSourceReports = [
+    { ...matched, sinkTable: "sink_a.orders_a" },
+    { ...matched, sinkTable: "sink_b.orders_b" },
+  ];
+  const secondMapping = {
+    source: mapping.source,
+    target: { database: "sink_b", table: "orders_b" },
+    writeMode: "UPSERT",
+  };
+  assert.equal(findMetricsTableReport(sharedSourceReports, secondMapping), sharedSourceReports[1]);
+
+  const ambiguousMapping = {
+    source: mapping.source,
+    target: { database: "missing_sink", table: "missing_table" },
+    writeMode: "UPSERT",
+  };
+  assert.equal(findMetricsTableReport(sharedSourceReports, ambiguousMapping), undefined);
 });
 
 test("CDC metrics render in both execution-detail branches and populate the quick-count columns", () => {
@@ -74,6 +92,8 @@ test("CDC metrics render in both execution-detail branches and populate the quic
   assert.match(executionDetail, /<DataSyncMetricsPanel record=\{record\} \/>/);
   assert.match(tableResults, /row\.metrics\s*\?\s*countText\(row\.metrics\.readRecords\)/);
   assert.match(tableResults, /row\.metrics\s*\?\s*countText\(row\.metrics\.committedRecords\)/);
+  assert.match(tableResults, /record\.scope === "DATABASE" && metricsReport/);
+  assert.match(executionDetail, /title: "已提交条数"/);
 });
 
 test("all execution-level CDC counters and report metadata are visible", () => {
