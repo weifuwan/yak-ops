@@ -289,7 +289,13 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
         DataTypeRoot root = type.getTypeRoot();
         switch (root) {
             case BOOLEAN:
-                return value instanceof Boolean ? value : ((Number) value).intValue() != 0;
+                if (value instanceof Boolean) return value;
+                if (value instanceof Number) return ((Number) value).intValue() != 0;
+                if (value instanceof byte[]) {
+                    byte[] bytes = (byte[]) value;
+                    return bytes.length > 0 && bytes[0] != 0;
+                }
+                return "1".equals(value.toString()) || Boolean.parseBoolean(value.toString());
             case TINYINT: return ((Number) value).byteValue();
             case SMALLINT: return ((Number) value).shortValue();
             case INTEGER: return ((Number) value).intValue();
