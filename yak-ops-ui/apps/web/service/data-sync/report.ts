@@ -5,6 +5,11 @@ import type {
   DataSyncStep,
 } from "./types";
 
+/** Formats nullable observations without conflating an unknown value with zero. */
+export function formatMetricCount(value: number | null | undefined): string {
+  return value == null ? "—" : value.toLocaleString("zh-CN");
+}
+
 /** Invalid or absent observations never become a successful table or an invented zero. */
 export function readExecutionReport(
   content: string | null | undefined,
