@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button,
   Input,
@@ -48,14 +48,22 @@ function isValidTask(record: DataSyncTaskListRecord): record is DataSyncTaskReco
 
 function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const routeKeyword = searchParams.get("keyword")?.trim() ?? "";
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const scope = currentWorkspace?.id ?? "";
-  const [keywordInput, setKeywordInput] = useState("");
-  const [keyword, setKeyword] = useState("");
+  const [keywordInput, setKeywordInput] = useState(routeKeyword);
+  const [keyword, setKeyword] = useState(routeKeyword);
   const [taskScope, setTaskScope] = useState<DataSyncScope | "ALL">("ALL");
   const [status, setStatus] = useState("ALL");
   const [pageNo, setPageNo] = useState(1);
+
+  useEffect(() => {
+    setKeywordInput(routeKeyword);
+    setKeyword(routeKeyword);
+    setPageNo(1);
+  }, [routeKeyword]);
 
   const query = useQuery({
     queryKey: ["operations", "data-sync-tasks", scope, syncType, pageNo, keyword, taskScope, status],
