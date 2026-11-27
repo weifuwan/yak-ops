@@ -1,6 +1,5 @@
 package io.yak.ops.dao.entity;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
@@ -26,8 +25,7 @@ public class DimensionDorisPublishPO extends ModelingBasePO {
     private String datasourceName;
     private String targetDatabase;
     private String targetTable;
-    @TableField("ddl_content")
-    private String ddl;
+    private String ddlContent;
     private String ddlHash;
     /** Physical SHOW CREATE TABLE snapshot captured after a successful publish. */
     private String physicalSchema;
