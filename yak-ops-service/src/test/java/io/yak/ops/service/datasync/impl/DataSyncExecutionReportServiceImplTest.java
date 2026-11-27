@@ -199,7 +199,7 @@ class DataSyncExecutionReportServiceImplTest {
                         .id(9L)
                         .executionId("execution-1")
                         .tableKey("orders")
-                        .latestMetricsJson("{\\"sourceTable\\":\\"db.orders\\",\\"readRecords\\":10}")
+                        .latestMetricsJson("{\"sourceTable\":\"db.orders\",\"readRecords\":10}")
                         .build()));
         when(tableReportDao.clearSnapshotFields(
                 org.mockito.ArgumentMatchers.eq(9L),
