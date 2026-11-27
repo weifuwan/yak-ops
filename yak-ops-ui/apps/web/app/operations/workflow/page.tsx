@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
@@ -242,12 +243,22 @@ export function WorkflowInstancesOperationsPage() {
     if (sync?.name) return sync.name;
     return workflowNames.get(String(record.workflowDefinitionCode)) || record.name || `工作流 #${record.workflowDefinitionCode}`;
   };
-  const businessLabel = (record: WorkflowInstanceSummary) => {
-    const type =
-      record.businessType ??
-      syncWorkflowMeta.get(String(record.workflowDefinitionCode))?.type ??
-      "WORKFLOW";
-    return BUSINESS_ITEMS[type] ?? "工作流";
+  const businessTypeOf = (record: WorkflowInstanceSummary): WorkflowBusinessType =>
+    record.businessType ??
+    syncWorkflowMeta.get(String(record.workflowDefinitionCode))?.type ??
+    "WORKFLOW";
+  const businessLabel = (record: WorkflowInstanceSummary) =>
+    BUSINESS_ITEMS[businessTypeOf(record)] ?? "工作流";
+  const taskTarget = (record: WorkflowInstanceSummary) => {
+    const type = businessTypeOf(record);
+    if (type === "DATA_SYNC_REALTIME" || type === "DATA_SYNC_OFFLINE") {
+      const path =
+        type === "DATA_SYNC_REALTIME"
+          ? "/operations/realtime/tasks"
+          : "/operations/offline/tasks";
+      return `${path}?keyword=${encodeURIComponent(displayName(record))}`;
+    }
+    return `/data-development?workflowCode=${record.workflowDefinitionCode}`;
   };
 
   const columns: TableColumns<WorkflowInstanceSummary> = [
@@ -257,13 +268,15 @@ export function WorkflowInstancesOperationsPage() {
       minWidth: 250,
       render: (_value, record) => (
         <div className="flex min-w-0 flex-col gap-1">
-          <div className="truncate text-sm font-medium text-[var(--yak-components-panel-text)]">
+          <Link
+            to={taskTarget(record)}
+            className="truncate text-sm font-medium text-[var(--yak-color-primary)] hover:underline"
+            title={displayName(record)}
+          >
             {displayName(record)}
-          </div>
+          </Link>
           <div className="truncate text-xs leading-4 text-[var(--yak-components-muted-text)]">
-            <span>实例 #{record.id}</span>
-            <span className="mx-1.5">·</span>
-            <span>定义 #{record.workflowDefinitionCode}</span>
+            实例 #{record.id}
           </div>
         </div>
       ),
