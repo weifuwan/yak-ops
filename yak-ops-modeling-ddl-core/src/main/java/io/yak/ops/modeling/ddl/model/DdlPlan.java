@@ -7,7 +7,7 @@ import java.util.List;
 /** Database-neutral executable DDL plan with an optional dialect-specific detail object. */
 public class DdlPlan {
 
-    private final String ddl;
+    private final String ddlContent;
     private final List<String> statements;
     private final boolean noChanges;
     private final List<String> keyFields;
@@ -20,7 +20,7 @@ public class DdlPlan {
     private final DdlPlanDetails details;
 
     public DdlPlan(
-            String ddl,
+            String ddlContent,
             List<String> statements,
             boolean noChanges,
             List<String> keyFields,
@@ -31,7 +31,7 @@ public class DdlPlan {
             boolean schemaDrift,
             String physicalSchema,
             DdlPlanDetails details) {
-        this.ddl = ddl;
+        this.ddlContent = ddlContent;
         this.statements = immutableCopy(statements);
         this.noChanges = noChanges;
         this.keyFields = immutableCopy(keyFields);
@@ -44,7 +44,7 @@ public class DdlPlan {
         this.details = details;
     }
 
-    public DdlPlan(String ddl, List<String> statements, boolean noChanges, List<String> keyFields) {
+    public DdlPlan(String ddlContent, List<String> statements, boolean noChanges, List<String> keyFields) {
         this(ddl, statements, noChanges, keyFields, false,
                 Collections.<String>emptyList(), Collections.<String>emptyList(),
                 false, false, null, null);
@@ -56,7 +56,7 @@ public class DdlPlan {
                 : Collections.unmodifiableList(new ArrayList<>(values));
     }
 
-    public String getDdl() { return ddl; }
+    public String getDdlContent() { return ddlContent; }
     public List<String> getStatements() { return statements; }
     public boolean isNoChanges() { return noChanges; }
     public List<String> getKeyFields() { return keyFields; }
