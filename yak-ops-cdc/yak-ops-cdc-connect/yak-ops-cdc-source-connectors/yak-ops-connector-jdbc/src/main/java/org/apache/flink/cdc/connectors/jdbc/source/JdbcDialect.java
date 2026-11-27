@@ -87,7 +87,10 @@ final class GenericJdbcDialect implements JdbcDialect {
     @Override
     public TableId toTableId(String catalog, String schema, String table) {
         if (catalogBased) {
-            return TableId.tableId(catalog == null || catalog.isEmpty() ? schema : catalog, table);
+            String database = catalog == null || catalog.isEmpty() ? schema : catalog;
+            return database == null || database.isEmpty()
+                    ? TableId.tableId(table)
+                    : TableId.tableId(database, table);
         }
         if (schema != null && !schema.isEmpty()) {
             return TableId.tableId(schema, table);
