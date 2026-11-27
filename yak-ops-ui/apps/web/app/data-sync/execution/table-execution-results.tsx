@@ -54,17 +54,20 @@ export function TableExecutionResults({
       : [];
   const report = record.executionReport;
   const stale = useObservationStale(record.status, report?.observedAt);
-  const hasIncremental = report
+  const showStageColumns = !metricsReport;
+  const hasIncremental = showStageColumns && report
     ? report.version === 1
       ? report.tables.some((table) => table.step === "INCREMENTAL")
       : report.stages.some((stage) => stage.step === "INCREMENTAL")
     : false;
-  const hasFull = report
+  const hasFull = showStageColumns && report
     ? report.version === 1
       ? report.tables.some((table) => table.step === "FULL")
       : report.stages.some((stage) => stage.step === "FULL")
     : false;
-  const hasSchema = Boolean(report && record.steps.includes("SCHEMA"));
+  const hasSchema = Boolean(
+    showStageColumns && report && report.version === 3 && record.steps.includes("SCHEMA"),
+  );
 
   const rows: TableExecutionRow[] = mappings.map((mapping, index) => {
     const stageTable =
