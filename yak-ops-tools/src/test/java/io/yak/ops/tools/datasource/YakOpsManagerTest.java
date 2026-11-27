@@ -30,14 +30,16 @@ class YakOpsManagerTest {
         when(databaseDialect.tableExists("t_yak_ops_user")).thenReturn(true);
         when(databaseDialect.tableExists("t_yak_ops_workflow_instance")).thenReturn(true);
         when(databaseDialect.tableExists("t_yak_ops_task_instance")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_user_preference")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_data_sync_execution_report")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_data_sync_table_report")).thenReturn(true);
+        when(databaseDialect.tableExists("t_yak_ops_data_sync_recovery_point")).thenReturn(true);
     }
 
     @Test
     void newDatabaseIsInitializedAndValidated() throws Exception {
         when(databaseDialect.tableExists("t_yak_ops_version")).thenReturn(false, true);
-        when(databaseDialect.tableExists("t_yak_ops_user")).thenReturn(true);
-        when(databaseDialect.tableExists("t_yak_ops_workflow_instance")).thenReturn(true);
-        when(databaseDialect.tableExists("t_yak_ops_task_instance")).thenReturn(true);
+        mockRequiredTables();
         when(schemaDao.getCurrentVersion()).thenReturn("3.4.3");
         manager.initializeOrValidate();
         verify(schemaDao).initSchema();

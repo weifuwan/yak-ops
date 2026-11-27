@@ -38,18 +38,17 @@ Worker 在 FINAL 报告连续 RPC 失败后，会将报告和目标 Master 地�
 
 生产部署应将该目录挂载到 Worker 的持久化磁盘；容器重建时如果使用临时文件系统，无法保证 Worker 重启后仍保留待发送报告。相同 executionId + sequence 的补发依赖 Master 幂等处理，不会重复生成最终记录。
 
-## 数据库升级
+## 数据库结构
 
-新增表：
+DataSync 的执行报告、表级报告和恢复点表均已纳入完整初始化 SQL：
 
-- `t_yak_ops_data_sync_execution_report`
-- `t_yak_ops_data_sync_table_report`
+- `yak-ops-dao/src/main/resources/sql/yak-ops_mysql.sql`
+- `yak-ops-dao/src/main/resources/sql/yak-ops_postgresql.sql`
+- `yak-ops-dao/src/main/resources/sql/yak-ops_h2.sql`
 
-新安装环境的 MySQL、PostgreSQL、H2 初始化 SQL 已同步更新。已有环境请按实际数据库执行对应补丁：
+新安装环境只需执行对应数据库的完整初始化流程，不再单独维护或执行 Patch SQL。数据建模模块使用独立的 `yak-ops-modeling/src/main/resources/sql/modeling_<数据库>.sql`，Doris 发布记录中的 `table_model` 字段已包含在这三份完整建模脚本中。
 
-- MySQL：`yak-ops-dao/src/main/resources/sql/patches/data-sync-report_mysql.sql`
-- PostgreSQL / OpenGauss：`yak-ops-dao/src/main/resources/sql/patches/data-sync-report_postgresql.sql`
-- H2：`yak-ops-dao/src/main/resources/sql/patches/data-sync-report_h2.sql`
+完整初始化 SQL 含有重建表结构的 DDL，只能用于空数据库。Yak Ops 当前不支持历史数据库自动升级；已有数据库启动时会校验版本及必要表结构，不应通过重新执行完整初始化 SQL 来升级或修复已有数据。
 
 ## 部署与验证
 

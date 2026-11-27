@@ -34,6 +34,21 @@ class InitializeH2SchemaTest {
                 Assertions.assertTrue(resultSet.next());
             }
             statement.executeQuery("SELECT missed_fire_policy FROM t_yak_ops_schedules WHERE 1 = 0").close();
+            statement.executeQuery(
+                    "SELECT user_id, scene, item_key, favorite, sort_order, use_count "
+                            + "FROM t_yak_ops_user_preference WHERE 1 = 0").close();
+            statement.executeQuery(
+                    "SELECT execution_id, task_instance_id, submitted_at, job_id, deployment_mode, "
+                            + "execution_state, metrics_state, latest_sequence, latest_snapshot_json, "
+                            + "final_sequence, final_snapshot_json, finalized "
+                            + "FROM t_yak_ops_data_sync_execution_report WHERE 1 = 0").close();
+            statement.executeQuery(
+                    "SELECT execution_id, table_key, latest_metrics_json, final_metrics_json, latest_sequence "
+                            + "FROM t_yak_ops_data_sync_table_report WHERE 1 = 0").close();
+            statement.executeQuery(
+                    "SELECT recovery_point_id, checkpoint_id, runtime_mode, recovery_type, restore_path, "
+                            + "completed_at, used_by_workflow_instance_id, used_by_instance_id "
+                            + "FROM t_yak_ops_data_sync_recovery_point WHERE 1 = 0").close();
         }
     }
 }

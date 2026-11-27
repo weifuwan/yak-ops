@@ -35,7 +35,6 @@ public class YakOpsManager {
 
         if (databaseDialect.tableExists("t_yak_ops_version")) {
             validateCurrentVersion();
-            schemaDao.ensureUserPreferenceSchema();
             schemaDao.ensureModelingSchema();
             schemaDao.ensureInstanceStateCountIndexes();
             schemaDao.ensureDataSyncLatestInstanceIndexes();
@@ -54,7 +53,6 @@ public class YakOpsManager {
         log.info("Initializing database schema from the 3.4.3 baseline");
         schemaDao.initSchema();
         validateCurrentVersion();
-        schemaDao.ensureUserPreferenceSchema();
         schemaDao.ensureModelingSchema();
         schemaDao.ensureInstanceStateCountIndexes();
         schemaDao.ensureDataSyncLatestInstanceIndexes();
@@ -77,7 +75,11 @@ public class YakOpsManager {
 
         if (!databaseDialect.tableExists("t_yak_ops_user")
                 || !databaseDialect.tableExists("t_yak_ops_workflow_instance")
-                || !databaseDialect.tableExists("t_yak_ops_task_instance")) {
+                || !databaseDialect.tableExists("t_yak_ops_task_instance")
+                || !databaseDialect.tableExists("t_yak_ops_user_preference")
+                || !databaseDialect.tableExists("t_yak_ops_data_sync_execution_report")
+                || !databaseDialect.tableExists("t_yak_ops_data_sync_table_report")
+                || !databaseDialect.tableExists("t_yak_ops_data_sync_recovery_point")) {
             throw new IllegalStateException(
                     "Database schema version matches but required Yak Ops tables are missing");
         }
