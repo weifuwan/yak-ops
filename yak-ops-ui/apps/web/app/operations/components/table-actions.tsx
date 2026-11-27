@@ -23,12 +23,13 @@ interface OperationsTableActionsProps {
   actions: OperationsTableAction[];
   maxVisible?: number;
   after?: ReactNode;
+  busy?: boolean;
 }
 
 const ACTION_TONE_CLASS: Record<NonNullable<OperationsTableAction["tone"]>, string> = {
-  primary: "text-[var(--yak-color-primary)]",
-  danger: "text-[var(--yak-components-danger-text)]",
-  muted: "text-[var(--yak-components-collapse-section-icon)]",
+  primary: "!text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]",
+  danger: "!text-[var(--yak-components-danger-text)] hover:!text-[var(--yak-components-danger-text)]",
+  muted: "!text-[var(--yak-components-collapse-section-icon)] hover:!text-[var(--yak-components-collapse-section-icon)]",
 };
 
 const ACTION_DIVIDER_CLASS =
@@ -38,6 +39,7 @@ export function OperationsTableActions({
   actions,
   maxVisible = 2,
   after,
+  busy = false,
 }: OperationsTableActionsProps) {
   const visibleActions = actions.slice(0, maxVisible);
   const moreActions = actions.slice(maxVisible);
@@ -52,8 +54,8 @@ export function OperationsTableActions({
             variant="ghost"
             size="sm"
             isPending={action.loading}
-            isDisabled={action.disabled || (hasLoadingAction && !action.loading)}
-            className={`px-1 text-xs font-normal !${ACTION_TONE_CLASS[action.tone ?? "primary"]} hover:!${ACTION_TONE_CLASS[action.tone ?? "primary"]}`}
+            isDisabled={action.disabled}
+            className={`px-1 text-xs font-normal ${ACTION_TONE_CLASS[action.tone ?? "primary"]}`}
             onClick={action.onClick}
           >
             {action.label}
@@ -67,7 +69,7 @@ export function OperationsTableActions({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label="更多操作"
-              disabled={hasLoadingAction}
+              disabled={busy || hasLoadingAction}
               className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-[var(--yak-radius-control-small)] border-0 bg-transparent px-1.5 text-xs text-[var(--yak-components-collapse-section-icon)] outline-none hover:bg-[var(--yak-components-menu-item-hover)] hover:text-[var(--yak-color-primary)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               更多
@@ -79,7 +81,7 @@ export function OperationsTableActions({
                   {index > 0 || action.separatorBefore ? <DropdownMenuSeparator /> : null}
                   <DropdownMenuItem
                     tone={action.tone === "danger" ? "danger" : "default"}
-                    disabled={action.disabled || action.loading}
+                    disabled={busy || action.disabled || action.loading}
                     onClick={action.onClick}
                   >
                     {action.label}
