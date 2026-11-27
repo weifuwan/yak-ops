@@ -211,6 +211,7 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
       ? Number(workflowCodeParam)
       : undefined;
   const {
+    tabs,
     activeTab,
     openTask,
     openWorkflow,
@@ -272,6 +273,17 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     retry: false,
   });
   const requestedWorkflow = requestedWorkflowQuery.data?.workflowDefinition;
+  const activeWorkflowCode =
+    activeTab && (activeTab.kind === "workflow" || activeTab.kind === "task")
+      ? activeTab.workflowCode
+      : undefined;
+  const activeWorkflow =
+    activeWorkflowCode === undefined
+      ? undefined
+      : tabs.find(
+          (tab) => tab.kind === "workflow" && tab.workflowCode === activeWorkflowCode,
+        )?.workflow;
+  const focusedWorkflow = requestedWorkflow ?? activeWorkflow;
 
   useEffect(() => {
     if (!requestedWorkflow) return;
@@ -329,13 +341,13 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   const workflows = useMemo(() => {
     const records = workflowsQuery.data?.totalList ?? [];
     if (
-      !requestedWorkflow ||
-      records.some((workflow) => workflow.code === requestedWorkflow.code)
+      !focusedWorkflow ||
+      records.some((workflow) => workflow.code === focusedWorkflow.code)
     ) {
       return records;
     }
-    return [...records, requestedWorkflow];
-  }, [requestedWorkflow, workflowsQuery.data]);
+    return [...records, focusedWorkflow];
+  }, [focusedWorkflow, workflowsQuery.data]);
   const expandedWorkflows = workflows.filter((workflow) =>
     expandedCodes.has(workflow.code),
   );
