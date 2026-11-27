@@ -126,6 +126,7 @@ function startupModeFromSteps(steps: readonly DataSyncStep[]): PipelineStartupMo
 }
 
 export function pipelineSteps(definition: PipelineDefinition): DataSyncStep[] {
+  if (definition.source.type === "jdbc") return ["SCHEMA", "FULL"];
   const mode = definition.source["scan.startup.mode"];
   if (mode === "snapshot") return ["SCHEMA", "FULL"];
   if (mode === "latest-offset") return ["SCHEMA", "INCREMENTAL"];
@@ -146,9 +147,21 @@ export function pipelineScope(definition: PipelineDefinition): DataSyncScope {
 export function setPipelineSteps(
   definition: PipelineDefinition,
   steps: readonly DataSyncStep[],
+  sourceConnector?: "mysql" | "jdbc",
 ): PipelineDefinition {
   const next = structuredClone(definition);
+  const connector = sourceConnector || next.source.type;
+  if (connector === "jdbc") {
+    if (!steps.includes("FULL") || steps.includes("INCREMENTAL")) {
+      throw new Error("JDBC Source V1 仅支持全量离线同步");
+    }
+    next.source.type = "jdbc";
+    delete next.source["scan.startup.mode"];
+    next.pipeline["execution.runtime-mode"] = "BATCH";
+    return next;
+  }
   const startupMode = startupModeFromSteps(steps);
+  next.source.type = "mysql";
   next.source["scan.startup.mode"] = startupMode;
   next.pipeline["execution.runtime-mode"] =
     startupMode === "snapshot" ? "BATCH" : "STREAMING";
@@ -277,7 +290,34 @@ export function setPipelineChunkKeyColumn(
 
 export function createPipelineDefinition(
   steps: readonly DataSyncStep[] = ["SCHEMA", "FULL", "INCREMENTAL"],
+  sourceConnector?: "mysql" | "jdbc",
 ): PipelineDefinition {
+  const connector = sourceConnector || (steps.includes("INCREMENTAL") ? "mysql" : "jdbc");
+  if (connector === "jdbc") {
+    if (!steps.includes("FULL") || steps.includes("INCREMENTAL")) {
+      throw new Error("JDBC Source V1 仅支持全量离线同步");
+    }
+    return {
+      source: {
+        type: "jdbc",
+        "datasource-id": "",
+        tables: "",
+        "scan.fetch-size": 1000,
+        "scan.split-size": 100000,
+      },
+      sink: {
+        type: "jdbc",
+        "datasource-id": "",
+        "exclude.schema.changes": ["drop.column", "truncate.table", "drop.table"],
+      },
+      route: [],
+      pipeline: {
+        "execution.runtime-mode": "BATCH",
+        "schema.change.behavior": "evolve",
+        parallelism: 1,
+      },
+    };
+  }
   const startupMode = startupModeFromSteps(steps);
   return {
     source: {
@@ -501,15 +541,26 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
 
   const startupMode = source["scan.startup.mode"];
   const runtimeMode = pipeline["execution.runtime-mode"];
+  const jdbcSource = source.type === "jdbc";
   const supportedStartupMode =
     startupMode === "initial" || startupMode === "snapshot" || startupMode === "latest-offset";
-  const supportedRuntimeMode =
-    (startupMode === "snapshot" && runtimeMode === "BATCH") ||
-    ((startupMode === "initial" || startupMode === "latest-offset") &&
-      runtimeMode === "STREAMING");
-  if (source.type !== "mysql" || sink.type !== "jdbc" ||
-      !supportedStartupMode || !supportedRuntimeMode) {
-    throw new Error("当前仅支持 MySQL initial/snapshot/latest-offset → JDBC");
+  const supportedRuntimeMode = jdbcSource
+    ? startupMode === undefined && runtimeMode === "BATCH"
+    : (startupMode === "snapshot" && runtimeMode === "BATCH") ||
+      ((startupMode === "initial" || startupMode === "latest-offset") &&
+        runtimeMode === "STREAMING");
+  if ((source.type !== "mysql" && !jdbcSource) || sink.type !== "jdbc" ||
+      !supportedRuntimeMode || (!jdbcSource && !supportedStartupMode)) {
+    throw new Error("MySQL CDC 或 JDBC BATCH Source → JDBC Sink 配置无效");
+  }
+  if (jdbcSource) {
+    for (const key of ["scan.fetch-size", "scan.split-size"] as const) {
+      const value = source[key];
+      if (value !== undefined &&
+          (typeof value !== "number" || !Number.isInteger(value) || value < 1)) {
+        throw new Error(key + " 必须是正整数");
+      }
+    }
   }
 
   for (const endpoint of [source, sink]) {
@@ -527,6 +578,9 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
   const sourceSet = new Set(tables);
   const databasePattern =
     tables.length === 1 ? parseDatabasePattern(tables[0]) : undefined;
+  if (jdbcSource && databasePattern) {
+    throw new Error("JDBC Source V1 需要明确选择来源表，暂不支持整库模式");
+  }
   if (databasePattern) {
     if (definition.route.length !== 1) {
       throw new Error("整库同步必须配置一条整库路由");
@@ -622,6 +676,9 @@ export function validatePipelineDefinition(definition: unknown): asserts definit
   }
 
   const chunkKey = source["scan.incremental.snapshot.chunk.key-column"];
+  if (jdbcSource && chunkKey !== undefined) {
+    throw new Error("快照切分列是 MySQL CDC 专用配置，JDBC Source 使用自动主键分片");
+  }
   if (chunkKey !== undefined) {
     if (typeof chunkKey !== "string" || !chunkKey.trim()) {
       throw new Error("快照切分列配置无效");
