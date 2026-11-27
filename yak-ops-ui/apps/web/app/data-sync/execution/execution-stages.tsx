@@ -63,7 +63,7 @@ function phaseTarget(
     case "STREAMING":
       return { step: "INCREMENTAL", status: "RUNNING" };
     case "HANDOFF":
-      return { step: "INCREMENTAL", status: "WAITING" };
+      return { step: "INCREMENTAL", status: "RUNNING" };
     default:
       return undefined;
   }
