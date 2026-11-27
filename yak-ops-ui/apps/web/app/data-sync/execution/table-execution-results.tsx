@@ -1,13 +1,45 @@
 import { Table, type TableColumns } from "@yak-ops/yak-ui";
-import type { DataSyncInstanceRecord, DataSyncStageResult } from "@/service/data-sync/types";
+import type {
+  DataSyncInstanceRecord,
+  DataSyncMetricsTableReport,
+  DataSyncStageResult,
+} from "@/service/data-sync/types";
 import { StageProgress, useObservationStale } from "./execution-stages";
 
 const pathText = (table: { database?: string; schema?: string; table?: string }) =>
   [table.database, table.schema, table.table].filter(Boolean).join(".");
 const countText = (value?: number | null) => value?.toLocaleString("zh-CN") ?? "—";
+const normalizePath = (value?: string | null) => value?.trim().toLowerCase() ?? "";
+
+function MetricsSummaryItem({ label, value }: { label: string; value?: number | null }) {
+  return (
+    <div className="min-w-0 border border-[#eef0f3] bg-white px-3 py-2">
+      <div className="text-[11px] text-[#667085]">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold tabular-nums text-[#101828]">
+        {countText(value)}
+      </div>
+    </div>
+  );
+}
+
+function metricsStateText(state?: string) {
+  switch (state) {
+    case "AVAILABLE":
+      return "完整";
+    case "PARTIAL":
+      return "部分可用";
+    case "UNAVAILABLE":
+      return "不可用";
+    case "STALE":
+      return "采集陈旧";
+    default:
+      return state || "未知";
+  }
+}
 
 export function TableExecutionResults({ record }: { record: DataSyncInstanceRecord }) {
   const report = record.executionReport;
+  const metricsReport = record.metricsReport;
   const stale = useObservationStale(record.status, report?.observedAt);
   const realtime = record.syncType === "REALTIME";
   const hasIncremental = report
@@ -170,15 +202,151 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
       return "—";
     },
   });
+
+  const metricSnapshot =
+    metricsReport?.finalized && metricsReport.finalSnapshot
+      ? metricsReport.finalSnapshot
+      : metricsReport?.latestSnapshot;
+  const metricRows = (metricsReport?.tables || []).map((metrics, index) => {
+    const mapping = mappings.find((candidate) =>
+      (metrics.sourceTable &&
+        normalizePath(pathText(candidate.source)) === normalizePath(metrics.sourceTable)) ||
+      (metrics.sinkTable &&
+        normalizePath(pathText(candidate.target)) === normalizePath(metrics.sinkTable)),
+    );
+    return {
+      id: `metrics-${index}`,
+      source: metrics.sourceTable || (mapping ? pathText(mapping.source) : "—"),
+      target: metrics.sinkTable || (mapping ? pathText(mapping.target) : "—"),
+      metrics,
+    };
+  });
+  const metricsColumns: TableColumns<(typeof metricRows)[number]> = [
+    {
+      key: "source",
+      title: "来源表",
+      minWidth: 180,
+      render: (_value, row) => <span className="break-all">{row.source}</span>,
+    },
+    {
+      key: "target",
+      title: "去向表",
+      minWidth: 180,
+      render: (_value, row) => <span className="break-all">{row.target}</span>,
+    },
+    {
+      key: "state",
+      title: "采集状态",
+      width: 100,
+      render: (_value, row) => metricsStateText(row.metrics.metricsState),
+    },
+    {
+      key: "read",
+      title: "总读取",
+      width: 100,
+      align: "right",
+      render: (_value, row) => countText(row.metrics.readRecords),
+    },
+    {
+      key: "snapshot",
+      title: "全量读取",
+      width: 100,
+      align: "right",
+      render: (_value, row) => countText(row.metrics.snapshotRecords),
+    },
+    {
+      key: "incremental",
+      title: "增量读取",
+      width: 100,
+      align: "right",
+      render: (_value, row) => countText(row.metrics.incrementalRecords),
+    },
+    {
+      key: "insert",
+      title: "INSERT",
+      width: 90,
+      align: "right",
+      render: (_value, row) => countText(row.metrics.insertRecords),
+    },
+    {
+      key: "update",
+      title: "UPDATE",
+      width: 90,
+      align: "right",
+      render: (_value, row) => countText(row.metrics.updateRecords),
+    },
+    {
+      key: "delete",
+      title: "DELETE",
+      width: 90,
+      align: "right",
+      render: (_value, row) => countText(row.metrics.deleteRecords),
+    },
+    {
+      key: "committed",
+      title: "已提交",
+      width: 100,
+      align: "right",
+      render: (_value, row) => countText(row.metrics.committedRecords),
+    },
+    {
+      key: "ddl",
+      title: "DDL",
+      width: 80,
+      align: "right",
+      render: (_value, row) => countText(row.metrics.ddlEvents),
+    },
+  ];
+
+  const collectedAt = metricsReport?.finalized
+    ? metricsReport.finalCollectedAt
+    : metricsReport?.latestCollectedAt;
+
   return (
-    <Table
-      columns={columns}
-      dataSource={rows}
-      rowKey="id"
-      size="small"
-      scroll={{ x: realtime ? 1400 : hasIncremental ? 1100 : 950 }}
-      pagination={false}
-      emptyText="暂无表映射"
-    />
+    <div className="space-y-4">
+      <Table
+        columns={columns}
+        dataSource={rows}
+        rowKey="id"
+        size="small"
+        scroll={{ x: realtime ? 1400 : hasIncremental ? 1100 : 950 }}
+        pagination={false}
+        emptyText="暂无表映射"
+      />
+      {metricsReport ? (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs font-medium text-[#344054]">CDC 指标</div>
+            <div className="text-[11px] text-[#667085]">
+              {metricsStateText(metricsReport.metricsState)}
+              {" · "}
+              采集序号 {metricsReport.finalized ? metricsReport.finalSequence ?? "—" : metricsReport.latestSequence ?? "—"}
+              {" · "}
+              {collectedAt ? new Date(collectedAt).toLocaleString("zh-CN") : "尚无采集时间"}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <MetricsSummaryItem label="总读取" value={metricSnapshot?.readRecords} />
+            <MetricsSummaryItem label="全量读取" value={metricSnapshot?.snapshotRecords} />
+            <MetricsSummaryItem label="增量读取" value={metricSnapshot?.incrementalRecords} />
+            <MetricsSummaryItem label="已提交" value={metricSnapshot?.committedRecords} />
+          </div>
+          {metricsReport.metricsError ? (
+            <div className="text-xs text-[#b54708]" title={metricsReport.metricsError}>
+              指标采集异常：{metricsReport.metricsError}
+            </div>
+          ) : null}
+          <Table
+            columns={metricsColumns}
+            dataSource={metricRows}
+            rowKey="id"
+            size="small"
+            scroll={{ x: 1220 }}
+            pagination={false}
+            emptyText="暂无表级指标"
+          />
+        </section>
+      ) : null}
+    </div>
   );
 }
