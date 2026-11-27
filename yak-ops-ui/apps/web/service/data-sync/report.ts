@@ -260,8 +260,13 @@ export function findMetricsTableReport(
     );
     if (exact) return exact;
   }
-  return (
-    reports.find((report) => source && matches(report.sourceTable, source)) ??
-    reports.find((report) => target && matches(report.sinkTable, target))
-  );
+  const sourceMatches = source
+    ? reports.filter((report) => matches(report.sourceTable, source))
+    : [];
+  const targetMatches = target
+    ? reports.filter((report) => matches(report.sinkTable, target))
+    : [];
+  if (sourceMatches.length === 1 && targetMatches.length === 0) return sourceMatches[0];
+  if (targetMatches.length === 1 && sourceMatches.length === 0) return targetMatches[0];
+  return undefined;
 }
