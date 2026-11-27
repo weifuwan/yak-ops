@@ -26,13 +26,16 @@ export function readExecutionReport(
     if (expectedSteps) {
       const observed =
         report?.version === 1
-          ? [report.tables?.[0]?.step === "INCREMENTAL" ? "INCREMENTAL" : "FULL"]
+          ? Array.isArray(report.tables)
+            ? [...new Set(report.tables.map((table: { step: DataSyncStep }) => table.step))]
+            : []
           : report?.stages?.map((stage: DataSyncStageResult) => stage.step);
       if (
         !Array.isArray(observed) ||
         observed.length === 0 ||
         observed.some((step: string) => !expectedSteps.includes(step as DataSyncStep)) ||
-        expectedSteps.includes("SCHEMA") !== observed.includes("SCHEMA") ||
+        (report?.version === 3 &&
+          expectedSteps.includes("SCHEMA") !== observed.includes("SCHEMA")) ||
         (expectedSteps.includes("FULL") &&
           !expectedSteps.includes("INCREMENTAL") &&
           observed.includes("INCREMENTAL"))
