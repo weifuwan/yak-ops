@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 
-/** Plans bounded table splits and redistributes pending splits after reader recovery. */
+/** Plans bounded table splits asynchronously and redistributes pending splits after recovery. */
 public final class JdbcSplitEnumerator
         implements SplitEnumerator<JdbcSourceSplit, JdbcEnumeratorState> {
 
@@ -19,7 +19,10 @@ public final class JdbcSplitEnumerator
     private final JdbcSourceConfig config;
     private final JdbcEnumeratorState restoredState;
     private final Queue<JdbcSourceSplit> pending = new ArrayDeque<>();
+
     private boolean started;
+    private boolean enumerationCompleted;
+    private boolean enumerationInProgress;
 
     public JdbcSplitEnumerator(
             SplitEnumeratorContext<JdbcSourceSplit> context,
@@ -32,31 +35,50 @@ public final class JdbcSplitEnumerator
 
     @Override
     public void start() {
-        if (!started) {
-            started = true;
-            if (restoredState == null) {
-                try {
-                    pending.addAll(new JdbcCatalog(config).discoverSplits());
-                } catch (Exception e) {
-                    throw new IllegalStateException("Failed to enumerate JDBC source splits", e);
-                }
-            } else {
-                pending.addAll(restoredState.getPendingSplits());
-            }
+        if (started) return;
+        started = true;
+        if (restoredState != null) {
+            pending.addAll(restoredState.getPendingSplits());
+            enumerationCompleted = restoredState.isEnumerationCompleted();
         }
-        assignPending();
+        if (!enumerationCompleted) {
+            enumerateAsync();
+        } else {
+            assignPending();
+        }
+    }
+
+    private void enumerateAsync() {
+        if (enumerationInProgress) return;
+        enumerationInProgress = true;
+        context.callAsync(
+                () -> new JdbcCatalog(config).discoverSplits(),
+                (splits, failure) -> {
+                    enumerationInProgress = false;
+                    if (failure != null) {
+                        throw new IllegalStateException(
+                                "Failed to enumerate JDBC source splits", failure);
+                    }
+                    pending.addAll(splits);
+                    enumerationCompleted = true;
+                    assignPending();
+                });
     }
 
     private void assignPending() {
+        if (!enumerationCompleted) return;
         List<Integer> readers = new ArrayList<>(context.registeredReaders().keySet());
         Collections.sort(readers);
         if (readers.isEmpty()) return;
+
         int index = 0;
         while (!pending.isEmpty()) {
             int reader = readers.get(index++ % readers.size());
             context.assignSplit(pending.remove(), reader);
         }
-        for (Integer reader : readers) context.signalNoMoreSplits(reader);
+        for (Integer reader : readers) {
+            context.signalNoMoreSplits(reader);
+        }
     }
 
     @Override
@@ -78,7 +100,7 @@ public final class JdbcSplitEnumerator
 
     @Override
     public JdbcEnumeratorState snapshotState(long checkpointId) {
-        return new JdbcEnumeratorState(new ArrayList<>(pending));
+        return new JdbcEnumeratorState(new ArrayList<>(pending), enumerationCompleted);
     }
 
     @Override
