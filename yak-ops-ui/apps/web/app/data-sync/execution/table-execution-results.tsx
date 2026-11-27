@@ -343,7 +343,7 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
                 ? metricsReport.finalSequence ?? "—"
                 : metricsReport.latestSequence ?? "—"}
               {" · "}
-              {collectedAt ? new Date(collectedAt).toLocaleString("zh-CN") : "尚无采集时间"}
+              {collectedAt != null ? new Date(collectedAt).toLocaleString("zh-CN") : "尚无采集时间"}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
