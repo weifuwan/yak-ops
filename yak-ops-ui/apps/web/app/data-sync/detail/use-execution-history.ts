@@ -5,6 +5,7 @@ import {
   getDataSyncInstance,
   getDataSyncInstanceReport,
   listDataSyncInstances,
+  type DataSyncInstanceRecord,
   type DataSyncInstanceSummary,
   type DataSyncInstanceStatus,
 } from "@/service/data-sync";
@@ -58,11 +59,23 @@ export function useExecutionHistory(
   const selectedQuery = useQuery({
     queryKey: detailQueryKeys.instance(scope, taskId || "", executionId || ""),
     queryFn: async () => {
-      const [instance, metricsReport] = await Promise.all([
+      const previousMetricsReport = queryClient.getQueryData<DataSyncInstanceRecord>(
+        detailQueryKeys.instance(scope, taskId || "", executionId || ""),
+      )?.metricsReport;
+      const [instance, metricsResult] = await Promise.all([
         getDataSyncInstance(executionId!),
-        getDataSyncInstanceReport(executionId!).catch(() => undefined),
+        getDataSyncInstanceReport(executionId!)
+          .then((report) => ({ report, error: undefined as string | undefined }))
+          .catch((error: unknown) => ({
+            report: previousMetricsReport ?? null,
+            error: error instanceof Error && error.message ? error.message : "未知错误",
+          })),
       ]);
-      return { ...instance, metricsReport };
+      return {
+        ...instance,
+        metricsReport: metricsResult.report,
+        metricsReportError: metricsResult.error,
+      };
     },
     enabled: enabled && Boolean(executionId),
     retry: false,
