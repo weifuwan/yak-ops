@@ -343,6 +343,23 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
                 }
                 return value.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
             default:
+                if (value instanceof java.sql.Clob) {
+                    java.sql.Clob clob = (java.sql.Clob) value;
+                    try {
+                        return BinaryStringData.fromString(
+                                clob.getSubString(1, (int) clob.length()));
+                    } finally {
+                        clob.free();
+                    }
+                }
+                if (value instanceof java.sql.SQLXML) {
+                    java.sql.SQLXML xml = (java.sql.SQLXML) value;
+                    try {
+                        return BinaryStringData.fromString(xml.getString());
+                    } finally {
+                        xml.free();
+                    }
+                }
                 return BinaryStringData.fromString(value.toString());
         }
     }
