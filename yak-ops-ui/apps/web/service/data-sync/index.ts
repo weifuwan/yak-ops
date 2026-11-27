@@ -18,6 +18,7 @@ import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 import type {
   DataSyncInstancePageParams,
   DataSyncInstanceRecord,
+  DataSyncMetricsExecutionReport,
   DataSyncInstanceSummary,
   DataSyncTaskPageParams,
   DataSyncTaskListRecord,
@@ -166,6 +167,16 @@ export const getDataSyncInstance = async (
   ]);
   return toDataSyncInstanceRecord(instance, definition);
 };
+
+/** Returns the independent Flink CDC metrics snapshot for one task instance. */
+export const getDataSyncInstanceReport = async (
+  id: string,
+  signal?: AbortSignal,
+): Promise<DataSyncMetricsExecutionReport | null> =>
+  HttpUtils.getData<DataSyncMetricsExecutionReport | null>(
+    instanceUrl(id) + "/report",
+    { signal },
+  );
 
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
