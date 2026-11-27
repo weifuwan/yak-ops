@@ -1,4 +1,4 @@
-package org.apache.flink.cdc.connectors.jdbc.source;
+package org.apache.flink.cdc.connectors.jdbc.config;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -56,12 +56,35 @@ public final class JdbcSourceConfig implements Serializable {
         this.parallelism = parallelism;
     }
 
-    public String getUrl() { return url; }
-    public String getDriverName() { return driverName; }
-    public String getUsername() { return username; }
-    public String getPassword() { return password; }
-    public List<String> getTables() { return tables; }
-    public int getFetchSize() { return fetchSize; }
-    public int getSplitSize() { return splitSize; }
-    public int getParallelism() { return parallelism; }
+    public String getUrl() {
+        return url;
+    }
+
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public List<String> getTables() {
+        return tables;
+    }
+
+    public int getFetchSize() {
+        return fetchSize;
+    }
+
+    public int getSplitSize() {
+        return splitSize;
+    }
+
+    public int getParallelism() {
+        return parallelism;
+    }
 }

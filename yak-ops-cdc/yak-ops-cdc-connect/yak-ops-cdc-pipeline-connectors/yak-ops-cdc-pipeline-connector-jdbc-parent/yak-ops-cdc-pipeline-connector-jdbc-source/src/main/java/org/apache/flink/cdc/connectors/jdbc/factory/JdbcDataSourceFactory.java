@@ -7,7 +7,7 @@ import org.apache.flink.cdc.common.factories.Factory;
 import org.apache.flink.cdc.common.factories.FactoryHelper;
 import org.apache.flink.cdc.common.pipeline.PipelineOptions;
 import org.apache.flink.cdc.common.source.DataSource;
-import org.apache.flink.cdc.connectors.jdbc.source.JdbcSourceConfig;
+import org.apache.flink.cdc.connectors.jdbc.config.JdbcSourceConfig;
 import org.apache.flink.cdc.connectors.jdbc.source.JdbcDataSource;
 
 import java.util.Arrays;

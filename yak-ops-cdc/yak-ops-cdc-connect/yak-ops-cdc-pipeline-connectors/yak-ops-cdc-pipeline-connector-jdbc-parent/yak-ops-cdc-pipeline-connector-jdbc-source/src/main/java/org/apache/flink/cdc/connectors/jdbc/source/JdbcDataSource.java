@@ -6,9 +6,8 @@ import org.apache.flink.cdc.common.source.DataSource;
 import org.apache.flink.cdc.common.source.EventSourceProvider;
 import org.apache.flink.cdc.common.source.FlinkSourceProvider;
 import org.apache.flink.cdc.common.source.MetadataAccessor;
-import org.apache.flink.cdc.connectors.jdbc.source.JdbcCatalog;
-import org.apache.flink.cdc.connectors.jdbc.source.JdbcSource;
-import org.apache.flink.cdc.connectors.jdbc.source.JdbcSourceConfig;
+import org.apache.flink.cdc.connectors.jdbc.catalog.JdbcCatalog;
+import org.apache.flink.cdc.connectors.jdbc.config.JdbcSourceConfig;
 
 import javax.annotation.Nullable;
 

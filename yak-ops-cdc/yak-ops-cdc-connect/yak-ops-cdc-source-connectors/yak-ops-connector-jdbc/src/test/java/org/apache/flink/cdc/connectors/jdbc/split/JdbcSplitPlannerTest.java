@@ -1,4 +1,4 @@
-package org.apache.flink.cdc.connectors.jdbc.source;
+package org.apache.flink.cdc.connectors.jdbc.split;
 
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Schema;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class JdbcSplitGeneratorTest {
+class JdbcSplitPlannerTest {
 
     @Test
     void createsAdjacentRangesCoveringTheNumericKeyDomain() {
@@ -27,7 +27,7 @@ class JdbcSplitGeneratorTest {
                         .build();
 
         List<JdbcSourceSplit> splits =
-                JdbcSplitGenerator.createRangeSplits(
+                JdbcSplitPlanner.createRangeSplits(
                         tableId,
                         schema,
                         "id",
@@ -62,10 +62,10 @@ class JdbcSplitGeneratorTest {
                         .build();
 
         List<JdbcSourceSplit> empty =
-                JdbcCatalog.createRangeSplits(
+                JdbcSplitPlanner.createRangeSplits(
                         tableId, schema, "id", null, null, 0, 1000, 4);
         List<JdbcSourceSplit> single =
-                JdbcCatalog.createRangeSplits(
+                JdbcSplitPlanner.createRangeSplits(
                         tableId,
                         schema,
                         "id",

@@ -1,17 +1,27 @@
-package org.apache.flink.cdc.connectors.jdbc.source;
+package org.apache.flink.cdc.connectors.jdbc.enumerator;
 
+import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
-import org.apache.flink.api.connector.source.SourceEvent;
+import org.apache.flink.cdc.common.event.TableId;
+import org.apache.flink.cdc.common.schema.Schema;
+import org.apache.flink.cdc.connectors.jdbc.catalog.JdbcCatalog;
+import org.apache.flink.cdc.connectors.jdbc.config.JdbcSourceConfig;
+import org.apache.flink.cdc.connectors.jdbc.connection.JdbcConnectionFactory;
+import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcDialect;
+import org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplit;
+import org.apache.flink.cdc.connectors.jdbc.split.JdbcSplitPlanner;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 
-/** Plans bounded table splits asynchronously and redistributes pending splits after recovery. */
+/** Discovers bounded table splits and assigns them to registered source readers. */
 public final class JdbcSplitEnumerator
         implements SplitEnumerator<JdbcSourceSplit, JdbcEnumeratorState> {
 
@@ -37,7 +47,9 @@ public final class JdbcSplitEnumerator
 
     @Override
     public void start() {
-        if (started) return;
+        if (started) {
+            return;
+        }
         started = true;
         if (restoredState != null) {
             pending.addAll(restoredState.getPendingSplits());
@@ -54,10 +66,12 @@ public final class JdbcSplitEnumerator
     }
 
     private void enumerateAsync() {
-        if (enumerationInProgress) return;
+        if (enumerationInProgress) {
+            return;
+        }
         enumerationInProgress = true;
         context.callAsync(
-                () -> new JdbcCatalog(config).discoverSplits(),
+                this::discoverSplits,
                 (splits, failure) -> {
                     enumerationInProgress = false;
                     if (failure != null) {
@@ -70,11 +84,36 @@ public final class JdbcSplitEnumerator
                 });
     }
 
+    private List<JdbcSourceSplit> discoverSplits() throws SQLException {
+        List<JdbcSourceSplit> splits = new ArrayList<>();
+        try (Connection connection = JdbcConnectionFactory.openConnection(config)) {
+            JdbcDialect dialect = JdbcDialect.create(connection.getMetaData());
+            JdbcCatalog catalog = new JdbcCatalog(config);
+            for (String tableName : config.getTables()) {
+                TableId tableId = TableId.parse(tableName);
+                Schema schema = catalog.getTableSchema(connection, dialect, tableId);
+                splits.addAll(
+                        JdbcSplitPlanner.plan(
+                                connection,
+                                dialect,
+                                tableId,
+                                schema,
+                                config.getSplitSize(),
+                                config.getParallelism()));
+            }
+        }
+        return splits;
+    }
+
     private void assignPending() {
-        if (!enumerationCompleted) return;
+        if (!enumerationCompleted) {
+            return;
+        }
         List<Integer> readers = new ArrayList<>(context.registeredReaders().keySet());
         Collections.sort(readers);
-        if (readers.size() < context.currentParallelism()) return;
+        if (readers.size() < context.currentParallelism()) {
+            return;
+        }
 
         int index = 0;
         while (!pending.isEmpty()) {
@@ -102,12 +141,16 @@ public final class JdbcSplitEnumerator
     @Override
     public void addReader(int subtaskId) {
         assignReturnedSplits(subtaskId);
-        if (started) assignPending();
+        if (started) {
+            assignPending();
+        }
     }
 
     private void assignReturnedSplits(int subtaskId) {
         Queue<JdbcSourceSplit> returned = pendingByReader.remove(subtaskId);
-        if (returned == null || returned.isEmpty()) return;
+        if (returned == null || returned.isEmpty()) {
+            return;
+        }
         while (!returned.isEmpty()) {
             context.assignSplit(returned.remove(), subtaskId);
         }
@@ -122,7 +165,8 @@ public final class JdbcSplitEnumerator
         java.util.Map<Integer, List<JdbcSourceSplit>> returned = new java.util.HashMap<>();
         pendingByReader.forEach(
                 (reader, splits) -> returned.put(reader, new ArrayList<>(splits)));
-        return new JdbcEnumeratorState(new ArrayList<>(pending), returned, enumerationCompleted);
+        return new JdbcEnumeratorState(
+                new ArrayList<>(pending), returned, enumerationCompleted);
     }
 
     @Override

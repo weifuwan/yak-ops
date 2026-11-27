@@ -1,10 +1,11 @@
-package org.apache.flink.cdc.connectors.jdbc.source;
+package org.apache.flink.cdc.connectors.jdbc.split;
 
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Column;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.types.DataTypeRoot;
+import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcDialect;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -17,11 +18,11 @@ import java.util.Collections;
 import java.util.List;
 
 /** Plans non-overlapping numeric-primary-key ranges for bounded JDBC table reads. */
-final class JdbcSplitGenerator {
+public final class JdbcSplitPlanner {
 
-    private JdbcSplitGenerator() {}
+    private JdbcSplitPlanner() {}
 
-    static List<JdbcSourceSplit> generate(
+    public static List<JdbcSourceSplit> plan(
             Connection connection,
             JdbcDialect dialect,
             TableId tableId,
@@ -29,7 +30,9 @@ final class JdbcSplitGenerator {
             int splitSize,
             int parallelism)
             throws SQLException {
-        if (schema.primaryKeys().size() != 1) return singleSplit(tableId, schema);
+        if (schema.primaryKeys().size() != 1) {
+            return singleSplit(tableId, schema);
+        }
 
         String key = schema.primaryKeys().get(0);
         DataType keyType = schema.getColumn(key).map(Column::getType).orElse(null);
@@ -54,7 +57,9 @@ final class JdbcSplitGenerator {
                         + table;
         try (PreparedStatement statement = connection.prepareStatement(sql);
                 ResultSet resultSet = statement.executeQuery()) {
-            if (!resultSet.next()) return singleSplit(tableId, schema);
+            if (!resultSet.next()) {
+                return singleSplit(tableId, schema);
+            }
             BigDecimal min = resultSet.getBigDecimal(1);
             BigDecimal max = resultSet.getBigDecimal(2);
             long count = resultSet.getLong(3);

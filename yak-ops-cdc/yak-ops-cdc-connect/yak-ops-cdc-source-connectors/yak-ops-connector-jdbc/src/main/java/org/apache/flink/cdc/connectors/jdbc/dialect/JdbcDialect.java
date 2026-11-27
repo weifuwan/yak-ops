@@ -1,4 +1,4 @@
-package org.apache.flink.cdc.connectors.jdbc.source;
+package org.apache.flink.cdc.connectors.jdbc.dialect;
 
 import org.apache.flink.cdc.common.event.TableId;
 
@@ -6,17 +6,18 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.Locale;
 
-/** Identifier and catalog rules for JDBC databases. */
-interface JdbcDialect {
+/** Database identifier and catalog rules shared by JDBC metadata and query planning. */
+public final class JdbcDialect {
 
-    String quoteIdentifier(String identifier);
-    String qualifiedTable(TableId tableId, String currentCatalog, String currentSchema);
-    String catalogForLookup(String namespace, String schemaName);
-    String schemaForLookup(String namespace, String schemaName);
-    TableId toTableId(String catalog, String schema, String table);
-    boolean isCatalogBased();
+    private final String quoteString;
+    private final boolean catalogBased;
 
-    static JdbcDialect create(DatabaseMetaData metadata) throws SQLException {
+    JdbcDialect(String quoteString, boolean catalogBased) {
+        this.quoteString = quoteString == null ? "" : quoteString.trim();
+        this.catalogBased = catalogBased;
+    }
+
+    public static JdbcDialect create(DatabaseMetaData metadata) throws SQLException {
         String product = metadata.getDatabaseProductName();
         String normalized = product == null ? "" : product.toLowerCase(Locale.ROOT);
         boolean catalogBased =
@@ -26,21 +27,9 @@ interface JdbcDialect {
                         || normalized.contains("clickhouse")
                         || normalized.contains("doris")
                         || normalized.contains("starrocks");
-        return new GenericJdbcDialect(metadata.getIdentifierQuoteString(), catalogBased);
-    }
-}
-
-final class GenericJdbcDialect implements JdbcDialect {
-
-    private final String quoteString;
-    private final boolean catalogBased;
-
-    GenericJdbcDialect(String quoteString, boolean catalogBased) {
-        this.quoteString = quoteString == null ? "" : quoteString.trim();
-        this.catalogBased = catalogBased;
+        return new JdbcDialect(metadata.getIdentifierQuoteString(), catalogBased);
     }
 
-    @Override
     public String quoteIdentifier(String identifier) {
         if (identifier == null || identifier.isEmpty() || quoteString.isEmpty()) {
             return identifier;
@@ -48,7 +37,6 @@ final class GenericJdbcDialect implements JdbcDialect {
         return quoteString + identifier.replace(quoteString, quoteString + quoteString) + quoteString;
     }
 
-    @Override
     public String qualifiedTable(TableId tableId, String currentCatalog, String currentSchema) {
         String table = quoteIdentifier(tableId.getTableName());
         if (catalogBased) {
@@ -68,23 +56,23 @@ final class GenericJdbcDialect implements JdbcDialect {
         }
         String schema =
                 tableId.getSchemaName() == null || tableId.getSchemaName().isEmpty()
-                        ? currentSchema : tableId.getSchemaName();
-        return schema == null || schema.isEmpty() ? table : quoteIdentifier(schema) + "." + table;
+                        ? currentSchema
+                        : tableId.getSchemaName();
+        return schema == null || schema.isEmpty()
+                ? table
+                : quoteIdentifier(schema) + "." + table;
     }
 
-    @Override
     public String catalogForLookup(String namespace, String schemaName) {
         return catalogBased
                 ? (schemaName == null || schemaName.isEmpty() ? namespace : schemaName)
                 : namespace;
     }
 
-    @Override
     public String schemaForLookup(String namespace, String schemaName) {
         return catalogBased ? null : schemaName;
     }
 
-    @Override
     public TableId toTableId(String catalog, String schema, String table) {
         if (catalogBased) {
             String database = catalog == null || catalog.isEmpty() ? schema : catalog;
@@ -101,6 +89,7 @@ final class GenericJdbcDialect implements JdbcDialect {
         return TableId.tableId(table);
     }
 
-    @Override
-    public boolean isCatalogBased() { return catalogBased; }
+    public boolean isCatalogBased() {
+        return catalogBased;
+    }
 }

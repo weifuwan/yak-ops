@@ -7,18 +7,22 @@ import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.cdc.common.event.Event;
+import org.apache.flink.cdc.connectors.jdbc.config.JdbcSourceConfig;
+import org.apache.flink.cdc.connectors.jdbc.enumerator.JdbcEnumeratorStateSerializer;
+import org.apache.flink.cdc.connectors.jdbc.enumerator.JdbcSplitEnumerator;
+import org.apache.flink.cdc.connectors.jdbc.reader.JdbcSourceReader;
+import org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-
 /** Bounded Flink Source for reading database tables through JDBC. */
-public final class JdbcSource implements Source<Event, JdbcSourceSplit, JdbcEnumeratorState> {
+public final class JdbcSource
+        implements Source<
+                Event,
+                org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplit,
+                org.apache.flink.cdc.connectors.jdbc.enumerator.JdbcEnumeratorState> {
 
     private static final long serialVersionUID = 1L;
+
     private final JdbcSourceConfig config;
 
     public JdbcSource(JdbcSourceConfig config) {
@@ -31,56 +35,46 @@ public final class JdbcSource implements Source<Event, JdbcSourceSplit, JdbcEnum
     }
 
     @Override
-    public SourceReader<Event, JdbcSourceSplit> createReader(SourceReaderContext readerContext) {
-        return new JdbcSourceReader(config);
+    public SourceReader<
+                    Event, org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplit>
+            createReader(SourceReaderContext readerContext) {
+        return new JdbcSourceReader(config, readerContext);
     }
 
     @Override
-    public SplitEnumerator<JdbcSourceSplit, JdbcEnumeratorState> createEnumerator(
-            SplitEnumeratorContext<JdbcSourceSplit> enumContext) {
+    public SplitEnumerator<
+                    org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplit,
+                    org.apache.flink.cdc.connectors.jdbc.enumerator.JdbcEnumeratorState>
+            createEnumerator(
+                    SplitEnumeratorContext<
+                                    org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplit>
+                            enumContext) {
         return new JdbcSplitEnumerator(enumContext, config, null);
     }
 
     @Override
-    public SplitEnumerator<JdbcSourceSplit, JdbcEnumeratorState> restoreEnumerator(
-            SplitEnumeratorContext<JdbcSourceSplit> enumContext, JdbcEnumeratorState checkpoint) {
+    public SplitEnumerator<
+                    org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplit,
+                    org.apache.flink.cdc.connectors.jdbc.enumerator.JdbcEnumeratorState>
+            restoreEnumerator(
+                    SplitEnumeratorContext<
+                                    org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplit>
+                            enumContext,
+                    org.apache.flink.cdc.connectors.jdbc.enumerator.JdbcEnumeratorState checkpoint) {
         return new JdbcSplitEnumerator(enumContext, config, checkpoint);
     }
 
     @Override
-    public SimpleVersionedSerializer<JdbcSourceSplit> getSplitSerializer() {
-        return new JavaSerializer<>();
+    public SimpleVersionedSerializer<
+            org.apache.flink.cdc.connectors.jdbc.split.JdbcSourceSplit>
+            getSplitSerializer() {
+        return new JdbcSourceSplitSerializer();
     }
 
     @Override
-    public SimpleVersionedSerializer<JdbcEnumeratorState> getEnumeratorCheckpointSerializer() {
-        return new JavaSerializer<>();
-    }
-
-    private static final class JavaSerializer<T> implements SimpleVersionedSerializer<T> {
-
-        @Override
-        public int getVersion() { return 1; }
-
-        @Override
-        public byte[] serialize(T value) throws IOException {
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
-                output.writeObject(value);
-            }
-            return bytes.toByteArray();
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public T deserialize(int version, byte[] serialized) throws IOException {
-            if (version != 1) throw new IOException("Unsupported JDBC source state version: " + version);
-            try (ObjectInputStream input =
-                    new ObjectInputStream(new ByteArrayInputStream(serialized))) {
-                return (T) input.readObject();
-            } catch (ClassNotFoundException e) {
-                throw new IOException("Could not deserialize JDBC source state", e);
-            }
-        }
+    public SimpleVersionedSerializer<
+            org.apache.flink.cdc.connectors.jdbc.enumerator.JdbcEnumeratorState>
+            getEnumeratorCheckpointSerializer() {
+        return new JdbcEnumeratorStateSerializer();
     }
 }

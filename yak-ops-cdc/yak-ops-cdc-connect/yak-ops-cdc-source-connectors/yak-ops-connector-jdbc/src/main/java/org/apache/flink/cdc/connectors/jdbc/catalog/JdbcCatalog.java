@@ -1,22 +1,23 @@
-package org.apache.flink.cdc.connectors.jdbc.source;
+package org.apache.flink.cdc.connectors.jdbc.catalog;
 
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.schema.Column;
 import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.types.DataTypes;
+import org.apache.flink.cdc.connectors.jdbc.config.JdbcSourceConfig;
+import org.apache.flink.cdc.connectors.jdbc.connection.JdbcConnectionFactory;
+import org.apache.flink.cdc.connectors.jdbc.dialect.JdbcDialect;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.TreeMap;
 
-/** JDBC metadata access and table discovery. */
+/** Reads JDBC database, table and column metadata. */
 public final class JdbcCatalog {
 
     private final JdbcSourceConfig config;
@@ -25,64 +26,18 @@ public final class JdbcCatalog {
         this.config = config;
     }
 
-    public static Connection openConnection(JdbcSourceConfig config) throws SQLException {
-        try {
-            ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            if (loader == null) {
-                Class.forName(config.getDriverName());
-            } else {
-                Class.forName(config.getDriverName(), true, loader);
-            }
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("JDBC driver not found: " + config.getDriverName(), e);
-        }
-        Properties properties = new Properties();
-        if (!config.getUsername().isEmpty()) properties.setProperty("user", config.getUsername());
-        if (!config.getPassword().isEmpty()) properties.setProperty("password", config.getPassword());
-        if (config.getUrl().toLowerCase().startsWith("jdbc:mysql:")) {
-            properties.setProperty("useCursorFetch", "true");
-            properties.setProperty("useServerPrepStmts", "true");
-        }
-        Connection connection = DriverManager.getConnection(config.getUrl(), properties);
-        try {
-            connection.setReadOnly(true);
-        } catch (SQLException ignored) {
-            // Read-only is an optimization hint; some drivers do not implement it.
-        }
-        return connection;
-    }
-
-    public List<JdbcSourceSplit> discoverSplits() throws SQLException {
-        List<JdbcSourceSplit> result = new ArrayList<>();
-        try (Connection connection = openConnection(config)) {
-            JdbcDialect dialect = JdbcDialect.create(connection.getMetaData());
-            for (String name : config.getTables()) {
-                TableId tableId = TableId.parse(name);
-                Schema schema = getTableSchema(connection, dialect, tableId);
-                result.addAll(
-                        JdbcSplitGenerator.generate(
-                                connection,
-                                dialect,
-                                tableId,
-                                schema,
-                                config.getSplitSize(),
-                                config.getParallelism()));
-            }
-        }
-        return result;
-    }
-
     public List<String> listNamespaces() {
-        try (Connection connection = openConnection(config)) {
-            DatabaseMetaData metadata = connection.getMetaData();
-            JdbcDialect dialect = JdbcDialect.create(metadata);
+        try (Connection connection = JdbcConnectionFactory.openConnection(config)) {
+            JdbcDialect dialect = JdbcDialect.create(connection.getMetaData());
             if (dialect.isCatalogBased()) {
                 throw new UnsupportedOperationException(
                         "Catalog-based JDBC databases do not expose a separate namespace level");
             }
             List<String> values = new ArrayList<>();
-            try (ResultSet resultSet = metadata.getCatalogs()) {
-                while (resultSet.next()) values.add(resultSet.getString("TABLE_CAT"));
+            try (ResultSet resultSet = connection.getMetaData().getCatalogs()) {
+                while (resultSet.next()) {
+                    values.add(resultSet.getString("TABLE_CAT"));
+                }
             }
             return values;
         } catch (SQLException e) {
@@ -91,17 +46,21 @@ public final class JdbcCatalog {
     }
 
     public List<String> listSchemas(String namespace) {
-        try (Connection connection = openConnection(config)) {
+        try (Connection connection = JdbcConnectionFactory.openConnection(config)) {
             DatabaseMetaData metadata = connection.getMetaData();
             JdbcDialect dialect = JdbcDialect.create(metadata);
             List<String> values = new ArrayList<>();
             if (dialect.isCatalogBased()) {
                 try (ResultSet resultSet = metadata.getCatalogs()) {
-                    while (resultSet.next()) values.add(resultSet.getString("TABLE_CAT"));
+                    while (resultSet.next()) {
+                        values.add(resultSet.getString("TABLE_CAT"));
+                    }
                 }
             } else {
                 try (ResultSet resultSet = metadata.getSchemas(namespace, null)) {
-                    while (resultSet.next()) values.add(resultSet.getString("TABLE_SCHEM"));
+                    while (resultSet.next()) {
+                        values.add(resultSet.getString("TABLE_SCHEM"));
+                    }
                 }
             }
             return values;
@@ -111,7 +70,7 @@ public final class JdbcCatalog {
     }
 
     public List<TableId> listTables(String namespace, String schemaName) {
-        try (Connection connection = openConnection(config)) {
+        try (Connection connection = JdbcConnectionFactory.openConnection(config)) {
             DatabaseMetaData metadata = connection.getMetaData();
             JdbcDialect dialect = JdbcDialect.create(metadata);
             String catalog = dialect.catalogForLookup(namespace, schemaName);
@@ -134,14 +93,15 @@ public final class JdbcCatalog {
     }
 
     public Schema getTableSchema(TableId tableId) {
-        try (Connection connection = openConnection(config)) {
-            return getTableSchema(connection, JdbcDialect.create(connection.getMetaData()), tableId);
+        try (Connection connection = JdbcConnectionFactory.openConnection(config)) {
+            return getTableSchema(
+                    connection, JdbcDialect.create(connection.getMetaData()), tableId);
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to read JDBC table schema: " + tableId, e);
         }
     }
 
-    private Schema getTableSchema(
+    public Schema getTableSchema(
             Connection connection, JdbcDialect dialect, TableId tableId) throws SQLException {
         DatabaseMetaData metadata = connection.getMetaData();
         String catalog = dialect.catalogForLookup(tableId.getNamespace(), tableId.getSchemaName());
@@ -163,11 +123,13 @@ public final class JdbcCatalog {
         if (columns.isEmpty()) {
             throw new SQLException("Table does not exist or has no visible columns: " + tableId);
         }
+
         TreeMap<Short, String> primaryKeys = new TreeMap<>();
         try (ResultSet resultSet =
                 metadata.getPrimaryKeys(catalog, schema, tableId.getTableName())) {
             while (resultSet.next()) {
-                primaryKeys.put(resultSet.getShort("KEY_SEQ"), resultSet.getString("COLUMN_NAME"));
+                primaryKeys.put(
+                        resultSet.getShort("KEY_SEQ"), resultSet.getString("COLUMN_NAME"));
             }
         }
         return Schema.newBuilder()
@@ -176,34 +138,45 @@ public final class JdbcCatalog {
                 .build();
     }
 
-    static DataType toDataType(int jdbcType, int precision, int scale) {
+    private static DataType toDataType(int jdbcType, int precision, int scale) {
         int p = Math.max(1, Math.min(38, precision <= 0 ? 38 : precision));
         int s = Math.max(0, Math.min(p, scale));
         switch (jdbcType) {
-            case java.sql.Types.BOOLEAN: return DataTypes.BOOLEAN();
+            case java.sql.Types.BOOLEAN:
+                return DataTypes.BOOLEAN();
             case java.sql.Types.BIT:
                 return precision <= 1 ? DataTypes.BOOLEAN() : DataTypes.BYTES();
-            case java.sql.Types.TINYINT: return DataTypes.TINYINT();
-            case java.sql.Types.SMALLINT: return DataTypes.SMALLINT();
-            case java.sql.Types.INTEGER: return DataTypes.INT();
-            case java.sql.Types.BIGINT: return DataTypes.BIGINT();
+            case java.sql.Types.TINYINT:
+                return DataTypes.TINYINT();
+            case java.sql.Types.SMALLINT:
+                return DataTypes.SMALLINT();
+            case java.sql.Types.INTEGER:
+                return DataTypes.INT();
+            case java.sql.Types.BIGINT:
+                return DataTypes.BIGINT();
             case java.sql.Types.REAL:
-            case java.sql.Types.FLOAT: return DataTypes.FLOAT();
-            case java.sql.Types.DOUBLE: return DataTypes.DOUBLE();
+            case java.sql.Types.FLOAT:
+                return DataTypes.FLOAT();
+            case java.sql.Types.DOUBLE:
+                return DataTypes.DOUBLE();
             case java.sql.Types.NUMERIC:
-            case java.sql.Types.DECIMAL: return DataTypes.DECIMAL(p, s);
-            case java.sql.Types.DATE: return DataTypes.DATE();
+            case java.sql.Types.DECIMAL:
+                return DataTypes.DECIMAL(p, s);
+            case java.sql.Types.DATE:
+                return DataTypes.DATE();
             case java.sql.Types.TIME:
                 return scale > 3
                         ? DataTypes.STRING()
                         : DataTypes.TIME(Math.min(3, Math.max(0, scale)));
-            case java.sql.Types.TIMESTAMP: return DataTypes.TIMESTAMP(Math.min(9, Math.max(0, scale)));
+            case java.sql.Types.TIMESTAMP:
+                return DataTypes.TIMESTAMP(Math.min(9, Math.max(0, scale)));
             case java.sql.Types.BINARY:
             case java.sql.Types.VARBINARY:
             case java.sql.Types.LONGVARBINARY:
-            case java.sql.Types.BLOB: return DataTypes.BYTES();
-            default: return DataTypes.STRING();
+            case java.sql.Types.BLOB:
+                return DataTypes.BYTES();
+            default:
+                return DataTypes.STRING();
         }
     }
-
 }

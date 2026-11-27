@@ -6,11 +6,14 @@ import org.apache.flink.cdc.common.schema.Schema;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
-/** A bounded table range assigned to one JDBC source reader. */
+/**
+ * Legacy version-1 checkpoint class.
+ *
+ * <p>Keep this class and its serialized fields stable so checkpoints written before the JDBC
+ * source package reorganization can still be restored. New execution uses the split package.
+ */
+@Deprecated
 public final class JdbcSourceSplit implements SourceSplit, Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -44,53 +47,35 @@ public final class JdbcSourceSplit implements SourceSplit, Serializable {
     }
 
     @Override
-    public String splitId() { return splitId; }
-    public TableId getTableId() { return tableId; }
-    public Schema getSchema() { return schema; }
-    public String getSplitColumn() { return splitColumn; }
-    public BigDecimal getLowerBound() { return lowerBound; }
-    public BigDecimal getUpperBound() { return upperBound; }
-    public boolean isUpperInclusive() { return upperInclusive; }
-    public BigDecimal getLastReadValue() { return lastReadValue; }
-
-    public JdbcSourceSplit withLastReadValue(BigDecimal value) {
-        return new JdbcSourceSplit(
-                splitId, tableId, schema, splitColumn, lowerBound, upperBound, upperInclusive, value);
-    }
-}
-
-/** Enumerator checkpoint state containing splits that have not yet been assigned. */
-final class JdbcEnumeratorState implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-    private final List<JdbcSourceSplit> pendingSplits;
-    private final java.util.Map<Integer, List<JdbcSourceSplit>> pendingSplitsByReader;
-    private final boolean enumerationCompleted;
-
-    JdbcEnumeratorState(
-            List<JdbcSourceSplit> pendingSplits,
-            java.util.Map<Integer, List<JdbcSourceSplit>> pendingSplitsByReader,
-            boolean enumerationCompleted) {
-        this.pendingSplits = Collections.unmodifiableList(new ArrayList<>(pendingSplits));
-        java.util.Map<Integer, List<JdbcSourceSplit>> copy = new java.util.HashMap<>();
-        pendingSplitsByReader.forEach(
-                (reader, splits) ->
-                        copy.put(
-                                reader,
-                                Collections.unmodifiableList(new ArrayList<>(splits))));
-        this.pendingSplitsByReader = Collections.unmodifiableMap(copy);
-        this.enumerationCompleted = enumerationCompleted;
+    public String splitId() {
+        return splitId;
     }
 
-    List<JdbcSourceSplit> getPendingSplits() {
-        return pendingSplits;
+    public TableId getTableId() {
+        return tableId;
     }
 
-    java.util.Map<Integer, List<JdbcSourceSplit>> getPendingSplitsByReader() {
-        return pendingSplitsByReader;
+    public Schema getSchema() {
+        return schema;
     }
 
-    boolean isEnumerationCompleted() {
-        return enumerationCompleted;
+    public String getSplitColumn() {
+        return splitColumn;
+    }
+
+    public BigDecimal getLowerBound() {
+        return lowerBound;
+    }
+
+    public BigDecimal getUpperBound() {
+        return upperBound;
+    }
+
+    public boolean isUpperInclusive() {
+        return upperInclusive;
+    }
+
+    public BigDecimal getLastReadValue() {
+        return lastReadValue;
     }
 }

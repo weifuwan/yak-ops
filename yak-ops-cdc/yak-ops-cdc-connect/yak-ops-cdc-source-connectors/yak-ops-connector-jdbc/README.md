@@ -34,11 +34,23 @@ Yak Ops task definitions do not persist inline connection credentials. The data-
 
 ## Recovery and consistency
 
-The reader performs JDBC I/O on a background fetch thread; Flink's `pollNext` only drains a bounded event queue. Reader checkpoints contain the active split's last emitted numeric key and pending splits. Enumerator checkpoints contain unassigned splits and the split-discovery completion state.
+The reader uses Flink's `SingleThreadMultiplexSourceReaderBase` and connector-base split fetcher. JDBC I/O runs on the fetcher thread, while the mailbox thread emits bounded batches and updates the active split's last emitted numeric key. Reader checkpoints include active and queued splits; enumerator checkpoints include unassigned splits and split-discovery completion state.
+
+New checkpoints use explicit version-2 serializers for splits and enumerator state. Version-1 Java-serialized split and enumerator payloads are still readable, so existing savepoints can be restored after the package refactor.
 
 Recovery is split-level and At-Least-Once. A split without a numeric primary key is replayed from its beginning after failure, so a target should use idempotent writes where duplicate rows are not acceptable.
 
 Independent JDBC connections do not share a global snapshot by default. Concurrent source-table updates can therefore be observed at different times by different splits. V1 does not claim cross-split snapshot consistency.
+
+## Package responsibilities
+
+- `config`: immutable source configuration.
+- `connection`: JDBC driver and connection creation.
+- `catalog`: metadata discovery and schema mapping.
+- `dialect`: identifier quoting and catalog/schema naming rules.
+- `split`: split model, range planning and split serialization.
+- `enumerator`: asynchronous discovery, split assignment and enumerator state.
+- `reader`: Flink reader lifecycle, JDBC split reads, record emission and progress state.
 
 ## Deliberate V1 exclusions
 
