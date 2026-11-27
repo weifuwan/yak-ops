@@ -93,26 +93,33 @@ public class MySqlSourceReaderMetrics {
     }
 
     public void recordDataChange(TableId tableId, Envelope.Operation operation) {
-        if (tableId == null || operation == null) {
+        if (operation == null) {
             return;
         }
-        TableMetrics tableMetrics = getTableMetrics(tableId);
         switch (operation) {
             case READ:
                 snapshotCounter.inc();
-                tableMetrics.markSnapshotRecord();
+                if (tableId != null) {
+                    getTableMetrics(tableId).markSnapshotRecord();
+                }
                 break;
             case CREATE:
                 insertCounter.inc();
-                tableMetrics.markInsertRecord();
+                if (tableId != null) {
+                    getTableMetrics(tableId).markInsertRecord();
+                }
                 break;
             case UPDATE:
                 updateCounter.inc();
-                tableMetrics.markUpdateRecord();
+                if (tableId != null) {
+                    getTableMetrics(tableId).markUpdateRecord();
+                }
                 break;
             case DELETE:
                 deleteCounter.inc();
-                tableMetrics.markDeleteRecord();
+                if (tableId != null) {
+                    getTableMetrics(tableId).markDeleteRecord();
+                }
                 break;
             default:
                 // Truncate and message operations are not row-level DML counters.
