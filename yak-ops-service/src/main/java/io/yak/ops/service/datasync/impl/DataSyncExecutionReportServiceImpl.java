@@ -230,6 +230,15 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
                 existingReports.size(),
                 clearedCount,
                 upsertedCount);
+        if (clearedCount < existingReports.size()) {
+            log.warn(
+                    "CDC table report snapshot sequence was not applied to every existing row, "
+                            + "executionId={}, sequence={}, existingTables={}, clearedTables={}",
+                    request.getExecutionId(),
+                    request.getSequence(),
+                    existingReports.size(),
+                    clearedCount);
+        }
     }
 
     private static String validate(DataSyncReportRequest request) {
