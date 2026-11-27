@@ -58,14 +58,14 @@ class DimensionDorisPublishDaoImplTest extends BaseDaoTest {
         publish.setDatasourceId(100);
         publish.setTargetDatabase("warehouse");
         publish.setTargetTable("dwd_order_detail");
-        publish.setDdl("CREATE TABLE dwd_order_detail (id BIGINT)");
+        publish.setDdlContent("CREATE TABLE dwd_order_detail (id BIGINT)");
         publish.setStatus(DorisPublishStatusEnum.RUNNING);
 
         assertEquals(1, dimensionDorisPublishDao.insert(publish));
 
         DimensionDorisPublishPO stored = dimensionDorisPublishDao.queryById(publish.getId());
         assertNotNull(stored);
-        assertEquals(publish.getDdl(), stored.getDdl());
+        assertEquals(publish.getDdlContent(), stored.getDdlContent());
     }
 
     @Test
