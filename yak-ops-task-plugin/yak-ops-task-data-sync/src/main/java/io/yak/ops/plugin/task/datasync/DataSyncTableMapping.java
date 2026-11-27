@@ -75,8 +75,7 @@ public class DataSyncTableMapping {
         return databaseName(sourceTable, ".\\.*") + "." + tableName(actualSinkTable);
     }
 
-    private static boolean matchesDatabasePattern(
-            String actualTable, String pattern, String suffix) {
+    private static boolean matchesDatabasePattern(String actualTable, String pattern, String suffix) {
         if (actualTable == null || pattern == null || !pattern.endsWith(suffix)) {
             return false;
         }
