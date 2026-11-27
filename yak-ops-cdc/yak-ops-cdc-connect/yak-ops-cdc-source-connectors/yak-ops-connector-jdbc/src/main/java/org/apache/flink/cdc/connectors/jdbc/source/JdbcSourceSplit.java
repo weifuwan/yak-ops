@@ -64,12 +64,18 @@ final class JdbcEnumeratorState implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private final List<JdbcSourceSplit> pendingSplits;
+    private final boolean enumerationCompleted;
 
-    JdbcEnumeratorState(List<JdbcSourceSplit> pendingSplits) {
+    JdbcEnumeratorState(List<JdbcSourceSplit> pendingSplits, boolean enumerationCompleted) {
         this.pendingSplits = Collections.unmodifiableList(new ArrayList<>(pendingSplits));
+        this.enumerationCompleted = enumerationCompleted;
     }
 
     List<JdbcSourceSplit> getPendingSplits() {
         return pendingSplits;
+    }
+
+    boolean isEnumerationCompleted() {
+        return enumerationCompleted;
     }
 }
