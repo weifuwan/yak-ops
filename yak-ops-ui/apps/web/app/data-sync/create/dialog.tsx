@@ -17,6 +17,11 @@ import {
 } from "@/service/data-sync/native-draft";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 
+const SOURCE_DB_OPTIONS = COMMON_DB_OPTIONS.filter((option) =>
+  ["MYSQL", "POSTGRE_SQL"].includes(option.value),
+);
+const TARGET_DB_OPTIONS = COMMON_DB_OPTIONS.filter((option) => option.value === "MYSQL");
+
 const COMMON_DB_OPTIONS_WITH_ICONS = COMMON_DB_OPTIONS.map((option) => ({
   ...option,
   icon: <DatabaseIcons dbType={option.value} width="16px" height="16px" />,
@@ -34,18 +39,37 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   );
   const [name, setName] = useState(previous.current?.name || "");
   const navigate = useNavigate();
-  const supported = sourceType === "MYSQL" && targetType === "MYSQL";
+  const incremental = steps.includes("INCREMENTAL");
+  const mysqlSource = sourceType === "MYSQL";
+  const postgresSource = sourceType === "POSTGRE_SQL" || sourceType === "POSTGRESQL";
+  const supported =
+    targetType === "MYSQL" &&
+    (incremental ? mysqlSource : mysqlSource || postgresSource);
+  const supportsDatabaseScope = mysqlSource && incremental;
+  const sourceOptions = COMMON_DB_OPTIONS_WITH_ICONS.filter((option) =>
+    SOURCE_DB_OPTIONS.some((source) => source.value === option.value),
+  );
+  const targetOptions = COMMON_DB_OPTIONS_WITH_ICONS.filter((option) =>
+    TARGET_DB_OPTIONS.some((target) => target.value === option.value),
+  );
   const ready =
     supported && (steps.includes("FULL") || steps.includes("INCREMENTAL"));
 
   const toggleStep = (step: "FULL" | "INCREMENTAL", checked: boolean) => {
+    if (step === "INCREMENTAL" && sourceType !== "MYSQL") return;
     setSteps((current) => {
       const next = new Set(current);
       if (checked) next.add(step);
       else next.delete(step);
-      return ["SCHEMA", "FULL", "INCREMENTAL"].filter((item) =>
+      const result = ["SCHEMA", "FULL", "INCREMENTAL"].filter((item) =>
         next.has(item as DataSyncStep),
       ) as DataSyncStep[];
+      if (!result.includes("INCREMENTAL")) {
+        setScope((currentScope) =>
+          currentScope === "DATABASE" ? "MULTI_TABLE" : currentScope,
+        );
+      }
+      return result;
     });
   };
 
@@ -60,12 +84,19 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
             name: name.trim(),
             scope,
             steps,
-            definition: setPipelineSteps(previous.current.definition, steps),
+            definition: setPipelineSteps(
+              previous.current.definition,
+              steps,
+              steps.includes("INCREMENTAL") ? "mysql" : "jdbc",
+            ),
           }
         : {
             sourceType, targetType, scope, steps, name: name.trim(),
             remark: "",
-            definition: createPipelineDefinition(steps),
+            definition: createPipelineDefinition(
+              steps,
+              steps.includes("INCREMENTAL") ? "mysql" : "jdbc",
+            ),
           };
     writeNativeDraft(key, draft);
     onClose();
@@ -92,26 +123,52 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
       <div className="space-y-4">
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
           <FieldLabel required>数据来源类型</FieldLabel>
-          <DataSyncSearchableSelect value={sourceType || null} options={COMMON_DB_OPTIONS_WITH_ICONS}
+          <DataSyncSearchableSelect
+            value={sourceType || null}
+            options={sourceOptions}
             placeholder="请选择来源类型"
-            onValueChange={setSourceType} />
+            onValueChange={(value) => {
+              setSourceType(value);
+              if (value !== "MYSQL") {
+                setSteps(["SCHEMA", "FULL"]);
+                setScope((currentScope) =>
+                  currentScope === "DATABASE" ? "MULTI_TABLE" : currentScope,
+                );
+              }
+            }}
+          />
         </Field>
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
           <FieldLabel required>数据去向类型</FieldLabel>
-          <DataSyncSearchableSelect value={targetType || null} options={COMMON_DB_OPTIONS_WITH_ICONS}
+          <DataSyncSearchableSelect
+            value={targetType || null}
+            options={targetOptions}
             placeholder="请选择去向类型"
-            onValueChange={setTargetType} />
+            onValueChange={setTargetType}
+          />
         </Field>
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
           <FieldLabel required>具体类型</FieldLabel>
-          <DataSyncSearchableSelect value={supported ? scope : null}
-            options={supported ? [
-              { value: "DATABASE", label: "整库同步" },
-              { value: "MULTI_TABLE", label: "多表同步" },
-              { value: "SINGLE_TABLE", label: "单表同步" },
-            ] : []}
-            disabled={!supported} placeholder="请选择具体类型"
-            onValueChange={(value) => setScope(value as DataSyncScope)} />
+          <DataSyncSearchableSelect
+            value={supported ? scope : null}
+            options={
+              !supported
+                ? []
+                : supportsDatabaseScope
+                  ? [
+                      { value: "DATABASE", label: "整库同步" },
+                      { value: "MULTI_TABLE", label: "多表同步" },
+                      { value: "SINGLE_TABLE", label: "单表同步" },
+                    ]
+                  : [
+                      { value: "MULTI_TABLE", label: "多表同步" },
+                      { value: "SINGLE_TABLE", label: "单表同步" },
+                    ]
+            }
+            disabled={!supported}
+            placeholder="请选择具体类型"
+            onValueChange={(value) => setScope(value as DataSyncScope)}
+          />
         </Field>
         <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3">
           <FieldLabel required className="pt-1.5">同步步骤</FieldLabel>
@@ -132,6 +189,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
               <label className="flex cursor-pointer items-center gap-2">
                 <Checkbox
                   checked={steps.includes("INCREMENTAL")}
+                  disabled={sourceType !== "MYSQL"}
                   aria-label="增量同步"
                   onCheckedChange={(checked) => toggleStep("INCREMENTAL", checked === true)}
                 />
