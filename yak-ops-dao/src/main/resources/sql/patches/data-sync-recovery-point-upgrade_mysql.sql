@@ -1,4 +1,7 @@
--- Upgrade the single-row-per-instance Savepoint table to checkpoint history.
+-- One-time migration for an existing database using the legacy single-row-per-task-instance schema.
+-- Fresh installations already have the current schema in sql/yak-ops_mysql.sql.
+-- Back up the database before execution. Run this migration only once.
+
 ALTER TABLE `t_yak_ops_data_sync_recovery_point`
     DROP INDEX `uk_data_sync_recovery_task_instance`,
     ADD COLUMN `recovery_point_id` VARCHAR(128) NULL AFTER `job_id`,
