@@ -192,7 +192,10 @@ public final class JdbcCatalog {
             case java.sql.Types.NUMERIC:
             case java.sql.Types.DECIMAL: return DataTypes.DECIMAL(p, s);
             case java.sql.Types.DATE: return DataTypes.DATE();
-            case java.sql.Types.TIME: return DataTypes.TIME(Math.min(9, Math.max(0, scale)));
+            case java.sql.Types.TIME:
+                return scale > 3
+                        ? DataTypes.STRING()
+                        : DataTypes.TIME(Math.min(3, Math.max(0, scale)));
             case java.sql.Types.TIMESTAMP: return DataTypes.TIMESTAMP(Math.min(9, Math.max(0, scale)));
             case java.sql.Types.BINARY:
             case java.sql.Types.VARBINARY:
