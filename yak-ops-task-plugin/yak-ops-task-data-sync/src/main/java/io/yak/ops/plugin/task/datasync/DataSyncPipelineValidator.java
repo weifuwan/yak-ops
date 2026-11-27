@@ -268,9 +268,14 @@ public final class DataSyncPipelineValidator {
             return;
         }
         try {
+            if (value.isNumber() && !value.isIntegralNumber()) {
+                throw new IllegalArgumentException("source." + key + " must be an integer");
+            }
             int parsed = value.isNumber() ? value.asInt() : Integer.parseInt(value.asText());
-            if (parsed < 1) {
-                throw new IllegalArgumentException("source." + key + " must be greater than zero");
+            int maximum = "scan.fetch-size".equals(key) ? 100000 : 10000000;
+            if (parsed < 1 || parsed > maximum) {
+                throw new IllegalArgumentException(
+                        "source." + key + " must be between 1 and " + maximum);
             }
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("source." + key + " must be a positive integer", e);
