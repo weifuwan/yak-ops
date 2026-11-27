@@ -39,6 +39,7 @@ import {
   type WorkflowScheduleRecord,
 } from "@/service/workflow/management";
 import { OperationsPageShell } from "../components/operations-page-shell";
+import { OperationsTableActions } from "../components/table-actions";
 import {
   ACTIVE_WORKFLOW_STATES,
   WORKFLOW_STATE_ITEMS,
@@ -325,27 +326,26 @@ export function WorkflowInstancesOperationsPage() {
       fixed: "right",
       align: "center",
       render: (_v, record) => (
-        <div className="flex items-center justify-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="px-2 text-xs font-medium !text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]"
-            onClick={() => setSelected(record)}
-          >
-            详情
-          </Button>
-          {ACTIVE_WORKFLOW_STATES.has(record.state) ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="px-2 text-xs !text-[var(--yak-color-danger)] hover:!text-[var(--yak-color-danger)]"
-              isPending={stopMutation.isPending}
-              onClick={() => stopMutation.mutate(record.id)}
-            >
-              停止
-            </Button>
-          ) : null}
-        </div>
+        <OperationsTableActions
+          actions={[
+            {
+              key: "detail",
+              label: "详情",
+              onClick: () => setSelected(record),
+            },
+            ...(ACTIVE_WORKFLOW_STATES.has(record.state)
+              ? [
+                  {
+                    key: "stop",
+                    label: "停止",
+                    tone: "danger" as const,
+                    loading: stopMutation.isPending,
+                    onClick: () => stopMutation.mutate(record.id),
+                  },
+                ]
+              : []),
+          ]}
+        />
       ),
     },
   ];
@@ -547,14 +547,17 @@ export function WorkflowSchedulesOperationsPage() {
       fixed: "right",
       align: "center",
       render: (_v, r) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          isPending={stateMutation.isPending}
-          onClick={() => stateMutation.mutate({ id: r.id, online: r.releaseState !== "ONLINE" })}
-        >
-          {r.releaseState === "ONLINE" ? "下线" : "上线"}
-        </Button>
+        <OperationsTableActions
+          actions={[
+            {
+              key: "release-state",
+              label: r.releaseState === "ONLINE" ? "下线" : "上线",
+              loading: stateMutation.isPending,
+              onClick: () =>
+                stateMutation.mutate({ id: r.id, online: r.releaseState !== "ONLINE" }),
+            },
+          ]}
+        />
       ),
     },
   ];
