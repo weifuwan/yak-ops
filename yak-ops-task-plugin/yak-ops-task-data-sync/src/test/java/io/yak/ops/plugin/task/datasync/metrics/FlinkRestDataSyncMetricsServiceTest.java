@@ -1,9 +1,12 @@
 package io.yak.ops.plugin.task.datasync.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionHandle;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -20,8 +23,9 @@ class FlinkRestDataSyncMetricsServiceTest {
         server.createContext("/", exchange -> {
             String path = exchange.getRequestURI().getPath();
             String body;
-            if ("/jobs/job-1/vertices".equals(path)) {
-                body = "{\"vertices\":[{\"id\":\"source\",\"parallelism\":2},"
+            if ("/jobs/job-1".equals(path)) {
+                body = "{\"jid\":\"job-1\",\"name\":\"data-sync-test\",\"state\":\"RUNNING\","
+                        + "\"vertices\":[{\"id\":\"source\",\"parallelism\":2},"
                         + "{\"id\":\"sink\",\"parallelism\":2}]}";
             } else {
                 String[] segments = path.split("/");
@@ -58,6 +62,45 @@ class FlinkRestDataSyncMetricsServiceTest {
             assertEquals(39L, snapshot.getReadRecords());
             assertEquals(20L, snapshot.getCommittedRecords());
             assertEquals("AVAILABLE", snapshot.getMetricsState());
+            assertEquals(1, snapshot.getTables().size());
+            DataSyncTableMetrics table = snapshot.getTables().get(0);
+            assertEquals("db.orders", table.getSourceTable());
+            assertEquals("db.orders", table.getSinkTable());
+            assertEquals(39L, table.getReadRecords());
+            assertEquals(20L, table.getCommittedRecords());
+            assertEquals("AVAILABLE", table.getMetricsState());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void includesRestErrorResponseBodyWhenRequestFails() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            byte[] bytes = "{\"errors\":[\"Job not found in dispatcher\"]}"
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(404, bytes.length);
+            try (java.io.OutputStream output = exchange.getResponseBody()) {
+                output.write(bytes);
+            }
+        });
+        server.start();
+        try {
+            String endpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+            DataSyncExecutionHandle handle = DataSyncExecutionHandle.builder()
+                    .executionId("execution-404")
+                    .jobId("missing-job")
+                    .restEndpoint(endpoint)
+                    .build();
+
+            IOException exception = assertThrows(
+                    IOException.class,
+                    () -> new FlinkRestDataSyncMetricsService().collect(handle));
+
+            assertTrue(exception.getMessage().contains("HTTP 404"));
+            assertTrue(exception.getMessage().contains("Job not found in dispatcher"));
         } finally {
             server.stop(0);
         }
@@ -68,9 +111,14 @@ class FlinkRestDataSyncMetricsServiceTest {
             return "[{\"id\":\"numSnapshotRecords\"},"
                     + "{\"id\":\"numInsertDMLRecords\"},"
                     + "{\"id\":\"numUpdateDMLRecords\"},"
-                    + "{\"id\":\"numDeleteDMLRecords\"}]";
+                    + "{\"id\":\"numDeleteDMLRecords\"},"
+                    + "{\"id\":\"source.namespace.db.schema..table.orders.numSnapshotRecords\"},"
+                    + "{\"id\":\"source.namespace.db.schema..table.orders.numInsertDMLRecords\"},"
+                    + "{\"id\":\"source.namespace.db.schema..table.orders.numUpdateDMLRecords\"},"
+                    + "{\"id\":\"source.namespace.db.schema..table.orders.numDeleteDMLRecords\"}]";
         }
-        return "[{\"id\":\"numCommittedRecords\"}]";
+        return "[{\"id\":\"numCommittedRecords\"},"
+                + "{\"id\":\"sink.namespace..schema.db.table.orders.numCommittedRecords\"}]";
     }
 
     private static String metricValues(String vertex, int subtask, String[] requested) {
@@ -79,11 +127,12 @@ class FlinkRestDataSyncMetricsServiceTest {
             if (i > 0) {
                 json.append(',');
             }
+            String metricName = requested[i].substring(requested[i].lastIndexOf('.') + 1);
             long value;
             if ("source".equals(vertex)) {
-                value = sourceValue(requested[i], subtask);
+                value = sourceValue(metricName, subtask);
             } else {
-                value = "numCommittedRecords".equals(requested[i])
+                value = "numCommittedRecords".equals(metricName)
                         ? (subtask == 0 ? 8L : 12L)
                         : 0L;
             }

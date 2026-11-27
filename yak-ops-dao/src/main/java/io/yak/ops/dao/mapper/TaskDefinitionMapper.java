@@ -6,6 +6,7 @@ import io.yak.ops.dao.entity.TaskDefinitionLog;
 import io.yak.ops.dao.entity.TaskMainInfo;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
+import io.yak.ops.dao.model.DataSyncTaskWorkflowRow;
 import io.yak.ops.dao.model.WorkflowDefinitionCountDto;
 
 import org.apache.ibatis.annotations.Param;
@@ -60,6 +61,10 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
                                             @Param("releaseState") Integer releaseState,
                                             @Param("taskCodes") List<Long> taskCodes,
                                             @Param("taskExecuteType") TaskExecuteType taskExecuteType);
+
+    List<DataSyncTaskWorkflowRow> queryDataSyncWorkflowCodes(@Param("projectCode") long projectCode,
+                                                             @Param("taskType") String taskType,
+                                                             @Param("taskCodes") List<Long> taskCodes);
 
     List<DataSyncOverviewTaskRow> queryDataSyncOverview(@Param("projectCode") long projectCode);
 

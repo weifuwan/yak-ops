@@ -1,4 +1,5 @@
-import type { TaskInstanceStatus } from "../task-execution/types";
+import type { TaskInstanceRecord, TaskInstanceStatus } from "../task-execution/types";
+import type { DataSyncWorkflowInstance } from "./workflow";
 
 export type DataSyncWriteMode = "UPSERT";
 
@@ -202,6 +203,12 @@ export interface PublishTaskRequest {
 
 export type DataSyncInstanceStatus = TaskInstanceStatus;
 
+export interface DataSyncTaskExecutionState {
+  taskCode: string;
+  workflow: DataSyncWorkflowInstance | null;
+  taskInstance: TaskInstanceRecord | null;
+}
+
 export interface DataSyncEndpointSnapshot {
   dataSourceId: string;
   dataSourceName?: string;
@@ -224,6 +231,51 @@ export interface DataSyncDefinitionSnapshot {
   target: DataSyncEndpointSnapshot;
 }
 
+
+export interface DataSyncMetricsSnapshot {
+  readRecords: number | null;
+  snapshotRecords: number | null;
+  incrementalRecords: number | null;
+  insertRecords: number | null;
+  updateRecords: number | null;
+  deleteRecords: number | null;
+  committedRecords: number | null;
+  ddlEvents: number | null;
+  errorRecords: number | null;
+}
+
+export interface DataSyncMetricsTableReport {
+  sourceTable: string | null;
+  sinkTable: string | null;
+  metricsState: string;
+  readRecords: number | null;
+  snapshotRecords: number | null;
+  incrementalRecords: number | null;
+  insertRecords: number | null;
+  updateRecords: number | null;
+  deleteRecords: number | null;
+  committedRecords: number | null;
+  ddlEvents: number | null;
+}
+
+export interface DataSyncMetricsExecutionReport {
+  executionId: string;
+  jobId: string;
+  deploymentMode: string;
+  clusterId: string | null;
+  executionState: string;
+  metricsState: string;
+  latestSequence: number | null;
+  finalSequence: number | null;
+  latestCollectedAt: number | null;
+  finalCollectedAt: number | null;
+  finalized: boolean;
+  metricsError: string | null;
+  latestSnapshot: DataSyncMetricsSnapshot | null;
+  finalSnapshot: DataSyncMetricsSnapshot | null;
+  tables: DataSyncMetricsTableReport[];
+}
+
 export type DataSyncInstanceAction = "STOP" | "RESUME" | "RECOVER_FAILURE" | "RERUN";
 
 export interface DataSyncInstanceActionMetadata {
@@ -244,6 +296,8 @@ export interface DataSyncInstanceActionResult {
 
 export interface DataSyncInstanceRecord extends DataSyncInstanceActionMetadata {
   executionReport?: DataSyncExecutionReport;
+  metricsReport?: DataSyncMetricsExecutionReport | null;
+  metricsReportError?: string;
   workflowInstanceId?: number;
   id: string;
   scope: DataSyncScope;

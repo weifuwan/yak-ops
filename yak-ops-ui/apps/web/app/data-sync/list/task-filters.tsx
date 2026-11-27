@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@yak-ops/yak-ui";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { DATA_SYNC_TASK_STATUS_ITEMS } from "./task-lifecycle";
 
 const TASK_SCOPE_ITEMS = {
@@ -26,6 +26,9 @@ interface Props {
   onKeywordChange: (value: string) => void;
   onFilterChange: (patch: Partial<TaskListFilters>) => void;
   onCreate: () => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+  refreshDisabled: boolean;
 }
 
 export function TaskFilters({
@@ -34,6 +37,9 @@ export function TaskFilters({
   onKeywordChange,
   onFilterChange,
   onCreate,
+  onRefresh,
+  refreshing,
+  refreshDisabled,
 }: Props) {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -100,6 +106,15 @@ export function TaskFilters({
           </SelectContent>
         </Select>
       </div>
+      <Button
+        size="sm"
+        variant="secondary"
+        isDisabled={refreshDisabled || refreshing}
+        onClick={onRefresh}
+      >
+        <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+        刷新状态
+      </Button>
     </div>
   );
 }

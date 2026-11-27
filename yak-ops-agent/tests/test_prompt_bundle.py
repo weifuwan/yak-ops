@@ -58,6 +58,15 @@ class PromptBundleTests(unittest.TestCase):
         self.assertIn("run_analysis_script", full)
         self.assertIn("read_workspace_file", full)
 
+    def test_profile_block_is_appended_last(self) -> None:
+        block = "## 工作区记忆（用户显式指定，优先于默认角色描述）\n\n- 助手称呼：狗蛋"
+
+        with_profile = compose_system_prompt(["data-sync"], profile=block)
+        without = compose_system_prompt(["data-sync"])
+
+        self.assertTrue(with_profile.endswith(block))
+        self.assertNotIn("## 工作区记忆", without)
+
     def test_missing_core_prompt_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(FileNotFoundError):

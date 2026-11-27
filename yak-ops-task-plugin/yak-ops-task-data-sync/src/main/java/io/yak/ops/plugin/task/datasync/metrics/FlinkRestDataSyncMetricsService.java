@@ -24,6 +24,8 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static final int MAX_ERROR_BODY_LENGTH = 2_048;
+
     private static final List<String> METRIC_NAMES = List.of(
             "numSnapshotRecords",
             "numInsertDMLRecords",
@@ -47,10 +49,17 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
     protected Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) throws Exception {
         Map<String, Long> result = new LinkedHashMap<>();
         String baseUrl = normalizeBaseUrl(handle.getRestEndpoint());
-        JsonNode verticesResponse = getJson(baseUrl + "/jobs/" + handle.getJobId() + "/vertices");
-        JsonNode vertices = verticesResponse.path("vertices");
+
+        // Flink 1.20 exposes the vertex list on the JobDetails endpoint. There is no
+        // /jobs/{jobId}/vertices collection endpoint.
+        JsonNode jobResponse = getJson(baseUrl + "/jobs/" + handle.getJobId());
+        JsonNode vertices = jobResponse.path("vertices");
         if (!vertices.isArray()) {
-            throw new IOException("Flink REST response does not contain a vertices array");
+            throw new IOException(
+                    "Flink REST job response does not contain a vertices array for job "
+                            + handle.getJobId()
+                            + "; response body: "
+                            + truncateResponseBody(jobResponse.toString()));
         }
 
         for (JsonNode vertex : vertices) {
@@ -102,9 +111,23 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IOException("Flink REST returned HTTP " + response.statusCode() + " for " + url);
+            throw new IOException(
+                    "Flink REST returned HTTP " + response.statusCode()
+                            + " for " + url
+                            + "; response body: " + truncateResponseBody(response.body()));
         }
         return OBJECT_MAPPER.readTree(response.body());
+    }
+
+    private static String truncateResponseBody(String body) {
+        String normalized = body == null ? "" : body.replaceAll("\\s+", " ").trim();
+        if (normalized.isEmpty()) {
+            return "<empty>";
+        }
+        if (normalized.length() > MAX_ERROR_BODY_LENGTH) {
+            return normalized.substring(0, MAX_ERROR_BODY_LENGTH) + "...";
+        }
+        return normalized;
     }
 
     private static boolean isSupportedMetric(String metricId) {

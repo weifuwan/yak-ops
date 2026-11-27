@@ -54,7 +54,7 @@ public class WorkflowInstance {
     private Flag recovery;
     private Date startTime;
 
-    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private Date endTime;
 
     private int runTimes;

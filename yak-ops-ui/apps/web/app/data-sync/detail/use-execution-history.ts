@@ -3,7 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
   getDataSyncInstance,
+  getDataSyncInstanceReport,
   listDataSyncInstances,
+  type DataSyncInstanceRecord,
   type DataSyncInstanceSummary,
   type DataSyncInstanceStatus,
 } from "@/service/data-sync";
@@ -56,7 +58,25 @@ export function useExecutionHistory(
   const instancesLoading = instancesQuery.isPending;
   const selectedQuery = useQuery({
     queryKey: detailQueryKeys.instance(scope, taskId || "", executionId || ""),
-    queryFn: () => getDataSyncInstance(executionId!),
+    queryFn: async () => {
+      const previousMetricsReport = queryClient.getQueryData<DataSyncInstanceRecord>(
+        detailQueryKeys.instance(scope, taskId || "", executionId || ""),
+      )?.metricsReport;
+      const [instance, metricsResult] = await Promise.all([
+        getDataSyncInstance(executionId!),
+        getDataSyncInstanceReport(executionId!)
+          .then((report) => ({ report, error: undefined as string | undefined }))
+          .catch((error: unknown) => ({
+            report: previousMetricsReport ?? null,
+            error: error instanceof Error && error.message ? error.message : "未知错误",
+          })),
+      ]);
+      return {
+        ...instance,
+        metricsReport: metricsResult.report,
+        metricsReportError: metricsResult.error,
+      };
+    },
     enabled: enabled && Boolean(executionId),
     retry: false,
     refetchInterval: (query) =>

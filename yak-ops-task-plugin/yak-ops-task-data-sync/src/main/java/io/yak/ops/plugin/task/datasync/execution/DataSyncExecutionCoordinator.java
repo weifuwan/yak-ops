@@ -6,12 +6,16 @@ import io.yak.ops.extract.master.transportor.DataSyncReportAck;
 import io.yak.ops.extract.master.transportor.DataSyncReportRequest;
 import io.yak.ops.extract.master.transportor.DataSyncTableMetrics;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.plugin.task.datasync.DataSyncTableMapping;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncExecutionSnapshot;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncMetricsService;
 import io.yak.ops.plugin.task.datasync.report.DataSyncReportPublisher;
 
 import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,16 +69,29 @@ public class DataSyncExecutionCoordinator {
     }
 
     public void execute(FlinkPipelineExecution execution) throws Exception {
-        execute(execution, null, null);
+        execute(execution, Collections.emptyList(), null, null);
+    }
+
+    public void execute(
+            FlinkPipelineExecution execution, List<DataSyncTableMapping> tableMappings) throws Exception {
+        execute(execution, tableMappings, null, null);
     }
 
     public void execute(FlinkPipelineExecution execution, String restorePath) throws Exception {
-        execute(execution, restorePath, null);
+        execute(execution, Collections.emptyList(), restorePath, null);
     }
 
     public void execute(
             FlinkPipelineExecution execution, String restorePath, String recoveredFromRecoveryPointId)
             throws Exception {
+        execute(execution, Collections.emptyList(), restorePath, recoveredFromRecoveryPointId);
+    }
+
+    public void execute(
+            FlinkPipelineExecution execution,
+            List<DataSyncTableMapping> tableMappings,
+            String restorePath,
+            String recoveredFromRecoveryPointId) throws Exception {
         if (cancelRequested.get()) {
             cancellationConfirmed = true;
             return;
@@ -98,6 +115,9 @@ public class DataSyncExecutionCoordinator {
         activeExecutionService = executionService;
         try {
             handle = executionService.submit(execution, executionId, context.getTaskInstanceId(), restorePath);
+            handle.setTableMappings(tableMappings == null
+                    ? Collections.emptyList()
+                    : new ArrayList<>(tableMappings));
             if (cancelRequested.get()) {
                 dispatchCancellation();
             }

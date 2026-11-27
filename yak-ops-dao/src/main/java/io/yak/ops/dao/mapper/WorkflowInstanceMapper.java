@@ -102,6 +102,10 @@ public interface WorkflowInstanceMapper extends BaseMapper<WorkflowInstance> {
                                                                       @Param("endTime") Date endTime,
                                                                       @Param("businessType") String businessType);
 
+    List<WorkflowInstance> queryLatestByWorkflowDefinitionCodes(
+            @Param("projectCode") long projectCode,
+            @Param("workflowDefinitionCodes") List<Long> workflowDefinitionCodes);
+
     /**
      * set failover by host and state array
      *

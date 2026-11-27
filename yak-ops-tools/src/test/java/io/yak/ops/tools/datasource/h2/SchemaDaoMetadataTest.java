@@ -88,6 +88,29 @@ class SchemaDaoMetadataTest {
                 indexColumns(dataSource, "t_yak_ops_workflow_instance", "idx_project_start_time").isEmpty());
     }
 
+    @Test
+    void dataSyncLatestTaskIndexIsCreatedIdempotently() throws Exception {
+        JdbcDataSource dataSource = new JdbcDataSource();
+        dataSource.setURL("jdbc:h2:mem:yak_ops_data_sync_latest_index;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=true");
+        dataSource.setUser("sa");
+        dataSource.setPassword("");
+
+        try (
+                Connection connection = dataSource.getConnection();
+                Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE t_yak_ops_task_instance "
+                    + "(id int, project_code bigint, task_type varchar(50), flag tinyint, task_code bigint)");
+        }
+
+        SchemaDao schemaDao = new SchemaDao(dataSource, DbType.H2);
+        schemaDao.ensureDataSyncLatestInstanceIndexes();
+        schemaDao.ensureDataSyncLatestInstanceIndexes();
+
+        Assertions.assertEquals(
+                Arrays.asList("project_code", "task_type", "flag", "task_code", "id"),
+                indexColumns(dataSource, "t_yak_ops_task_instance", "idx_data_sync_latest_task"));
+    }
+
     private static List<String> indexColumns(JdbcDataSource dataSource, String tableName, String indexName)
             throws Exception {
         List<String> columns = new ArrayList<>();

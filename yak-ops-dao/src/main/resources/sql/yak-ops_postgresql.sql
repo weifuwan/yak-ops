@@ -846,6 +846,7 @@ CREATE TABLE t_yak_ops_task_instance (
 
 create index idx_task_instance_code_version on t_yak_ops_task_instance (task_code, task_definition_version);
 create index idx_project_submit_time_state on t_yak_ops_task_instance (project_code, submit_time, state);
+create index idx_data_sync_latest_task on t_yak_ops_task_instance (project_code, task_type, flag, task_code, id);
 
 --
 -- Table structure for t_yak_ops_task_instance_context

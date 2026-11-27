@@ -1,6 +1,7 @@
 package io.yak.ops.api.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +32,7 @@ import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceActionResultVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
+import io.yak.ops.api.vo.DataSyncTaskExecutionStateVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.common.enums.CommandType;
 import io.yak.ops.common.enums.Flag;
@@ -49,6 +51,7 @@ import io.yak.ops.dao.entity.WorkflowTaskRelation;
 import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
+import io.yak.ops.dao.model.DataSyncTaskWorkflowRow;
 import io.yak.ops.dao.model.WorkflowInstanceSummaryDto;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.DataSyncRecoveryPointDao;
@@ -67,6 +70,7 @@ import io.yak.ops.spi.enums.DbType;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 
@@ -181,6 +185,63 @@ class DataSyncServiceImplTest {
         assertEquals(100L, result.getLatestSnapshot().getReadRecords());
         assertEquals(80L, result.getLatestSnapshot().getCommittedRecords());
         verify(projectService).checkProjectAndAuthThrowException(any(), eq(PROJECT_CODE), isNull());
+    }
+
+    @Test
+    void latestExecutionStatesUsesBatchQueriesAndReturnsEmptyHistoryRows() {
+        User user = new User();
+        DataSyncTaskWorkflowRow firstMapping = new DataSyncTaskWorkflowRow();
+        firstMapping.setTaskCode(99L);
+        firstMapping.setWorkflowCode(501L);
+        DataSyncTaskWorkflowRow secondMapping = new DataSyncTaskWorkflowRow();
+        secondMapping.setTaskCode(100L);
+        secondMapping.setWorkflowCode(502L);
+
+        TaskInstance taskInstance = TaskInstance.builder()
+                .id(42)
+                .taskCode(99L)
+                .taskType("DATA_SYNC")
+                .projectCode(PROJECT_CODE)
+                .taskDefinitionVersion(2)
+                .workflowInstanceId(200)
+                .state(TaskExecutionStatus.RUNNING_EXECUTION)
+                .build();
+        WorkflowInstance workflow = WorkflowInstance.builder()
+                .id(200)
+                .workflowDefinitionCode(501L)
+                .projectCode(PROJECT_CODE)
+                .state(WorkflowExecutionStatus.RUNNING_EXECUTION)
+                .build();
+
+        when(taskDefinitionDao.queryDataSyncWorkflowCodes(eq(PROJECT_CODE), eq("DATA_SYNC"),
+                eq(Arrays.asList(99L, 100L))))
+                .thenReturn(Arrays.asList(firstMapping, secondMapping));
+        when(taskInstanceDao.queryLatestByTaskCodes(eq(PROJECT_CODE), eq("DATA_SYNC"),
+                eq(Arrays.asList(99L, 100L)), isNull()))
+                .thenReturn(Collections.singletonList(taskInstance));
+        when(workflowInstanceDao.queryLatestByWorkflowDefinitionCodes(eq(PROJECT_CODE),
+                eq(Arrays.asList(501L, 502L))))
+                .thenReturn(Collections.singletonList(workflow));
+
+        List<DataSyncTaskExecutionStateVO> result =
+                service.latestExecutionStates(user, PROJECT_CODE, Arrays.asList(99L, 100L));
+
+        assertEquals(2, result.size());
+        assertEquals("99", result.get(0).getTaskCode());
+        assertEquals(200, result.get(0).getWorkflow().getId());
+        assertEquals(501L, result.get(0).getWorkflow().getWorkflowDefinitionCode());
+        assertEquals("42", result.get(0).getTaskInstance().getId());
+        assertEquals("100", result.get(1).getTaskCode());
+        assertNull(result.get(1).getWorkflow());
+        assertNull(result.get(1).getTaskInstance());
+
+        verify(projectService).checkProjectAndAuthThrowException(any(), eq(PROJECT_CODE), isNull());
+        verify(taskDefinitionDao).queryDataSyncWorkflowCodes(eq(PROJECT_CODE), eq("DATA_SYNC"),
+                eq(Arrays.asList(99L, 100L)));
+        verify(taskInstanceDao).queryLatestByTaskCodes(eq(PROJECT_CODE), eq("DATA_SYNC"),
+                eq(Arrays.asList(99L, 100L)), isNull());
+        verify(workflowInstanceDao).queryLatestByWorkflowDefinitionCodes(eq(PROJECT_CODE),
+                eq(Arrays.asList(501L, 502L)));
     }
 
     private static DataSyncExecutionDailyRow dailyRow(String day, int executeType, int state, long count) {

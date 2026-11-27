@@ -20,6 +20,7 @@ import io.yak.ops.extract.master.transportor.DataSyncExecutionMetrics;
 import io.yak.ops.extract.master.transportor.DataSyncReportAck;
 import io.yak.ops.extract.master.transportor.DataSyncReportRequest;
 import io.yak.ops.extract.master.transportor.DataSyncRecoveryPointReport;
+import io.yak.ops.extract.master.transportor.DataSyncTableMetrics;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -305,6 +306,102 @@ class DataSyncExecutionReportServiceImplTest {
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.any(java.util.Date.class),
                 org.mockito.ArgumentMatchers.eq(false));
+    }
+
+
+    @Test
+    void advancesExistingTableReportSequenceWhenSnapshotContainsNoTableMetrics() {
+        when(taskInstanceDao.queryByIdForUpdate(42))
+                .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
+        when(executionReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(DataSyncExecutionReport.builder()
+                        .id(1L)
+                        .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .jobId("job-1")
+                        .latestSequence(1L)
+                        .finalized(false)
+                        .build());
+        when(tableReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(java.util.Collections.singletonList(DataSyncTableReport.builder()
+                        .id(9L)
+                        .executionId("execution-1")
+                        .tableKey("orders")
+                        .latestMetricsJson("{\"sourceTable\":\"db.orders\",\"readRecords\":10}")
+                        .build()));
+        when(tableReportDao.clearSnapshotFields(
+                org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.Date.class),
+                org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(1);
+
+        DataSyncReportRequest request = request(2L, "SNAPSHOT");
+        request.setTables(java.util.Collections.emptyList());
+        DataSyncReportAck ack = service.acceptReport(request);
+
+        assertTrue(ack.isAccepted());
+        verify(tableReportDao).clearSnapshotFields(
+                org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.Date.class),
+                org.mockito.ArgumentMatchers.eq(false));
+        verify(tableReportDao, never()).insert(any());
+        verify(tableReportDao, never()).updateById(any());
+    }
+
+
+    @Test
+    void upgradesLegacySinkOnlyTableReportWhenSourceMappingBecomesAvailable() {
+        when(taskInstanceDao.queryByIdForUpdate(42))
+                .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
+        when(executionReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(DataSyncExecutionReport.builder()
+                        .id(1L)
+                        .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .jobId("job-1")
+                        .latestSequence(1L)
+                        .finalized(false)
+                        .build());
+        DataSyncTableReport legacy = DataSyncTableReport.builder()
+                .id(9L)
+                .executionId("execution-1")
+                .tableKey("legacy-sink-only-key")
+                .sourceTable(null)
+                .sinkTable("target_db.orders_target")
+                .build();
+        when(tableReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(java.util.Collections.singletonList(legacy));
+        when(tableReportDao.queryByExecutionIdAndPartialTableMapping(
+                "execution-1", "source_db.orders", "target_db.orders_target"))
+                .thenReturn(legacy);
+        when(tableReportDao.clearSnapshotFields(
+                org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.Date.class),
+                org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(1);
+
+        DataSyncReportRequest request = request(2L, "SNAPSHOT");
+        request.setTables(java.util.Collections.singletonList(DataSyncTableMetrics.builder()
+                .sourceTable("source_db.orders")
+                .sinkTable("target_db.orders_target")
+                .metricsState("PARTIAL")
+                .readRecords(10L)
+                .build()));
+
+        DataSyncReportAck ack = service.acceptReport(request);
+
+        assertTrue(ack.isAccepted());
+        assertEquals("source_db.orders", legacy.getSourceTable());
+        assertEquals("target_db.orders_target", legacy.getSinkTable());
+        org.junit.jupiter.api.Assertions.assertNotEquals("legacy-sink-only-key", legacy.getTableKey());
+        verify(tableReportDao).updateById(legacy);
+        verify(tableReportDao, never()).insert(any());
     }
 
     @Test

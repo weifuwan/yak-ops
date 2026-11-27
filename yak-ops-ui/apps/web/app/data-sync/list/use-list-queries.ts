@@ -1,16 +1,13 @@
-import { useQueries, useQuery, type Query } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { listDataSources } from "@/service/datasource";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
   listDataSyncTasks,
-  getLatestDataSyncWorkflow,
-  isWorkflowActive,
-  listLatestDataSyncTaskInstances,
+  listDataSyncTaskExecutionStates,
   type DataSyncTaskListRecord,
   type DataSyncTaskRecord,
-  type DataSyncWorkflowInstance,
 } from "@/service/data-sync";
 import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import { getUsersByIds } from "@/service/user";
@@ -102,61 +99,65 @@ export function useListUpdateUsers(scope: string, records: DataSyncTaskRecord[])
 
 export function useListInstances(scope: string, records: DataSyncTaskRecord[], safeToAct: boolean) {
   const ids = records.map((item) => item.id).sort();
-  const workflowQueries = useQueries({
-    queries: records.map((record) => ({
-      queryKey: [...listQueryKeys.instances(scope), "workflow", record.workflowCode],
-      queryFn: ({ signal }) =>
-        getLatestDataSyncWorkflow(record.workflowCode, signal),
-      enabled: Boolean(scope),
-      refetchInterval: (result: Query<DataSyncWorkflowInstance | null>) =>
-        result.state.data && isWorkflowActive(result.state.data.state) ? 2000 : 15000,
-    })),
-  });
-  const workflowRunning = workflowQueries.some(
-    (result) => result.data && isWorkflowActive(result.data.state),
-  );
   const query = useQuery({
     queryKey: [...listQueryKeys.instances(scope), ids],
-    queryFn: ({ signal }) => listLatestDataSyncTaskInstances(ids, false, signal),
-    enabled: Boolean(scope) && ids.length > 0,
-    refetchInterval: (result) =>
-      result.state.data?.some((item) => isTaskInstanceActive(item.status)) || workflowRunning
-        ? 2000
-        : 15000,
+    queryFn: ({ signal }) => listDataSyncTaskExecutionStates(ids, signal),
+    enabled: Boolean(scope) && safeToAct && ids.length > 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
+  const stateByTask = useMemo(
+    () => new Map((query.data ?? []).map((item) => [item.taskCode, item] as const)),
+    [query.data],
+  );
   const latestByTask = useMemo(
-    () => new Map((query.data ?? []).map((item) => [item.definitionId, item] as const)),
+    () =>
+      new Map(
+        (query.data ?? []).flatMap((item) =>
+          item.taskInstance ? [[item.taskCode, item.taskInstance] as const] : [],
+        ),
+      ),
     [query.data],
   );
   const activeByTask = useMemo(
     () =>
       new Map(
-        (query.data ?? [])
-          .filter((item) => isTaskInstanceActive(item.status))
-          .map((item) => [item.definitionId, item] as const),
+        (query.data ?? []).flatMap((item) =>
+          item.taskInstance && isTaskInstanceActive(item.taskInstance.status)
+            ? [[item.taskCode, item.taskInstance] as const]
+            : [],
+        ),
       ),
     [query.data],
   );
-  const workflowsByTask = new Map(
-    records.map((record, index) => [record.id, workflowQueries[index]?.data ?? undefined] as const),
+  const workflowsByTask = useMemo(
+    () =>
+      new Map(
+        records.map((record) => [
+          record.id,
+          stateByTask.get(record.id)?.workflow ?? undefined,
+        ] as const),
+      ),
+    [records, stateByTask],
   );
   const stateReadyByTask = new Map(
-    records.map((record, index) => [
+    records.map((record) => [
       record.id,
-      safeToAct && query.isSuccess && workflowQueries[index]?.isSuccess === true,
+      safeToAct && query.isSuccess && !query.isFetching && stateByTask.has(record.id),
     ] as const),
   );
   const stateLoadingByTask = new Map(
-    records.map((record, index) => [
+    records.map((record) => [
       record.id,
-      query.isPending || workflowQueries[index]?.isPending === true,
+      !safeToAct || query.isPending || query.isFetching,
     ] as const),
   );
   const stateErrorByTask = new Set(
-    records
-      .filter((_record, index) => query.isError || workflowQueries[index]?.isError === true)
-      .map((record) => record.id),
+    query.isError && safeToAct ? records.map((record) => record.id) : [],
   );
+  const refresh = () => {
+    if (safeToAct && ids.length > 0) void query.refetch();
+  };
   return {
     latestByTask,
     activeByTask,
@@ -164,6 +165,9 @@ export function useListInstances(scope: string, records: DataSyncTaskRecord[], s
     stateReadyByTask,
     stateLoadingByTask,
     stateErrorByTask,
-    error: stateErrorByTask.size > 0,
+    error: query.isError && safeToAct,
+    loading: query.isPending || query.isFetching,
+    refreshing: query.isFetching,
+    refresh,
   };
 }

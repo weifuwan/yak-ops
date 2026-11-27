@@ -115,6 +115,53 @@ public class WorkflowInstanceMapperTest extends BaseDaoTest {
         workflowInstanceMapper.deleteById(workflowInstance.getId());
     }
 
+    @Test
+    public void testQueryLatestByWorkflowDefinitionCodesSelectsNewestTopLevelInstance() {
+        long definitionCode = 990003L;
+        WorkflowInstance earlier = new WorkflowInstance();
+        earlier.setWorkflowDefinitionCode(definitionCode);
+        earlier.setProjectCode(1L);
+        earlier.setIsSubWorkflow(Flag.NO);
+        earlier.setState(WorkflowExecutionStatus.SUCCESS);
+        earlier.setStartTime(new Date(1_000L));
+        workflowInstanceMapper.insert(earlier);
+
+        WorkflowInstance latestQueued = new WorkflowInstance();
+        latestQueued.setWorkflowDefinitionCode(definitionCode);
+        latestQueued.setProjectCode(1L);
+        latestQueued.setIsSubWorkflow(Flag.NO);
+        latestQueued.setState(WorkflowExecutionStatus.SUBMITTED_SUCCESS);
+        latestQueued.setStartTime(null);
+        workflowInstanceMapper.insert(latestQueued);
+
+        WorkflowInstance subWorkflow = new WorkflowInstance();
+        subWorkflow.setWorkflowDefinitionCode(definitionCode);
+        subWorkflow.setProjectCode(1L);
+        subWorkflow.setIsSubWorkflow(Flag.YES);
+        subWorkflow.setState(WorkflowExecutionStatus.RUNNING_EXECUTION);
+        workflowInstanceMapper.insert(subWorkflow);
+
+        WorkflowInstance otherProject = new WorkflowInstance();
+        otherProject.setWorkflowDefinitionCode(definitionCode);
+        otherProject.setProjectCode(2L);
+        otherProject.setIsSubWorkflow(Flag.NO);
+        otherProject.setState(WorkflowExecutionStatus.FAILURE);
+        workflowInstanceMapper.insert(otherProject);
+
+        try {
+            List<WorkflowInstance> result = workflowInstanceMapper.queryLatestByWorkflowDefinitionCodes(
+                    1L, Lists.newArrayList(definitionCode));
+            Assertions.assertEquals(1, result.size());
+            Assertions.assertEquals(latestQueued.getId(), result.get(0).getId());
+            Assertions.assertNull(result.get(0).getStartTime());
+        } finally {
+            workflowInstanceMapper.deleteById(otherProject.getId());
+            workflowInstanceMapper.deleteById(subWorkflow.getId());
+            workflowInstanceMapper.deleteById(latestQueued.getId());
+            workflowInstanceMapper.deleteById(earlier.getId());
+        }
+    }
+
     /**
      * test query by host and states
      */

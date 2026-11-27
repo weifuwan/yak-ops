@@ -70,6 +70,9 @@ class Settings:
     # memory_search tool output are both capped by this value, and the startup
     # headroom gate reserves it as well.
     llm_memory_budget_tokens: int = 1500
+    # Tokens reserved for the pinned profile block (names, hard preferences)
+    # injected into the system prompt. 0 disables reading and writing it.
+    llm_profile_budget_tokens: int = 300
     # Long-term memory is shared by (user, workspace) and stored outside
     # sessions/. Disabled or failed initialization degrades to no memory.
     memory_enabled: bool = True
@@ -143,6 +146,7 @@ class Settings:
             history_max_messages=int(get("YAK_AGENT_HISTORY_MAX_MESSAGES", "200")),
             history_tool_chars=int(get("YAK_AGENT_HISTORY_TOOL_CHARS", "2000")),
             llm_memory_budget_tokens=int(get("YAK_AGENT_MEMORY_BUDGET_TOKENS", "1500")),
+            llm_profile_budget_tokens=int(get("YAK_AGENT_PROFILE_BUDGET_TOKENS", "300")),
             memory_enabled=get("YAK_AGENT_MEMORY_ENABLED", "true").strip().lower()
             in ("1", "true", "yes"),
             memory_dir=Path(get("YAK_AGENT_MEMORY_DIR", str(_AGENT_ROOT / "memory"))).expanduser(),

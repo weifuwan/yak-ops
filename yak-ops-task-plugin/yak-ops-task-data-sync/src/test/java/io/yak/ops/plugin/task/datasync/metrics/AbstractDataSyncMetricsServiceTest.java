@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import io.yak.ops.plugin.task.datasync.DataSyncTableMapping;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionHandle;
 
 import java.util.LinkedHashMap;
@@ -46,6 +47,104 @@ class AbstractDataSyncMetricsServiceTest {
         assertEquals(100L, table.getReadRecords());
         assertEquals(80L, table.getCommittedRecords());
         assertEquals("AVAILABLE", table.getMetricsState());
+    }
+
+    @Test
+    void correlatesDifferentSourceAndSinkNamesUsingTheConfiguredRoute() throws Exception {
+        Map<String, Long> rawMetrics = new LinkedHashMap<>();
+        rawMetrics.put("source.namespace.source_db.schema..table.orders.numSnapshotRecords", 10L);
+        rawMetrics.put("source.namespace.source_db.schema..table.orders.numInsertDMLRecords", 2L);
+        rawMetrics.put(
+                "sink.namespace..schema.target_db.table.orders_target.numCommittedRecords", 12L);
+
+        AbstractDataSyncMetricsService service = new AbstractDataSyncMetricsService() {
+
+            @Override
+            protected Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) {
+                return rawMetrics;
+            }
+        };
+        DataSyncTableMapping mapping = DataSyncTableMapping.builder()
+                .sourceTable("source_db.orders")
+                .sinkTable("target_db.orders_target")
+                .build();
+
+        DataSyncExecutionSnapshot snapshot = service.collect(
+                DataSyncExecutionHandle.builder()
+                        .executionId("execution-mapped")
+                        .tableMappings(java.util.Collections.singletonList(mapping))
+                        .build());
+
+        assertEquals(1, snapshot.getTables().size());
+        DataSyncTableMetrics table = snapshot.getTables().get(0);
+        assertEquals("source_db.orders", table.getSourceTable());
+        assertEquals("target_db.orders_target", table.getSinkTable());
+        assertEquals(12L, table.getReadRecords());
+        assertEquals(12L, table.getCommittedRecords());
+        assertEquals("AVAILABLE", table.getMetricsState());
+    }
+
+    @Test
+    void retainsConfiguredTableNamesWhenNoTableCountersAreAvailable() throws Exception {
+        AbstractDataSyncMetricsService service = new AbstractDataSyncMetricsService() {
+
+            @Override
+            protected Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) {
+                return java.util.Collections.emptyMap();
+            }
+        };
+        DataSyncTableMapping mapping = DataSyncTableMapping.builder()
+                .sourceTable("source_db.orders")
+                .sinkTable("target_db.orders_target")
+                .build();
+
+        DataSyncExecutionSnapshot snapshot = service.collect(
+                DataSyncExecutionHandle.builder()
+                        .executionId("execution-no-metrics")
+                        .tableMappings(java.util.Collections.singletonList(mapping))
+                        .build());
+
+        assertEquals("UNAVAILABLE", snapshot.getMetricsState());
+        assertEquals(1, snapshot.getTables().size());
+        DataSyncTableMetrics table = snapshot.getTables().get(0);
+        assertEquals("source_db.orders", table.getSourceTable());
+        assertEquals("target_db.orders_target", table.getSinkTable());
+        assertEquals("UNAVAILABLE", table.getMetricsState());
+        assertNull(table.getReadRecords());
+        assertNull(table.getCommittedRecords());
+    }
+
+    @Test
+    void expandsDatabaseScopeRoutesForObservedTables() throws Exception {
+        Map<String, Long> rawMetrics = new LinkedHashMap<>();
+        rawMetrics.put("source.namespace.source_db.schema..table.orders.numSnapshotRecords", 5L);
+        rawMetrics.put("sink.namespace..schema.target_db.table.orders.numCommittedRecords", 5L);
+
+        AbstractDataSyncMetricsService service = new AbstractDataSyncMetricsService() {
+
+            @Override
+            protected Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) {
+                return rawMetrics;
+            }
+        };
+        DataSyncTableMapping mapping = DataSyncTableMapping.builder()
+                .sourceTable("source_db.\\.*")
+                .sinkTable("target_db.<>")
+                .databaseScope(true)
+                .build();
+
+        DataSyncExecutionSnapshot snapshot = service.collect(
+                DataSyncExecutionHandle.builder()
+                        .executionId("execution-database-scope")
+                        .tableMappings(java.util.Collections.singletonList(mapping))
+                        .build());
+
+        assertEquals(1, snapshot.getTables().size());
+        DataSyncTableMetrics table = snapshot.getTables().get(0);
+        assertEquals("source_db.orders", table.getSourceTable());
+        assertEquals("target_db.orders", table.getSinkTable());
+        assertEquals(5L, table.getReadRecords());
+        assertEquals(5L, table.getCommittedRecords());
     }
 
     @Test

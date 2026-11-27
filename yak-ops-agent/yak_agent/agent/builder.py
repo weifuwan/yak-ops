@@ -88,11 +88,13 @@ def build_agent(
     validate_tool_names(tools)
     internal_count = (1 if _COMPRESSION_ENABLED else 0) + (1 if _skill_tool_available() else 0)
     check_tool_inventory(tools, internal_count=internal_count, settings=settings)
+    profile = memory.profile() if memory is not None else None
     system_prompt = compose_system_prompt(
         _active_domains(tools),
         prompt_dir=settings.prompt_dir,
         include_ptc=any(tool.name == "run_analysis_script" for tool in tools),
         include_workspace=workspace is not None,
+        profile=profile,
     )
 
     report = check_context_budget(
@@ -108,11 +110,12 @@ def build_agent(
     )
     enforce_context_budget(report)
     _LOGGER.info(
-        "context budget: threshold=%d used=%d available=%d memory=%d",
+        "context budget: threshold=%d used=%d available=%d memory=%d profile_chars=%d",
         report.threshold,
         report.used,
         report.available,
         settings.llm_memory_budget_tokens if memory is not None else 0,
+        len(profile or ""),
     )
 
     middlewares: list[Any] = [

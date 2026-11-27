@@ -145,6 +145,29 @@ public class SchemaDao {
                 "(project_code, start_time, is_sub_workflow, state)");
     }
 
+    /**
+     * Support the batched latest-instance lookup used by the data-sync task list.
+     * This additive index is safe to ensure on fresh and existing installations.
+     */
+    public void ensureDataSyncLatestInstanceIndexes() {
+        final String tableName = "t_yak_ops_task_instance";
+        final String indexName = "idx_data_sync_latest_task";
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            if (!tableExists(metadata, connection, tableName)
+                    || indexExists(metadata, connection, tableName, indexName)) {
+                return;
+            }
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("CREATE INDEX " + indexName + " ON " + quoteIdentifier(tableName)
+                        + " (project_code, task_type, flag, task_code, id)");
+            }
+            log.info("Created index {} on {}", indexName, tableName);
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to ensure data-sync latest-instance index", ex);
+        }
+    }
+
     private void ensureInstanceStateCountIndex(String tableName,
                                                String legacyIndexName,
                                                String indexName,

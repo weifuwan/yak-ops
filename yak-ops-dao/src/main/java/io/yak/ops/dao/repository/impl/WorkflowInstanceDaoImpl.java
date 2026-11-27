@@ -12,6 +12,7 @@ import io.yak.ops.dao.repository.WorkflowInstanceDao;
 import io.yak.ops.plugin.task.api.model.DateInterval;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -220,6 +221,15 @@ public class WorkflowInstanceDaoImpl extends BaseDao<WorkflowInstance, WorkflowI
                                                                              String businessType) {
         return mybatisMapper.queryWorkflowInstanceListPaging(page, projectCode, workflowDefinitionCode, searchVal,
                 executorName, statusArray, host, startTime, endTime, businessType);
+    }
+
+    @Override
+    public List<WorkflowInstance> queryLatestByWorkflowDefinitionCodes(long projectCode,
+                                                                       List<Long> workflowDefinitionCodes) {
+        if (workflowDefinitionCodes == null || workflowDefinitionCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return mybatisMapper.queryLatestByWorkflowDefinitionCodes(projectCode, workflowDefinitionCodes);
     }
 
     @Override

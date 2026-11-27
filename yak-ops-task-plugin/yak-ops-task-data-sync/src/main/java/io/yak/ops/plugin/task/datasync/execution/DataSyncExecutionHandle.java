@@ -1,5 +1,10 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
+import io.yak.ops.plugin.task.datasync.DataSyncTableMapping;
+
+import java.util.Collections;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,4 +30,7 @@ public class DataSyncExecutionHandle {
     private String restEndpoint;
 
     private long submittedAt;
+
+    @Builder.Default
+    private List<DataSyncTableMapping> tableMappings = Collections.emptyList();
 }

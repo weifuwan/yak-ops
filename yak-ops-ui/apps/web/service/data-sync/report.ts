@@ -1,9 +1,18 @@
 import type {
   DataSyncExecutionReport,
   DataSyncExecutionSummary,
+  DataSyncMetricsExecutionReport,
+  DataSyncMetricsSnapshot,
+  DataSyncMetricsTableReport,
   DataSyncStageResult,
   DataSyncStep,
+  DataSyncTableMapping,
 } from "./types";
+
+/** Formats nullable observations without conflating an unknown value with zero. */
+export function formatMetricCount(value: number | null | undefined): string {
+  return value == null ? "—" : value.toLocaleString("zh-CN");
+}
 
 /** Invalid or absent observations never become a successful table or an invented zero. */
 export function readExecutionReport(
@@ -216,4 +225,48 @@ export function readExecutionSummary(
   } catch {
     return undefined;
   }
+}
+
+
+/** Selects the authoritative CDC snapshot without treating a missing FINAL as zero. */
+export function selectMetricsSnapshot(
+  report?: DataSyncMetricsExecutionReport | null,
+): DataSyncMetricsSnapshot | undefined {
+  if (!report) return undefined;
+  if (report.finalized && report.finalSnapshot) return report.finalSnapshot;
+  return report.latestSnapshot ?? undefined;
+}
+
+const normalizeMetricTablePath = (value?: string | null) =>
+  value?.trim().replace(/["'`]/g, "").toLowerCase() ?? "";
+
+const mappingTablePath = (value: { database?: string; schema?: string; table: string }) =>
+  [value.database, value.schema, value.table].filter(Boolean).join(".");
+
+/** Matches a CDC table report to a configured source/sink mapping, preferring the full pair. */
+export function findMetricsTableReport(
+  reports: readonly DataSyncMetricsTableReport[] | null | undefined,
+  mapping: DataSyncTableMapping,
+): DataSyncMetricsTableReport | undefined {
+  if (!reports?.length) return undefined;
+  const source = normalizeMetricTablePath(mappingTablePath(mapping.source));
+  const target = normalizeMetricTablePath(mappingTablePath(mapping.target));
+  const matches = (actual: string | null, expected: string) =>
+    Boolean(expected) && normalizeMetricTablePath(actual) === expected;
+
+  if (source && target) {
+    const exact = reports.find(
+      (report) => matches(report.sourceTable, source) && matches(report.sinkTable, target),
+    );
+    if (exact) return exact;
+  }
+  const sourceMatches = source
+    ? reports.filter((report) => matches(report.sourceTable, source))
+    : [];
+  const targetMatches = target
+    ? reports.filter((report) => matches(report.sinkTable, target))
+    : [];
+  if (sourceMatches.length === 1 && targetMatches.length === 0) return sourceMatches[0];
+  if (targetMatches.length === 1 && sourceMatches.length === 0) return targetMatches[0];
+  return undefined;
 }

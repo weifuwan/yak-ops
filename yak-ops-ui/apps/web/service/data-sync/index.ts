@@ -18,7 +18,9 @@ import { requireActiveProjectCode } from "@/service/workspace/project-scope";
 import type {
   DataSyncInstancePageParams,
   DataSyncInstanceRecord,
+  DataSyncMetricsExecutionReport,
   DataSyncInstanceSummary,
+  DataSyncTaskExecutionState,
   DataSyncInstanceAction,
   DataSyncInstanceActionMetadata,
   DataSyncInstanceActionResult,
@@ -170,6 +172,16 @@ export const getDataSyncInstance = async (
   return toDataSyncInstanceRecord(instance, definition);
 };
 
+/** Returns the independent Flink CDC metrics snapshot for one task instance. */
+export const getDataSyncInstanceReport = async (
+  id: string,
+  signal?: AbortSignal,
+): Promise<DataSyncMetricsExecutionReport | null> =>
+  HttpUtils.getData<DataSyncMetricsExecutionReport | null>(
+    instanceUrl(id) + "/report",
+    { signal },
+  );
+
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
 ): Promise<PageInfo<DataSyncInstanceSummary>> => {
@@ -217,6 +229,17 @@ export const listLatestDataSyncTaskInstances = async (
   if (taskIds.length === 0) return [];
   return HttpUtils.getData<TaskInstanceRecord[]>(
     url("/instances/latest?" + qp({ taskCodes: taskIds.join(","), activeOnly })),
+    { signal },
+  );
+};
+
+export const listDataSyncTaskExecutionStates = async (
+  taskIds: string[],
+  signal?: AbortSignal,
+): Promise<DataSyncTaskExecutionState[]> => {
+  if (taskIds.length === 0) return [];
+  return HttpUtils.getData<DataSyncTaskExecutionState[]>(
+    url("/execution-states/latest?" + qp({ taskCodes: taskIds.join(",") })),
     { signal },
   );
 };

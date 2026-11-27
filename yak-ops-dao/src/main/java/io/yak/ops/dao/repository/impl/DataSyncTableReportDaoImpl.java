@@ -27,13 +27,20 @@ public class DataSyncTableReportDaoImpl
     }
 
     @Override
-    public void clearSnapshotFields(
+    public int clearSnapshotFields(
             Long id, long sequence, long collectedAt, Date updateTime, boolean finalReport) {
-        mybatisMapper.clearSnapshotFields(id, sequence, collectedAt, updateTime, finalReport);
+        return mybatisMapper.clearSnapshotFields(id, sequence, collectedAt, updateTime, finalReport);
     }
 
     @Override
     public DataSyncTableReport queryByExecutionIdAndTableKey(String executionId, String tableKey) {
         return mybatisMapper.queryByExecutionIdAndTableKey(executionId, tableKey);
+    }
+
+    @Override
+    public DataSyncTableReport queryByExecutionIdAndPartialTableMapping(
+            String executionId, String sourceTable, String sinkTable) {
+        return mybatisMapper.queryByExecutionIdAndPartialTableMapping(
+                executionId, sourceTable, sinkTable);
     }
 }

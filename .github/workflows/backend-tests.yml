@@ -13,6 +13,7 @@ on:
       - 'yak-ops-authentication/**'
       - 'yak-ops-bom/**'
       - 'yak-ops-common/**'
+      - 'yak-ops-cdc/**'
       - 'yak-ops-dao/**'
       - 'yak-ops-dao-plugin/**'
       - 'yak-ops-datasource-plugin/**'
@@ -42,6 +43,7 @@ on:
       - 'yak-ops-authentication/**'
       - 'yak-ops-bom/**'
       - 'yak-ops-common/**'
+      - 'yak-ops-cdc/**'
       - 'yak-ops-dao/**'
       - 'yak-ops-dao-plugin/**'
       - 'yak-ops-datasource-plugin/**'
@@ -203,7 +205,7 @@ jobs:
             exit 0
           fi
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
-          if git diff --name-only "$BASE_SHA" HEAD | grep -Eq '^(yak-ops-task-plugin/yak-ops-task-data-sync/|yak-ops-datasource-plugin/yak-ops-datasource-api/|pom.xml$|yak-ops-bom/)'; then
+          if git diff --name-only "$BASE_SHA" HEAD | grep -Eq '^(yak-ops-task-plugin/yak-ops-task-data-sync/|yak-ops-cdc/|yak-ops-datasource-plugin/yak-ops-datasource-api/|pom.xml$|yak-ops-bom/)'; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
           else
             echo "run_tests=false" >> "$GITHUB_OUTPUT"
@@ -214,7 +216,7 @@ jobs:
         shell: bash
         run: |
           mvn -B -ntp -T 2 -pl :yak-ops-task-data-sync -am \
-            '-Dtest=DataSyncParametersTest,DataSyncPipelineBuilderTest,DataSyncJobRunnerTest,MiniClusterDataSyncExecutionServiceTest,DataSyncExecutionCoordinatorTest,AbstractDataSyncMetricsServiceTest,FlinkRestDataSyncMetricsServiceTest,RpcDataSyncReportPublisherTest' \
+            '-Dtest=DataSyncParametersTest,DataSyncPipelineBuilderTest,DataSyncJobRunnerTest,MiniClusterDataSyncExecutionServiceTest,DataSyncExecutionCoordinatorTest,AbstractDataSyncMetricsServiceTest,MySqlSourceReaderMetricsTest,FlinkRestDataSyncMetricsServiceTest,FlinkRestDataSyncMetricsServiceMiniClusterTest,RpcDataSyncReportPublisherTest' \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
       - name: Require executed Data Sync plugin tests
@@ -229,6 +231,66 @@ jobs:
           print(f'Data Sync test reports: {len(reports)}, tests: {total}')
           if total == 0:
               raise SystemExit('No Data Sync plugin unit tests executed')
+          PY
+
+
+  cdc-jdbc-metrics:
+    name: CDC JDBC Metrics Tests (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Check if JDBC connector metrics changed
+        id: changed
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          if git diff --name-only "$BASE_SHA" HEAD | grep -Eq '^yak-ops-cdc/.*/yak-ops-cdc-pipeline-connector-jdbc-core/'; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_tests=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run JDBC table writer metrics regression tests
+        if: steps.changed.outputs.run_tests == 'true'
+        shell: bash
+        run: |
+          mvn -B -ntp -T 2 -pl :yak-ops-cdc-pipeline-connector-jdbc-core -am \
+            '-Dtest=JdbcTableWriterMetricsTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
+      - name: Require JDBC metrics regression tests
+        if: always() && steps.changed.outputs.run_tests == 'true'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+
+          report = Path(
+              'yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-pipeline-connectors/'
+              'yak-ops-cdc-pipeline-connector-jdbc-parent/yak-ops-cdc-pipeline-connector-jdbc-core/'
+              'target/surefire-reports/TEST-org.apache.flink.cdc.connectors.jdbc.sink.v2.JdbcTableWriterMetricsTest.xml'
+          )
+          if not report.exists():
+              raise SystemExit(f'Missing JDBC metrics test report: {report}')
+          result = ET.parse(report).getroot()
+          tests = int(result.attrib.get('tests', 0))
+          failures = int(result.attrib.get('failures', 0))
+          errors = int(result.attrib.get('errors', 0))
+          print(f'JdbcTableWriterMetricsTest: tests={tests}, failures={failures}, errors={errors}')
+          if tests == 0 or failures or errors:
+              raise SystemExit('CDC JDBC metrics tests did not pass')
           PY
 
   data-sync-report-service:

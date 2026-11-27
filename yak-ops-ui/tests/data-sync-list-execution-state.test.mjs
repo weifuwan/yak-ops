@@ -6,6 +6,7 @@ import { test } from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../apps/web/app/data-sync/list");
 const queries = readFileSync(join(root, "use-list-queries.ts"), "utf8");
+const filters = readFileSync(join(root, "task-filters.tsx"), "utf8");
 const editor = readFileSync(join(root, "../editor/page.tsx"), "utf8");
 const detailActiveInstance = readFileSync(
   join(root, "../detail/use-active-task-instance.ts"),
@@ -25,6 +26,7 @@ const executionLifecycle = readFileSync(
 );
 const page = readFileSync(join(root, "page.tsx"), "utf8");
 const lifecycle = readFileSync(join(root, "task-lifecycle.tsx"), "utf8");
+const taskTable = readFileSync(join(root, "task-table.tsx"), "utf8");
 const actions = readFileSync(join(root, "use-task-actions.ts"), "utf8");
 const app = readFileSync(join(root, "../../App.tsx"), "utf8");
 const workflow = readFileSync(
@@ -32,24 +34,37 @@ const workflow = readFileSync(
   "utf8",
 );
 
-test("task list derives active instances from the single latest-instance request", () => {
+test("task list fetches task and workflow snapshots through one batch request", () => {
   assert.match(
     queries,
-    /queryFn: \(\{ signal \}\) => listLatestDataSyncTaskInstances\(ids, false, signal\)/,
+    /queryFn: \(\{ signal \}\) => listDataSyncTaskExecutionStates\(ids, signal\)/,
   );
-  assert.doesNotMatch(queries, /listLatestDataSyncTaskInstances\(ids, true/);
-  assert.match(queries, /filter\(\(item\) => isTaskInstanceActive\(item\.status\)\)/);
+  assert.match(queries, /enabled: Boolean\(scope\) && safeToAct && ids\.length > 0/);
+  assert.match(queries, /const latestByTask = useMemo/);
+  assert.match(queries, /const workflowsByTask = useMemo/);
+  assert.match(queries, /item\.taskInstance && isTaskInstanceActive/);
+  assert.doesNotMatch(queries, /useQueries|getLatestDataSyncWorkflow|refetchInterval/);
 });
 
-test("workflow state failures are isolated to the affected task", () => {
+test("task list never polls or refreshes on focus or reconnect and exposes manual refresh", () => {
+  assert.doesNotMatch(queries, /refetchInterval/);
+  assert.match(queries, /refetchOnWindowFocus: false/);
+  assert.match(queries, /refetchOnReconnect: false/);
+  assert.match(filters, /onRefresh/);
+  assert.match(filters, /刷新状态/);
+  assert.match(page, /onRefresh=\{instances\.refresh\}/);
+});
+
+test("batch state failures and refetches disable runtime operations until a fresh snapshot is ready", () => {
   assert.match(queries, /const stateReadyByTask = new Map/);
-  assert.match(queries, /workflowQueries\[index\]\?\.isSuccess === true/);
-  assert.match(queries, /const stateErrorByTask = new Set/);
-  assert.doesNotMatch(page, /instances\.ready/);
+  assert.match(queries, /safeToAct && query\.isSuccess && !query\.isFetching && stateByTask\.has\(record\.id\)/);
+  assert.match(page, /!isStateReadyForTask\(value\.task\.id\)/);
+  assert.match(taskTable, /disabled: stateReadyByTask\.get\(record\.id\) !== true \|\|/);
+  assert.match(page, /执行状态获取失败，当前页任务操作暂不可用/);
 });
 
-test("published tasks can be unpublished when state reads fail and backend validates running state", () => {
-  assert.match(lifecycle, /const canUnpublish = !workflowActive && !activeInstance/);
+test("published tasks require a successful state snapshot before unpublishing", () => {
+  assert.match(lifecycle, /const canUnpublish = instanceStateReady && !workflowActive && !activeInstance/);
   assert.match(lifecycle, /disabled: published \? !canUnpublish : !canManage/);
 });
 
@@ -157,7 +172,7 @@ test("switching instances uses a layout-matched skeleton in the execution status
   )?.[0] ?? "";
   assert.match(executionDetail, /export function DataSyncExecutionDetailSkeleton/);
   assert.match(executionDetail, /aria-label="加载执行详情"/);
-  assert.ok(executionDetail.includes("min-w-[1180px]"));
+  assert.ok(executionDetail.includes("min-w-[1640px]"));
   assert.ok(statusPanel.includes("selectedLoading ? ("));
   assert.ok(statusPanel.includes("<DataSyncExecutionDetailSkeleton controls={controls} />"));
   assert.doesNotMatch(statusPanel, /Spinner/);
@@ -170,4 +185,24 @@ test("task detail sync plan removes datasource prefix and highlights scope witho
   assert.ok(taskSummary.includes("{scopeLabel}"));
   assert.ok(taskSummary.includes("<span>{modeLabel}</span>"));
   assert.ok(!taskSummary.includes("{scopeLabel} ·"));
+});
+
+
+test("task list avoids repeating an identical published version", () => {
+  assert.match(taskTable, /function taskVersionText\(/);
+  assert.match(
+    taskTable,
+    /if \(!publishedVersion\) return `V\$\{definitionVersion\} · 未发布`;/,
+  );
+  assert.match(
+    taskTable,
+    /if \(publishedVersion === definitionVersion\) return `V\$\{definitionVersion\}`;/,
+  );
+  assert.match(taskTable, /最新 V\$\{definitionVersion\} · 已发布 V\$\{publishedVersion\}/);
+  assert.match(taskTable, /\{taskVersionText\(record\)\}/);
+});
+
+test("online status uses the requested green and a 10px status dot", () => {
+  assert.match(lifecycle, /dotClassName: "bg-\[#26A24A\]"/);
+  assert.match(lifecycle, /h-2\.5 w-2\.5 shrink-0 rounded-full/);
 });

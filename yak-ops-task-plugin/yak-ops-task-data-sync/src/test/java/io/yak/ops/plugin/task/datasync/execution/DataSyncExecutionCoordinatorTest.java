@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import io.yak.ops.extract.master.transportor.DataSyncReportAck;
 import io.yak.ops.extract.master.transportor.DataSyncReportRequest;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.plugin.task.datasync.DataSyncTableMapping;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncExecutionSnapshot;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncMetricsService;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncTableMetrics;
@@ -63,7 +64,14 @@ class DataSyncExecutionCoordinatorTest {
 
         DataSyncExecutionCoordinator coordinator = new DataSyncExecutionCoordinator(
                 context, () -> executionService, metricsService, reportPublisher);
-        coordinator.execute(pipeline);
+        DataSyncTableMapping mapping = DataSyncTableMapping.builder()
+                .sourceTable("source_db.orders")
+                .sinkTable("target_db.orders_target")
+                .build();
+        coordinator.execute(pipeline, Collections.singletonList(mapping));
+        assertEquals(1, handle.getTableMappings().size());
+        assertEquals("source_db.orders", handle.getTableMappings().get(0).getSourceTable());
+        assertEquals("target_db.orders_target", handle.getTableMappings().get(0).getSinkTable());
 
         ArgumentCaptor<DataSyncReportRequest> reports =
                 ArgumentCaptor.forClass(DataSyncReportRequest.class);

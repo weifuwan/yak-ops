@@ -223,6 +223,29 @@
         </if>
         order by start_time desc, end_time desc
     </select>
+    <select id="queryLatestByWorkflowDefinitionCodes" resultType="io.yak.ops.dao.entity.WorkflowInstance">
+        select
+            wi.id,
+            wi.workflow_definition_code,
+            wi.state,
+            wi.start_time,
+            wi.end_time
+        from t_yak_ops_workflow_instance wi
+        inner join (
+            select workflow_definition_code, max(id) as latest_id
+            from t_yak_ops_workflow_instance
+            where project_code = #{projectCode}
+              and is_sub_workflow = 0
+              and workflow_definition_code in
+              <foreach collection="workflowDefinitionCodes" item="code" open="(" separator="," close=")">
+                  #{code}
+              </foreach>
+            group by workflow_definition_code
+        ) latest on latest.latest_id = wi.id
+        where wi.project_code = #{projectCode}
+          and wi.is_sub_workflow = 0
+    </select>
+
     <update id="setFailoverByHostAndStateArray">
         update t_yak_ops_workflow_instance
         set host=null

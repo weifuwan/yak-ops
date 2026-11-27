@@ -25,6 +25,9 @@ from typing import Any
 from agentscope.middleware import ReMeMiddleware
 from agentscope.tool import FunctionTool
 
+from yak_agent.memory.profile import load as load_profile
+from yak_agent.memory.profile import remember as remember_profile
+from yak_agent.memory.profile import render as render_profile
 from yak_agent.memory.sanitize import sanitize_turn
 from yak_agent.memory.scope import session_dialog_path, session_images_dir
 
@@ -60,6 +63,7 @@ class YakReMeMiddleware(ReMeMiddleware):
         workspace_dir: str,
         parameters: ReMeMiddleware.Parameters | None = None,
         budget_tokens: int = 1500,
+        profile_budget_tokens: int = 300,
         queue_size: int = 32,
         search_timeout: float = 3.0,
         write_timeout: float = 180.0,
@@ -70,6 +74,7 @@ class YakReMeMiddleware(ReMeMiddleware):
             parameters = ReMeMiddleware.Parameters(mode="agent_control")
         super().__init__(workspace_dir=workspace_dir, parameters=parameters)
         self._budget_chars = max(0, int(budget_tokens)) * 4
+        self._profile_budget_bytes = max(0, int(profile_budget_tokens)) * 4
         self._queue_size = max(1, int(queue_size))
         self._search_timeout = max(0.1, float(search_timeout))
         self._write_timeout = max(1.0, float(write_timeout))
@@ -108,6 +113,34 @@ class YakReMeMiddleware(ReMeMiddleware):
             return None
         memories = await self.search(query)
         return self.format_hint(memories)
+
+    # ------------------------------------------------------------------
+    # Pinned profile
+    # ------------------------------------------------------------------
+    def profile(self) -> str | None:
+        """Render the pinned profile block for the system prompt."""
+        if self._profile_budget_bytes <= 0:
+            return None
+        try:
+            return render_profile(
+                load_profile(Path(self._workspace_dir)),
+                self._profile_budget_bytes,
+            )
+        except Exception as ex:  # noqa: BLE001 - memory must never break a session
+            _LOGGER.warning("profile load failed: %s", ex)
+            return None
+
+    def remember(self, text: str) -> None:
+        """Persist explicit naming / preference statements from the user turn."""
+        if self._profile_budget_bytes <= 0:
+            return
+        try:
+            written = remember_profile(Path(self._workspace_dir), text)
+        except Exception as ex:  # noqa: BLE001 - memory must never break a turn
+            _LOGGER.warning("profile write failed: %s", ex)
+            return
+        if written:
+            _LOGGER.info("profile updated: %s", written)
 
     async def search(self, query: str, limit: int | None = None) -> list[str]:
         """Run ReMe search; failures degrade to an empty result."""

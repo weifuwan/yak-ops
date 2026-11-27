@@ -36,4 +36,13 @@ public interface DataSyncTableReportMapper extends BaseMapper<DataSyncTableRepor
             + "WHERE execution_id = #{executionId} AND table_key = #{tableKey} LIMIT 1")
     DataSyncTableReport queryByExecutionIdAndTableKey(
             @Param("executionId") String executionId, @Param("tableKey") String tableKey);
+
+    @Select("SELECT * FROM t_yak_ops_data_sync_table_report "
+            + "WHERE execution_id = #{executionId} "
+            + "AND ((source_table IS NULL AND sink_table = #{sinkTable}) "
+            + "OR (sink_table IS NULL AND source_table = #{sourceTable})) LIMIT 1")
+    DataSyncTableReport queryByExecutionIdAndPartialTableMapping(
+            @Param("executionId") String executionId,
+            @Param("sourceTable") String sourceTable,
+            @Param("sinkTable") String sinkTable);
 }
