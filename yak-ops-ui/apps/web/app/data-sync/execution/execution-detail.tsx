@@ -227,14 +227,14 @@ export function DataSyncExecutionDetailContent({
     },
     {
       key: "readRows",
-      title: "读取条数",
+      title: record.metricsReport ? "总读取" : "读取条数",
       width: 110,
       align: "right",
       render: (_value, row) => rowCountText(row.readRows),
     },
     {
       key: "writeRows",
-      title: "写入条数",
+      title: "已提交条数",
       width: 110,
       align: "right",
       render: (_value, row) => rowCountText(row.writeRows),
