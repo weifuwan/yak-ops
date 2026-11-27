@@ -190,7 +190,7 @@ export function useTaskEditorController(
     }
     const jdbcSource = definition.source.type === "jdbc";
     const supportedSourceType = jdbcSource
-      ? ["MYSQL", "POSTGRE_SQL", "POSTGRESQL"].includes(sourceType)
+      ? Boolean(sourceType) && sourceType !== "SSH"
       : sourceType === "MYSQL";
     if (!supportedSourceType || sinkType !== "MYSQL") {
       setError("当前 Runtime 支持 MySQL CDC 或 MySQL/PostgreSQL JDBC 离线来源，目标为 MySQL");
