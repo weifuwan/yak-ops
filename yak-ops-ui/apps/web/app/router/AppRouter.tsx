@@ -167,8 +167,8 @@ export default function AppRouter() {
   const location = useLocation();
 
   useEffect(() => {
-    document.title = resolveDocumentTitle(location.pathname);
-  }, [location.pathname]);
+    document.title = resolveDocumentTitle(location.pathname, location.search);
+  }, [location.pathname, location.search]);
 
   return (
     <Routes>

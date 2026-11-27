@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { DataDevelopmentWorkbench } from "../workbench";
 import {
@@ -11,17 +11,60 @@ import { PanelResizer } from "./panel-resizer";
 
 const DEFAULT_PANEL_WIDTH = 280;
 
+const DATA_DEVELOPMENT_SECTIONS = new Set<DataDevelopmentSection>([
+  "development",
+  "manual",
+  "backfill",
+  "lineage",
+  "task-instances",
+  "parameters",
+  "catalog",
+  "resource",
+  "history",
+  "operation-check",
+]);
+
+const resolveActiveSection = (search: string): DataDevelopmentSection => {
+  const section = new URLSearchParams(search).get("section");
+  return section && DATA_DEVELOPMENT_SECTIONS.has(section as DataDevelopmentSection)
+    ? (section as DataDevelopmentSection)
+    : "development";
+};
+
 export function DataDevelopmentLayout() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] =
-    useState<DataDevelopmentSection>("development");
+  const location = useLocation();
+  const [activeSection, setActiveSection] = useState<DataDevelopmentSection>(() =>
+    resolveActiveSection(location.search),
+  );
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [resourceDirectoryPaths, setResourceDirectoryPaths] = useState<string[]>([]);
 
+  useEffect(() => {
+    setActiveSection(resolveActiveSection(location.search));
+    setPanelCollapsed(false);
+  }, [location.search]);
+
   const handleSectionChange = (section: DataDevelopmentSection) => {
     setActiveSection(section);
     setPanelCollapsed(false);
+
+    const searchParams = new URLSearchParams(location.search);
+    if (section === "development") {
+      searchParams.delete("section");
+    } else {
+      searchParams.set("section", section);
+    }
+    const search = searchParams.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: search ? `?${search}` : "",
+        hash: location.hash,
+      },
+      { replace: true },
+    );
   };
 
   return (

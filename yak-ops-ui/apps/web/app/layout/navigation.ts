@@ -57,6 +57,7 @@ type GlobalProductMenuItem = {
 type AllProductGroup = {
   id: string;
   label: string;
+  path: string;
   products: GlobalProductMenuItem[];
 };
 
@@ -431,6 +432,119 @@ const MANAGEMENT_PRODUCT: GlobalProductMenuItem = {
   path: "/management/users",
 };
 
+const DATA_SOURCE_SHORTCUT: GlobalProductMenuItem = {
+  id: "data-source",
+  label: "数据源管理",
+  icon: Database,
+  path: "/data-source",
+};
+
+const DATA_SYNC_SHORTCUT: GlobalProductMenuItem = {
+  id: "data-sync",
+  label: "数据同步",
+  icon: ArrowRightLeft,
+  path: "/data-sync",
+};
+
+const WORKFLOW_DEVELOPMENT_SHORTCUT: GlobalProductMenuItem = {
+  id: "workflow-development",
+  label: "工作流开发",
+  icon: GitBranch,
+  path: "/data-development",
+};
+
+const DATA_CATALOG_SHORTCUT: GlobalProductMenuItem = {
+  id: "data-catalog",
+  label: "数据目录",
+  icon: Table2,
+  path: "/data-development?section=catalog",
+};
+
+const WAREHOUSE_PLANNING_SHORTCUT: GlobalProductMenuItem = {
+  id: "warehouse-planning",
+  label: "数仓规划",
+  icon: Layers,
+  path: "/kimball/planning/business-type",
+};
+
+const DATA_STANDARD_SHORTCUT: GlobalProductMenuItem = {
+  id: "data-standard",
+  label: "数据标准",
+  icon: ListOrdered,
+  path: "/kimball/standards/fields",
+};
+
+const DATA_INDICATORS_SHORTCUT: GlobalProductMenuItem = {
+  id: "data-indicators",
+  label: "数据指标",
+  icon: Activity,
+  path: "/kimball/indicators/atom",
+};
+
+const DIMENSION_MODELING_SHORTCUT: GlobalProductMenuItem = {
+  id: "dimension-modeling",
+  label: "维度建模",
+  icon: Boxes,
+  path: "/kimball/models/positive",
+};
+
+const RESOURCE_FILES_SHORTCUT: GlobalProductMenuItem = {
+  id: "resource-files",
+  label: "资源文件",
+  icon: FolderOpen,
+  path: "/resources",
+};
+
+const OPERATIONS_OVERVIEW_SHORTCUT: GlobalProductMenuItem = {
+  id: "operations-overview",
+  label: "运维概览",
+  icon: LayoutDashboard,
+  path: "/operations/overview",
+};
+
+const WORKFLOW_INSTANCES_SHORTCUT: GlobalProductMenuItem = {
+  id: "workflow-instances",
+  label: "工作流实例",
+  icon: GitBranch,
+  path: "/operations/workflows/instances",
+};
+
+const REALTIME_INSTANCES_SHORTCUT: GlobalProductMenuItem = {
+  id: "realtime-instances",
+  label: "实时任务实例",
+  icon: Activity,
+  path: "/operations/realtime/instances",
+};
+
+const OFFLINE_INSTANCES_SHORTCUT: GlobalProductMenuItem = {
+  id: "offline-instances",
+  label: "离线任务实例",
+  icon: ArrowRightLeft,
+  path: "/operations/offline/instances",
+};
+
+const USER_MANAGEMENT_SHORTCUT: GlobalProductMenuItem = {
+  id: "user-management",
+  label: "用户管理",
+  icon: Users,
+  path: "/management/users",
+};
+
+const TENANT_MANAGEMENT_SHORTCUT: GlobalProductMenuItem = {
+  id: "tenant-management",
+  label: "租户管理",
+  icon: Building2,
+  path: "/management/tenants",
+};
+
+const TOKEN_MANAGEMENT_SHORTCUT: GlobalProductMenuItem = {
+  id: "token-management",
+  label: "Token 管理",
+  icon: KeyRound,
+  path: "/management/tokens",
+};
+
+// Keep the original product IDs so existing user favorites remain valid.
 export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
   DATA_AGENT_PRODUCT,
   DATA_INTEGRATION_PRODUCT,
@@ -439,42 +553,79 @@ export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
   RESOURCE_MANAGEMENT_PRODUCT,
   OPERATIONS_PRODUCT,
   MANAGEMENT_PRODUCT,
+  DATA_SOURCE_SHORTCUT,
+  DATA_SYNC_SHORTCUT,
+  WORKFLOW_DEVELOPMENT_SHORTCUT,
+  DATA_CATALOG_SHORTCUT,
+  WAREHOUSE_PLANNING_SHORTCUT,
+  DATA_STANDARD_SHORTCUT,
+  DATA_INDICATORS_SHORTCUT,
+  DIMENSION_MODELING_SHORTCUT,
+  RESOURCE_FILES_SHORTCUT,
+  OPERATIONS_OVERVIEW_SHORTCUT,
+  WORKFLOW_INSTANCES_SHORTCUT,
+  REALTIME_INSTANCES_SHORTCUT,
+  OFFLINE_INSTANCES_SHORTCUT,
+  USER_MANAGEMENT_SHORTCUT,
+  TENANT_MANAGEMENT_SHORTCUT,
+  TOKEN_MANAGEMENT_SHORTCUT,
 ];
 
 export const ALL_PRODUCT_GROUPS: AllProductGroup[] = [
   {
     id: "agents",
     label: "智能体",
+    path: DATA_AGENT_PRODUCT.path,
     products: [DATA_AGENT_PRODUCT],
   },
   {
     id: "data-integration",
     label: DATA_INTEGRATION_PRODUCT_LABEL,
-    products: [DATA_INTEGRATION_PRODUCT],
+    path: DATA_INTEGRATION_PRODUCT.path,
+    products: [DATA_SOURCE_SHORTCUT, DATA_SYNC_SHORTCUT],
   },
   {
     id: "data-development",
     label: DATA_DEVELOPMENT_PRODUCT_LABEL,
-    products: [DATA_DEVELOPMENT_PRODUCT],
+    path: DATA_DEVELOPMENT_PRODUCT.path,
+    products: [WORKFLOW_DEVELOPMENT_SHORTCUT, DATA_CATALOG_SHORTCUT],
   },
   {
     id: "data-modeling",
     label: DATA_MODELING_PRODUCT_LABEL,
-    products: [DATA_MODELING_PRODUCT],
+    path: DATA_MODELING_PRODUCT.path,
+    products: [
+      WAREHOUSE_PLANNING_SHORTCUT,
+      DATA_STANDARD_SHORTCUT,
+      DATA_INDICATORS_SHORTCUT,
+      DIMENSION_MODELING_SHORTCUT,
+    ],
   },
   {
     id: "resource-management",
     label: RESOURCE_MANAGEMENT_PRODUCT_LABEL,
-    products: [RESOURCE_MANAGEMENT_PRODUCT],
+    path: RESOURCE_MANAGEMENT_PRODUCT.path,
+    products: [RESOURCE_FILES_SHORTCUT],
   },
   {
     id: "operations",
-    label: "运维",
-    products: [OPERATIONS_PRODUCT],
+    label: OPERATIONS_PRODUCT_LABEL,
+    path: OPERATIONS_PRODUCT.path,
+    products: [
+      OPERATIONS_OVERVIEW_SHORTCUT,
+      WORKFLOW_INSTANCES_SHORTCUT,
+      REALTIME_INSTANCES_SHORTCUT,
+      OFFLINE_INSTANCES_SHORTCUT,
+    ],
   },
   {
     id: "management",
-    label: "管理",
-    products: [MANAGEMENT_PRODUCT],
+    label: MANAGEMENT_PRODUCT_LABEL,
+    path: MANAGEMENT_PRODUCT.path,
+    products: [
+      USER_MANAGEMENT_SHORTCUT,
+      TENANT_MANAGEMENT_SHORTCUT,
+      TOKEN_MANAGEMENT_SHORTCUT,
+    ],
   },
 ];

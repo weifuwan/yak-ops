@@ -36,11 +36,18 @@ export default function AllProductMenu({
         <div className="min-h-full px-12 pt-4">
           {ALL_PRODUCT_GROUPS.map((group) => (
             <section key={group.id} className="flex min-h-12 border-b border-[#242629] py-2">
-              <h3 className="m-0 w-40 shrink-0 py-2 text-xs font-normal leading-8 text-[#f4f4f4]">
-                {group.label}
+              <h3 className="m-0 w-36 shrink-0 py-1 text-xs font-normal leading-8 text-[#f4f4f4]">
+                <Link
+                  to={group.path}
+                  tabIndex={open && interactive ? 0 : -1}
+                  className="inline-flex h-8 items-center rounded px-0.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  onClick={onNavigate}
+                >
+                  {group.label}
+                </Link>
               </h3>
 
-              <div className="flex min-w-0 flex-1 flex-wrap content-start gap-x-5">
+              <div className="grid min-w-0 flex-1 grid-cols-2 content-start gap-x-3 gap-y-1">
                 {group.products.map((product) => {
                   const Icon = product.icon;
                   const favorite = favoriteProductIds.has(product.id);
@@ -49,12 +56,10 @@ export default function AllProductMenu({
                   return (
                     <div
                       key={product.id}
-                      className="group my-0.5 flex h-8 w-60 items-center rounded px-2 text-[#cbced3] transition-colors hover:bg-[#282b2e] hover:text-[#f4f4f4]"
+                      className="group my-0.5 flex h-8 min-w-0 items-center rounded px-2 text-[#cbced3] transition-colors hover:bg-[#282b2e] hover:text-[#f4f4f4]"
                     >
                       <Link
                         to={product.path}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         tabIndex={open && interactive ? 0 : -1}
                         className="flex h-full min-w-0 flex-1 cursor-pointer items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                         onClick={onNavigate}

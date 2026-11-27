@@ -27,13 +27,16 @@ const findNavigationLabel = (
 const normalizePathname = (pathname: string) =>
   pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 
-export function resolveDocumentTitle(pathname: string): string {
+export function resolveDocumentTitle(pathname: string, search = ""): string {
   const path = normalizePathname(pathname);
 
   if (path === "/login") return "登录";
-  if (path === "/data-development" || path.startsWith("/data-development/")) {
-    return DATA_DEVELOPMENT_PRODUCT_LABEL;
+  if (path === "/data-development") {
+    return new URLSearchParams(search).get("section") === "catalog"
+      ? "数据目录"
+      : DATA_DEVELOPMENT_PRODUCT_LABEL;
   }
+  if (path.startsWith("/data-development/")) return DATA_DEVELOPMENT_PRODUCT_LABEL;
   if (path === "/data-agent/particle-preview") return "粒子效果预览";
   if (path === "/data-agent" || path.startsWith("/data-agent/")) {
     return "Data Agent";
