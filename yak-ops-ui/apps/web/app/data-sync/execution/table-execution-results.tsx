@@ -1,5 +1,4 @@
 import { Table, type TableColumns } from "@yak-ops/yak-ui";
-import type { ReactNode } from "react";
 
 import type {
   DataSyncInstanceRecord,
@@ -39,11 +38,9 @@ interface TableExecutionRow {
 /** One row per configured table; CDC counters are columns in this same table. */
 export function TableExecutionResults({
   record,
-  statusIcon,
   duration,
 }: {
   record: DataSyncInstanceRecord;
-  statusIcon: ReactNode;
   duration: string;
 }) {
   const metricsReport = record.metricsReport;
@@ -188,13 +185,6 @@ export function TableExecutionResults({
           },
         ]
       : []),
-    {
-      key: "status",
-      title: "执行状态",
-      width: 75,
-      align: "center",
-      render: () => statusIcon,
-    },
     {
       key: "readRecords",
       title: metricsReport ? "总读取" : realtime ? "全量读取" : "读取条数",
