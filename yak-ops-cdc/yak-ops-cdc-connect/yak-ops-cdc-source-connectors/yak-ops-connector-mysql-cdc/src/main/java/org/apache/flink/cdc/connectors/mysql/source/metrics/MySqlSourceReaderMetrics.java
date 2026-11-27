@@ -81,7 +81,13 @@ public class MySqlSourceReaderMetrics {
             if (isDataChangeRecord(record)) {
                 recordDataChange(getTableId(record), Envelope.operationFor(record));
             } else if (isSchemaChangeEvent(record)) {
-                recordSchemaChange(getTableId(record));
+                // Preserve the execution-level DDL observation even if Debezium cannot resolve
+                // a physical table identifier for this schema event.
+                schemaChangeCounter.inc();
+                TableId tableId = getTableId(record);
+                if (tableId != null) {
+                    getTableMetrics(tableId).markSchemaChangeRecord();
+                }
             }
         });
     }
