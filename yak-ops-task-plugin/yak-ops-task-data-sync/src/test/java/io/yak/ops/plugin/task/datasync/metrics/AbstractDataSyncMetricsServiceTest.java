@@ -128,7 +128,7 @@ class AbstractDataSyncMetricsServiceTest {
             }
         };
         DataSyncTableMapping mapping = DataSyncTableMapping.builder()
-                .sourceTable("source_db.*")
+                .sourceTable("source_db.\\.*")
                 .sinkTable("target_db.<>")
                 .databaseScope(true)
                 .build();
