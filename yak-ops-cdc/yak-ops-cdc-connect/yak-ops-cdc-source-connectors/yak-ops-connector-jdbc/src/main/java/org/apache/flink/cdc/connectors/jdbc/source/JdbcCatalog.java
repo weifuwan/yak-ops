@@ -180,8 +180,9 @@ public final class JdbcCatalog {
         int p = Math.max(1, Math.min(38, precision <= 0 ? 38 : precision));
         int s = Math.max(0, Math.min(p, scale));
         switch (jdbcType) {
-            case java.sql.Types.BOOLEAN:
-            case java.sql.Types.BIT: return DataTypes.BOOLEAN();
+            case java.sql.Types.BOOLEAN: return DataTypes.BOOLEAN();
+            case java.sql.Types.BIT:
+                return precision <= 1 ? DataTypes.BOOLEAN() : DataTypes.BYTES();
             case java.sql.Types.TINYINT: return DataTypes.TINYINT();
             case java.sql.Types.SMALLINT: return DataTypes.SMALLINT();
             case java.sql.Types.INTEGER: return DataTypes.INT();
