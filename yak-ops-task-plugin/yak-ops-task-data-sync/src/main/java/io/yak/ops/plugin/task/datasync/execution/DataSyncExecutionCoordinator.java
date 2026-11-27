@@ -71,8 +71,7 @@ public class DataSyncExecutionCoordinator {
     }
 
     public void execute(
-            FlinkPipelineExecution execution, List<DataSyncTableMapping> tableMappings)
-            throws Exception {
+                FlinkPipelineExecution execution, List<DataSyncTableMapping> tableMappings) throws Exception {
         if (cancelRequested.get()) {
             cancellationConfirmed = true;
             return;
