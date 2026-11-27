@@ -1,5 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
@@ -38,6 +39,7 @@ import {
   copyWorkflowDefinition,
   createWorkflowDefinition,
   deleteWorkflowDefinition,
+  getWorkflowDefinition,
   listWorkflowDefinitions,
   listWorkflowTasks,
   moveWorkflowDefinition,
@@ -202,6 +204,12 @@ function WorkflowTreeContent({ item }: { item: WorkflowTreeNode }) {
 export function DataDevelopmentResourcePanel({ width }: { width: number }) {
   const { currentUser } = useAuth();
   const { workspaces, currentWorkspace } = useWorkspace();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const workflowCodeParam = searchParams.get("workflowCode");
+  const requestedWorkflowCode =
+    workflowCodeParam && /^\\d+$/.test(workflowCodeParam)
+      ? Number(workflowCodeParam)
+      : undefined;
   const {
     activeTab,
     openTask,
@@ -248,6 +256,40 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     enabled: Boolean(currentUser?.id),
   });
 
+  const requestedWorkflowQuery = useQuery({
+    queryKey: [
+      ...workflowExplorerKey,
+      workspaceId,
+      "definition",
+      requestedWorkflowCode ?? 0,
+    ],
+    queryFn: ({ signal }) => getWorkflowDefinition(requestedWorkflowCode!, signal),
+    enabled: Boolean(
+      workspaceId &&
+      requestedWorkflowCode &&
+      Number.isSafeInteger(requestedWorkflowCode),
+    ),
+    retry: false,
+  });
+  const requestedWorkflow = requestedWorkflowQuery.data?.workflowDefinition;
+
+  useEffect(() => {
+    if (!requestedWorkflow) return;
+
+    setSearch("");
+    setScope("ALL");
+    setExpandedCodes((current) => {
+      if (current.has(requestedWorkflow.code)) return current;
+      return new Set(current).add(requestedWorkflow.code);
+    });
+    openWorkflow(requestedWorkflow);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("workflowCode");
+      return next;
+    }, { replace: true });
+  }, [openWorkflow, requestedWorkflow, setSearchParams]);
+
   useEffect(() => {
     if (activeTab?.kind !== "task") return;
 
@@ -284,7 +326,16 @@ export function DataDevelopmentResourcePanel({ width }: { width: number }) {
     enabled: Boolean(workspaceId),
   });
 
-  const workflows = workflowsQuery.data?.totalList ?? [];
+  const workflows = useMemo(() => {
+    const records = workflowsQuery.data?.totalList ?? [];
+    if (
+      !requestedWorkflow ||
+      records.some((workflow) => workflow.code === requestedWorkflow.code)
+    ) {
+      return records;
+    }
+    return [...records, requestedWorkflow];
+  }, [requestedWorkflow, workflowsQuery.data]);
   const expandedWorkflows = workflows.filter((workflow) =>
     expandedCodes.has(workflow.code),
   );
