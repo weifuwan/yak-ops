@@ -27,9 +27,9 @@ public class DataSyncTableReportDaoImpl
     }
 
     @Override
-    public void clearSnapshotFields(
+    public int clearSnapshotFields(
             Long id, long sequence, long collectedAt, Date updateTime, boolean finalReport) {
-        mybatisMapper.clearSnapshotFields(id, sequence, collectedAt, updateTime, finalReport);
+        return mybatisMapper.clearSnapshotFields(id, sequence, collectedAt, updateTime, finalReport);
     }
 
     @Override
