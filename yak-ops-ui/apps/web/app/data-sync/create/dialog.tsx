@@ -17,9 +17,7 @@ import {
 } from "@/service/data-sync/native-draft";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 
-const SOURCE_DB_OPTIONS = COMMON_DB_OPTIONS.filter((option) =>
-  ["MYSQL", "POSTGRE_SQL"].includes(option.value),
-);
+const SOURCE_DB_OPTIONS = COMMON_DB_OPTIONS.filter((option) => option.value !== "SSH");
 const TARGET_DB_OPTIONS = COMMON_DB_OPTIONS.filter((option) => option.value === "MYSQL");
 
 const COMMON_DB_OPTIONS_WITH_ICONS = COMMON_DB_OPTIONS.map((option) => ({
@@ -49,10 +47,10 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const incremental = steps.includes("INCREMENTAL");
   const mysqlSource = sourceType === "MYSQL";
-  const postgresSource = sourceType === "POSTGRE_SQL" || sourceType === "POSTGRESQL";
+  const jdbcSourceType = Boolean(sourceType) && sourceType !== "SSH";
   const supported =
     targetType === "MYSQL" &&
-    (incremental ? mysqlSource : mysqlSource || postgresSource);
+    (incremental ? mysqlSource : jdbcSourceType);
   const supportsDatabaseScope = mysqlSource && incremental;
   const sourceOptions = COMMON_DB_OPTIONS_WITH_ICONS.filter((option) =>
     SOURCE_DB_OPTIONS.some((source) => source.value === option.value),
