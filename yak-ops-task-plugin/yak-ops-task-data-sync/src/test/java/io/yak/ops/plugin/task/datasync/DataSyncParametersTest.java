@@ -127,7 +127,6 @@ class DataSyncParametersTest {
         assertFalse(parameters.checkParameters());
     }
 
-
     @Test
     void exposesValidatedSourceAndSinkTableMappings() {
         DataSyncParameters parameters = valid();
@@ -139,7 +138,6 @@ class DataSyncParametersTest {
         assertEquals("dst_db.orders", mappings.get(0).getSinkTable());
         assertFalse(mappings.get(0).isDatabaseScope());
     }
-
 
     @Test
     void exposesDatabaseScopeMappingPattern() {
