@@ -1,6 +1,5 @@
 package org.apache.flink.cdc.connectors.jdbc.source;
 
-import org.apache.flink.api.connector.source.InputStatus;
 import org.apache.flink.api.connector.source.ReaderOutput;
 import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SourceReader;
@@ -18,6 +17,7 @@ import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.types.DataTypeRoot;
 import org.apache.flink.cdc.common.types.DecimalType;
+import org.apache.flink.core.io.InputStatus;
 
 import java.math.BigDecimal;
 import java.sql.Blob;
@@ -37,102 +37,241 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-/** Bounded JDBC reader. Failed in-flight splits resume from the last checkpointed key. */
+/** Asynchronous bounded JDBC reader. pollNext only drains prefetched events and never performs JDBC I/O. */
 public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSplit> {
 
     private final JdbcSourceConfig config;
+    private final Object lock = new Object();
     private final Queue<JdbcSourceSplit> pending = new ArrayDeque<>();
+    private final ArrayBlockingQueue<ReaderItem> outputQueue;
     private final Set<TableId> emittedSchemas = new HashSet<>();
-    private JdbcSourceSplit current;
-    private Connection connection;
-    private PreparedStatement statement;
-    private ResultSet resultSet;
-    private boolean noMoreSplits;
-    private CompletableFuture<Void> availability = new CompletableFuture<>();
+
+    private volatile CompletableFuture<Void> availability = new CompletableFuture<>();
+    private volatile Connection activeConnection;
+    private volatile Throwable workerFailure;
+    private volatile boolean running;
+    private volatile boolean noMoreSplits;
+    private volatile boolean workerFinished;
+    private JdbcSourceSplit activeSplit;
+    private Thread fetcher;
 
     public JdbcSourceReader(JdbcSourceConfig config) {
         this.config = config;
+        this.outputQueue = new ArrayBlockingQueue<>(Math.max(64, config.getFetchSize() * 2));
     }
 
     @Override
-    public void start() {}
+    public void start() {
+        running = true;
+        fetcher = new Thread(this::fetchLoop, "yak-jdbc-source-reader");
+        fetcher.setDaemon(true);
+        fetcher.start();
+    }
 
     @Override
     public InputStatus pollNext(ReaderOutput<Event> output) throws Exception {
-        int emitted = 0;
-        while (emitted < config.getFetchSize()) {
-            if (current == null) {
-                current = pending.poll();
-                if (current == null) {
-                    if (noMoreSplits) return InputStatus.END_OF_INPUT;
-                    if (availability.isDone()) availability = new CompletableFuture<>();
-                    return emitted > 0 ? InputStatus.MORE_AVAILABLE : InputStatus.NOTHING_AVAILABLE;
-                }
-                openSplit(output);
-            }
+        if (workerFailure != null) {
+            Throwable failure = workerFailure;
+            if (failure instanceof Exception) throw (Exception) failure;
+            if (failure instanceof Error) throw (Error) failure;
+            throw new RuntimeException("JDBC source reader failed", failure);
+        }
 
-            if (resultSet.next()) {
-                GenericRecordData row = convert(resultSet, current.getSchema());
-                if (current.getSplitColumn() != null) {
-                    int keyIndex = current.getSchema().getColumnNames()
-                            .indexOf(current.getSplitColumn()) + 1;
-                    BigDecimal key = resultSet.getBigDecimal(keyIndex);
-                    if (key != null) current = current.withLastReadValue(key);
+        ReaderItem item = outputQueue.poll();
+        if (item == null) {
+            if (isFinished()) return InputStatus.END_OF_INPUT;
+            resetAvailability();
+            return availability.isDone()
+                    ? InputStatus.MORE_AVAILABLE
+                    : InputStatus.NOTHING_AVAILABLE;
+        }
+
+        if (item.finished) {
+            synchronized (lock) {
+                if (activeSplit != null && activeSplit.splitId().equals(item.splitId)) {
+                    activeSplit = null;
+                    lock.notifyAll();
                 }
-                output.collect(DataChangeEvent.insertEvent(current.getTableId(), row));
-                emitted++;
-            } else {
-                closeResources(true);
-                current = null;
+            }
+        } else {
+            output.collect(item.event);
+            if (item.lastReadKey != null) {
+                synchronized (lock) {
+                    if (activeSplit != null && activeSplit.splitId().equals(item.splitId)) {
+                        activeSplit = activeSplit.withLastReadValue(item.lastReadKey);
+                    }
+                }
             }
         }
-        return InputStatus.MORE_AVAILABLE;
+
+        if (!outputQueue.isEmpty()) return InputStatus.MORE_AVAILABLE;
+        if (isFinished()) return InputStatus.END_OF_INPUT;
+        resetAvailability();
+        return availability.isDone()
+                ? InputStatus.MORE_AVAILABLE
+                : InputStatus.NOTHING_AVAILABLE;
     }
 
-    private void openSplit(ReaderOutput<Event> output) throws Exception {
-        if (emittedSchemas.add(current.getTableId())) {
-            output.collect(new CreateTableEvent(current.getTableId(), current.getSchema()));
+    private void resetAvailability() {
+        CompletableFuture<Void> next = new CompletableFuture<>();
+        availability = next;
+        if (!outputQueue.isEmpty() || workerFinished || workerFailure != null) {
+            next.complete(null);
         }
-        connection = JdbcCatalog.openConnection(config);
-        connection.setAutoCommit(false);
-        JdbcDialect dialect = JdbcDialect.create(connection.getMetaData());
-        String currentSchema = null;
-        try { currentSchema = connection.getSchema(); } catch (SQLException ignored) {}
-        String columns = String.join(
-                ", ",
-                current.getSchema().getColumnNames().stream()
-                        .map(dialect::quoteIdentifier).toArray(String[]::new));
-        StringBuilder sql = new StringBuilder("SELECT ")
-                .append(columns)
-                .append(" FROM ")
-                .append(dialect.qualifiedTable(current.getTableId(), connection.getCatalog(), currentSchema));
+    }
 
-        List<BigDecimal> values = new ArrayList<>();
-        List<String> predicates = new ArrayList<>();
-        if (current.getSplitColumn() != null) {
-            String key = dialect.quoteIdentifier(current.getSplitColumn());
-            if (current.getLowerBound() != null) {
-                predicates.add(key + " >= ?");
-                values.add(current.getLowerBound());
-            }
-            if (current.getUpperBound() != null) {
-                predicates.add(key + (current.isUpperInclusive() ? " <= ?" : " < ?"));
-                values.add(current.getUpperBound());
-            }
-            if (current.getLastReadValue() != null) {
-                predicates.add(key + " > ?");
-                values.add(current.getLastReadValue());
-            }
-            sql.append(" WHERE ").append(String.join(" AND ", predicates));
-            sql.append(" ORDER BY ").append(key);
+    private boolean isFinished() {
+        synchronized (lock) {
+            return workerFinished && activeSplit == null && pending.isEmpty() && outputQueue.isEmpty();
         }
-        statement = connection.prepareStatement(
-                sql.toString(), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        statement.setFetchSize(config.getFetchSize());
-        for (int i = 0; i < values.size(); i++) statement.setBigDecimal(i + 1, values.get(i));
-        resultSet = statement.executeQuery();
+    }
+
+    private void signalAvailable() {
+        availability.complete(null);
+    }
+
+    private void fetchLoop() {
+        try {
+            while (running) {
+                JdbcSourceSplit split;
+                synchronized (lock) {
+                    while (running && pending.isEmpty() && !noMoreSplits) {
+                        lock.wait();
+                    }
+                    if (!running) return;
+                    if (pending.isEmpty() && noMoreSplits) {
+                        workerFinished = true;
+                        signalAvailable();
+                        return;
+                    }
+                    split = pending.remove();
+                    activeSplit = split;
+                }
+
+                readSplit(split);
+                put(ReaderItem.finished(split.splitId()));
+                synchronized (lock) {
+                    while (running && activeSplit != null) {
+                        lock.wait();
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            if (running) {
+                workerFailure = e;
+                workerFinished = true;
+                signalAvailable();
+            }
+        } catch (Throwable e) {
+            workerFailure = e;
+            workerFinished = true;
+            signalAvailable();
+        }
+    }
+
+    private void readSplit(JdbcSourceSplit split) throws Exception {
+        if (emittedSchemas.add(split.getTableId())) {
+            put(ReaderItem.event(
+                    split.splitId(),
+                    new CreateTableEvent(split.getTableId(), split.getSchema()),
+                    null));
+        }
+
+        Connection connection = JdbcCatalog.openConnection(config);
+        activeConnection = connection;
+        try (Connection ignored = connection) {
+            connection.setAutoCommit(false);
+            JdbcDialect dialect = JdbcDialect.create(connection.getMetaData());
+            String currentSchema = null;
+            try {
+                currentSchema = connection.getSchema();
+            } catch (SQLException ignoredSchema) {
+                // Drivers without schema support use the catalog/table form.
+            }
+            String columns = String.join(
+                    ", ",
+                    split.getSchema().getColumnNames().stream()
+                            .map(dialect::quoteIdentifier)
+                            .toArray(String[]::new));
+            StringBuilder sql =
+                    new StringBuilder("SELECT ")
+                            .append(columns)
+                            .append(" FROM ")
+                            .append(
+                                    dialect.qualifiedTable(
+                                            split.getTableId(), connection.getCatalog(), currentSchema));
+
+            List<BigDecimal> parameters = new ArrayList<>();
+            List<String> predicates = new ArrayList<>();
+            if (split.getSplitColumn() != null) {
+                String key = dialect.quoteIdentifier(split.getSplitColumn());
+                if (split.getLowerBound() != null) {
+                    predicates.add(key + " >= ?");
+                    parameters.add(split.getLowerBound());
+                }
+                if (split.getUpperBound() != null) {
+                    predicates.add(key + (split.isUpperInclusive() ? " <= ?" : " < ?"));
+                    parameters.add(split.getUpperBound());
+                }
+                if (split.getLastReadValue() != null) {
+                    predicates.add(key + " > ?");
+                    parameters.add(split.getLastReadValue());
+                }
+                sql.append(" WHERE ").append(String.join(" AND ", predicates));
+                sql.append(" ORDER BY ").append(key);
+            }
+
+            try (PreparedStatement statement =
+                            connection.prepareStatement(
+                                    sql.toString(),
+                                    ResultSet.TYPE_FORWARD_ONLY,
+                                    ResultSet.CONCUR_READ_ONLY)) {
+                statement.setFetchSize(config.getFetchSize());
+                for (int i = 0; i < parameters.size(); i++) {
+                    statement.setBigDecimal(i + 1, parameters.get(i));
+                }
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    int keyIndex =
+                            split.getSplitColumn() == null
+                                    ? -1
+                                    : split.getSchema().getColumnNames().indexOf(split.getSplitColumn()) + 1;
+                    while (running && resultSet.next()) {
+                        GenericRecordData row = convert(resultSet, split.getSchema());
+                        BigDecimal key =
+                                keyIndex < 0 ? null : resultSet.getBigDecimal(keyIndex);
+                        put(ReaderItem.event(
+                                split.splitId(),
+                                DataChangeEvent.insertEvent(split.getTableId(), row),
+                                key));
+                    }
+                }
+            }
+            connection.commit();
+        } catch (Exception e) {
+            try {
+                connection.rollback();
+            } catch (SQLException rollbackFailure) {
+                e.addSuppressed(rollbackFailure);
+            }
+            throw e;
+        } finally {
+            activeConnection = null;
+        }
+    }
+
+    private void put(ReaderItem item) throws InterruptedException {
+        while (running) {
+            if (outputQueue.offer(item, 100, TimeUnit.MILLISECONDS)) {
+                signalAvailable();
+                return;
+            }
+        }
+        throw new InterruptedException("JDBC source reader is closing");
     }
 
     private static GenericRecordData convert(ResultSet resultSet, Schema schema) throws SQLException {
@@ -157,11 +296,14 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
             case DOUBLE: return ((Number) value).doubleValue();
             case DECIMAL:
                 DecimalType decimalType = (DecimalType) type;
-                BigDecimal decimal = value instanceof BigDecimal
-                        ? (BigDecimal) value : new BigDecimal(value.toString());
-                DecimalData decimalData = DecimalData.fromBigDecimal(
-                        decimal, decimalType.getPrecision(), decimalType.getScale());
-                if (decimalData == null) throw new SQLException("JDBC decimal exceeds declared precision");
+                BigDecimal decimal =
+                        value instanceof BigDecimal ? (BigDecimal) value : new BigDecimal(value.toString());
+                DecimalData decimalData =
+                        DecimalData.fromBigDecimal(
+                                decimal, decimalType.getPrecision(), decimalType.getScale());
+                if (decimalData == null) {
+                    throw new SQLException("JDBC decimal exceeds declared precision");
+                }
                 return decimalData;
             case DATE:
                 if (value instanceof Date) return DateData.fromLocalDate(((Date) value).toLocalDate());
@@ -185,8 +327,11 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
                 if (value instanceof byte[]) return value;
                 if (value instanceof Blob) {
                     Blob blob = (Blob) value;
-                    try { return blob.getBytes(1, (int) blob.length()); }
-                    finally { blob.free(); }
+                    try {
+                        return blob.getBytes(1, (int) blob.length());
+                    } finally {
+                        blob.free();
+                    }
                 }
                 return value.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
             default:
@@ -194,43 +339,19 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
         }
     }
 
-    private void closeResources(boolean commit) throws SQLException {
-        SQLException failure = null;
-        if (resultSet != null) {
-            try { resultSet.close(); } catch (SQLException e) { failure = e; }
-            resultSet = null;
-        }
-        if (statement != null) {
-            try { statement.close(); } catch (SQLException e) {
-                if (failure == null) failure = e; else failure.addSuppressed(e);
-            }
-            statement = null;
-        }
-        if (connection != null) {
-            try {
-                if (commit) connection.commit(); else connection.rollback();
-            } catch (SQLException e) {
-                if (failure == null) failure = e; else failure.addSuppressed(e);
-            }
-            try { connection.close(); } catch (SQLException e) {
-                if (failure == null) failure = e; else failure.addSuppressed(e);
-            }
-            connection = null;
-        }
-        if (failure != null) throw failure;
-    }
-
     @Override
     public List<JdbcSourceSplit> snapshotState(long checkpointId) {
-        List<JdbcSourceSplit> state = new ArrayList<>();
-        if (current != null) state.add(current);
-        state.addAll(pending);
-        return state;
+        synchronized (lock) {
+            List<JdbcSourceSplit> state = new ArrayList<>();
+            if (activeSplit != null) state.add(activeSplit);
+            state.addAll(pending);
+            return state;
+        }
     }
 
     @Override
     public CompletableFuture<Void> isAvailable() {
-        if (current != null || !pending.isEmpty() || noMoreSplits) {
+        if (!outputQueue.isEmpty() || workerFinished || workerFailure != null) {
             return CompletableFuture.completedFuture(null);
         }
         return availability;
@@ -238,14 +359,20 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
 
     @Override
     public void addSplits(List<JdbcSourceSplit> splits) {
-        pending.addAll(splits);
-        availability.complete(null);
+        synchronized (lock) {
+            pending.addAll(splits);
+            lock.notifyAll();
+        }
+        signalAvailable();
     }
 
     @Override
     public void notifyNoMoreSplits() {
-        noMoreSplits = true;
-        availability.complete(null);
+        synchronized (lock) {
+            noMoreSplits = true;
+            lock.notifyAll();
+        }
+        signalAvailable();
     }
 
     @Override
@@ -253,6 +380,43 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
 
     @Override
     public void close() throws Exception {
-        closeResources(false);
+        running = false;
+        synchronized (lock) {
+            lock.notifyAll();
+        }
+        Connection connection = activeConnection;
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException ignored) {
+                // The fetcher thread also closes the connection.
+            }
+        }
+        if (fetcher != null) {
+            fetcher.interrupt();
+            fetcher.join(5000);
+        }
+    }
+
+    private static final class ReaderItem {
+        private final String splitId;
+        private final Event event;
+        private final BigDecimal lastReadKey;
+        private final boolean finished;
+
+        private ReaderItem(String splitId, Event event, BigDecimal lastReadKey, boolean finished) {
+            this.splitId = splitId;
+            this.event = event;
+            this.lastReadKey = lastReadKey;
+            this.finished = finished;
+        }
+
+        private static ReaderItem event(String splitId, Event event, BigDecimal key) {
+            return new ReaderItem(splitId, event, key, false);
+        }
+
+        private static ReaderItem finished(String splitId) {
+            return new ReaderItem(splitId, null, null, true);
+        }
     }
 }
