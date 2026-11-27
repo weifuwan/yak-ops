@@ -91,7 +91,7 @@ test("CDC counters are integrated into the existing per-table execution table", 
   assert.match(executionDetail, /statusIcon=\{<ExecutionStatusIcon/);
   assert.doesNotMatch(executionDetail, /DataSyncMetricsPanel/);
   assert.doesNotMatch(tableResults, /DataSyncMetricsPanel/);
-  assert.equal((tableResults.match(/<Table\\b/g) || []).length, 1);
+  assert.equal((tableResults.match(/<Table\b/g) || []).length, 1);
   assert.match(tableResults, /mappings\.map\(\(mapping, index\)/);
   assert.match(tableResults, /findMetricsTableReport\(metricsReport\?\.tables, mapping\)/);
   assert.match(tableResults, /snapshot\?\.tableMappings\?\.length/);
