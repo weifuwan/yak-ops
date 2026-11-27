@@ -46,7 +46,18 @@ export function StageProgress({
   stale: boolean;
   label: string;
 }) {
-  if (!stage || stale || stage.status === "UNKNOWN") {
+  if (!stage || stage.status === "UNKNOWN") {
+    // Missing stage observations should not make a running instance look idle.
+    // A successful instance also guarantees that every configured stage completed.
+    if (status === "RUNNING_EXECUTION" || status === "SUCCESS" || status === "FORCED_SUCCESS") {
+      return (
+        <ExecutionProgressBar
+          status={status}
+          realtime={stage?.step === "INCREMENTAL" && stage.progressUnit === "RECORDS"}
+          ariaLabel={label}
+        />
+      );
+    }
     return (
       <div
         className="sync-execution-progress"
@@ -55,6 +66,20 @@ export function StageProgress({
         aria-label={label}
         aria-valuetext={stale ? "观测已过期" : "未取得阶段观测"}
         title={stale ? "观测已过期" : "未取得阶段观测"}
+      >
+        <span>—</span>
+      </div>
+    );
+  }
+  if (stale) {
+    return (
+      <div
+        className="sync-execution-progress"
+        data-mode="idle"
+        role="progressbar"
+        aria-label={label}
+        aria-valuetext="观测已过期"
+        title="观测已过期"
       >
         <span>—</span>
       </div>
