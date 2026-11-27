@@ -28,6 +28,7 @@ import {
   type DataSyncType,
 } from "@/service/data-sync";
 import { OperationsPageShell } from "../components/operations-page-shell";
+import { OperationsTableActions } from "../components/table-actions";
 import {
   INSTANCE_STATUS_ITEMS,
   durationText,
@@ -184,41 +185,33 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
       fixed: "right",
       align: "center",
       render: (_v, r) => (
-        <div className="flex items-center justify-center gap-1 whitespace-nowrap">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="px-2 text-xs font-medium !text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]"
-            onClick={() => navigate(`/data-sync/${r.taskId}/detail?executionId=${r.id}`)}
-          >
-            详情
-          </Button>
-          {(r.availableActions ?? []).map((action) => (
-            <Button
-              key={action}
-              size="sm"
-              variant="ghost"
-              className={[
-                "px-2 text-xs",
-                action === "STOP"
-                  ? "!text-[var(--yak-color-danger)] hover:!text-[var(--yak-color-danger)]"
-                  : "!text-[var(--yak-color-primary)] hover:!text-[var(--yak-color-primary)]",
-              ].join(" ")}
-              isDisabled={actionMutation.isPending}
-              onClick={() => setConfirmAction({ instance: r, action })}
-            >
-              {ACTION_LABELS[action]}
-            </Button>
-          ))}
-          {r.recoveryUnavailableReason ? (
-            <span
-              className="max-w-[112px] truncate text-[11px] text-[var(--yak-components-muted-text)]"
-              title={r.recoveryUnavailableReason}
-            >
-              {r.recoveryUnavailableReason}
-            </span>
-          ) : null}
-        </div>
+        <OperationsTableActions
+          actions={[
+            {
+              key: "detail",
+              label: "详情",
+              onClick: () => navigate(`/data-sync/${r.taskId}/detail?executionId=${r.id}`),
+            },
+            ...(r.availableActions ?? []).map((action) => ({
+              key: action,
+              label: ACTION_LABELS[action],
+              tone: action === "STOP" ? "danger" as const : "primary" as const,
+              disabled: actionMutation.isPending,
+              onClick: () => setConfirmAction({ instance: r, action }),
+            })),
+          ]}
+          busy={actionMutation.isPending}
+          after={
+            r.recoveryUnavailableReason ? (
+              <span
+                className="ml-1 max-w-[112px] truncate text-[11px] text-[var(--yak-components-muted-text)]"
+                title={r.recoveryUnavailableReason}
+              >
+                {r.recoveryUnavailableReason}
+              </span>
+            ) : null
+          }
+        />
       ),
     },
   ];
