@@ -36,4 +36,11 @@ public class DataSyncTableReportDaoImpl
     public DataSyncTableReport queryByExecutionIdAndTableKey(String executionId, String tableKey) {
         return mybatisMapper.queryByExecutionIdAndTableKey(executionId, tableKey);
     }
+
+    @Override
+    public DataSyncTableReport queryByExecutionIdAndPartialTableMapping(
+            String executionId, String sourceTable, String sinkTable) {
+        return mybatisMapper.queryByExecutionIdAndPartialTableMapping(
+                executionId, sourceTable, sinkTable);
+    }
 }
