@@ -54,6 +54,7 @@ function phaseTarget(
   phase: DataSyncExecutionSummary["phase"],
 ): { step: DataSyncStep; status: "RUNNING" | "WAITING" } | undefined {
   switch (phase) {
+    case "INITIALIZING":
     case "SCHEMA":
       return { step: "SCHEMA", status: "RUNNING" };
     case "FULL":
