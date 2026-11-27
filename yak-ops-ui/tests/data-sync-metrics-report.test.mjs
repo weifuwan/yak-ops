@@ -86,42 +86,49 @@ test("table metrics are matched by source and sink path, ignoring case", () => {
   assert.equal(findMetricsTableReport(sharedSourceReports, ambiguousMapping), undefined);
 });
 
-test("CDC metrics render in both execution-detail branches and populate the quick-count columns", () => {
-  assert.match(executionDetail, /readRows: metrics \? metrics\.readRecords/);
-  assert.match(executionDetail, /writeRows: metrics \? metrics\.committedRecords/);
-  assert.match(executionDetail, /<DataSyncMetricsPanel record=\{record\} \/>/);
-  assert.match(tableResults, /row\.metrics\s*\?\s*countText\(row\.metrics\.readRecords\)/);
-  assert.match(tableResults, /row\.metrics\s*\?\s*countText\(row\.metrics\.committedRecords\)/);
-  assert.match(tableResults, /record\.scope === "DATABASE" && metricsReport/);
-  assert.match(executionDetail, /title: "已提交条数"/);
+test("CDC counters are integrated into the existing per-table execution table", () => {
+  assert.match(executionDetail, /<TableExecutionResults record=\{record\}/);
+  assert.match(executionDetail, /statusIcon=\{<ExecutionStatusIcon/);
+  assert.doesNotMatch(executionDetail, /DataSyncMetricsPanel/);
+  assert.doesNotMatch(tableResults, /DataSyncMetricsPanel/);
+  assert.equal((tableResults.match(/<Table\\b/g) || []).length, 1);
+  assert.match(tableResults, /mappings\.map\(\(mapping, index\)/);
+  assert.match(tableResults, /findMetricsTableReport\(metricsReport\?\.tables, mapping\)/);
+  assert.match(tableResults, /snapshot\?\.tableMappings\?\.length/);
 });
 
-test("all execution-level CDC counters and report metadata are visible", () => {
+test("the single table shows only per-table counters and hides runtime metadata", () => {
   for (const label of [
-    'label="总读取"',
-    'label="全量读取"',
-    'label="增量读取"',
-    'label="INSERT"',
-    'label="UPDATE"',
-    'label="DELETE"',
-    'label="已提交"',
-    'label="DDL 事件"',
-    'label="错误记录"',
+    'title: metricsReport ? "总读取"',
+    'title: "全量读取"',
+    'title: "增量读取"',
+    'title: "INSERT"',
+    'title: "UPDATE"',
+    'title: "DELETE"',
+    'title: metricsReport ? "已提交"',
+    'title: "DDL"',
+    'title: "开始时间"',
+    'title: "完成时间"',
+    'title: "耗时"',
   ]) {
-    assert.ok(tableResults.includes(label), "missing metric summary: " + label);
+    assert.ok(tableResults.includes(label), "missing table column: " + label);
   }
-  for (const field of [
-    "metricsReport.jobId",
-    "metricsReport.deploymentMode",
-    "metricsReport.clusterId",
-    "metricsReport.executionState",
-    "metricsReport.latestSequence",
-    "metricsReport.finalSequence",
-    "metricsReport.latestCollectedAt",
-    "metricsReport.finalCollectedAt",
-    "metricsReport.finalized",
+  for (const hidden of [
+    "Job ID",
+    "部署模式",
+    "Cluster ID",
+    "Flink 状态",
+    "最新序号",
+    "最终序号",
+    "最新采集时间",
+    "最终采集时间",
+    "最终报告",
+    "采集序号",
+    "metricsStateText",
+    "MetricsMetaItem",
+    "MetricsSummaryItem",
   ]) {
-    assert.ok(tableResults.includes(field), "missing report metadata: " + field);
+    assert.ok(!tableResults.includes(hidden), "unexpected execution metadata: " + hidden);
   }
 });
 

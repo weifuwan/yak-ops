@@ -1,15 +1,14 @@
-import { Button, Skeleton, Table, type BadgeProps, type TableColumns } from "@yak-ops/yak-ui";
+import { Button, Skeleton, type BadgeProps } from "@yak-ops/yak-ui";
 import type { ReactNode } from "react";
 
 import { formatScheduleTime } from "@/app/schedule/schedule-presentation";
 import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";
 import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
-import { findMetricsTableReport } from "@/service/data-sync/report";
 
 import { ExecutionProgressBar } from "./execution-progress-bar";
 import { ExecutionStages } from "./execution-stages";
-import { DataSyncMetricsPanel, TableExecutionResults } from "./table-execution-results";
+import { TableExecutionResults } from "./table-execution-results";
 import "./execution-detail.css";
 
 export const isActiveDataSyncInstance = (record?: Pick<DataSyncInstanceRecord, "status">): boolean =>
@@ -82,12 +81,6 @@ export const dataSyncDurationText = (
   return minutes + "m " + (seconds % 60) + "s";
 };
 
-const tablePath = (database?: string, schema?: string, table?: string) =>
-  [database, schema, table].filter(Boolean).join(".") || "-";
-
-const rowCountText = (value?: number | null) =>
-  value == null ? "-" : value.toLocaleString("zh-CN");
-
 function ExecutionProgressCard({ record }: DetailProps) {
   const realtime = record.syncType === "REALTIME";
   const summary =
@@ -112,7 +105,22 @@ function ExecutionProgressCard({ record }: DetailProps) {
   );
 }
 
-const TABLE_SKELETON_WIDTHS = ["72%", "72%", 16, 28, 28, "82%", "82%", 32] as const;
+const TABLE_SKELETON_WIDTHS = [
+  "72%",
+  "72%",
+  16,
+  28,
+  28,
+  28,
+  24,
+  24,
+  24,
+  28,
+  20,
+  "82%",
+  "82%",
+  32,
+] as const;
 
 /** Mirrors the execution detail layout while a newly selected instance is loading. */
 export function DataSyncExecutionDetailSkeleton({ controls }: { controls?: ReactNode }) {
@@ -139,15 +147,15 @@ export function DataSyncExecutionDetailSkeleton({ controls }: { controls?: React
       </div>
 
       <div className="min-w-0 overflow-x-auto pt-4">
-        <div className="min-w-[1180px]">
-          <div className="grid grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_90px_110px_110px_170px_170px_90px] items-center gap-3 bg-[#f2f4f7] px-3 py-2">
+        <div className="min-w-[1640px]">
+          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_75px_90px_90px_90px_75px_75px_75px_90px_70px_160px_160px_80px] items-center gap-3 bg-[#f2f4f7] px-3 py-2">
             {TABLE_SKELETON_WIDTHS.map((width, index) => (
               <div key={index} className="min-w-0">
                 <Skeleton width={width} height={12} />
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_90px_110px_110px_170px_170px_90px] items-center gap-3 border-b border-[#eef0f3] px-3 py-3">
+          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_75px_90px_90px_90px_75px_75px_75px_90px_70px_160px_160px_80px] items-center gap-3 border-b border-[#eef0f3] px-3 py-3">
             {TABLE_SKELETON_WIDTHS.map((width, index) => (
               <div key={index} className="min-w-0">
                 <Skeleton width={width} height={12} />
@@ -166,18 +174,6 @@ interface DetailProps {
   onViewScheduleHistory?: () => void;
 }
 
-interface TableExecutionRow {
-  id: string;
-  sourceTable: string;
-  targetTable: string;
-  status: DataSyncInstanceStatus;
-  readRows?: number | null;
-  writeRows?: number | null;
-  startTime?: string;
-  finishTime?: string;
-  duration: string;
-}
-
 export function DataSyncExecutionDetailContent({
   record,
   controls,
@@ -185,80 +181,6 @@ export function DataSyncExecutionDetailContent({
 }: DetailProps) {
   const realtime = record.syncType === "REALTIME";
   const meta = dataSyncInstanceStatusMeta(record.status, realtime);
-  const snapshot = record.definitionSnapshot;
-  const mappings = snapshot?.tableMappings?.length
-    ? snapshot.tableMappings
-    : snapshot
-      ? [{ source: snapshot.source, target: snapshot.target, writeMode: "UPSERT" as const }]
-      : [];
-  const rows: TableExecutionRow[] = mappings.map((mapping, index) => {
-    const metrics = findMetricsTableReport(record.metricsReport?.tables, mapping);
-    return {
-      id: record.id + "-" + index,
-      sourceTable: tablePath(mapping.source.database, mapping.source.schema, mapping.source.table),
-      targetTable: tablePath(mapping.target.database, mapping.target.schema, mapping.target.table),
-      status: record.status,
-      readRows: metrics ? metrics.readRecords : index === 0 ? record.readRows : undefined,
-      writeRows: metrics ? metrics.committedRecords : index === 0 ? record.writeRows : undefined,
-      startTime: record.startTime,
-      finishTime: record.finishTime,
-      duration: dataSyncDurationText(record),
-    };
-  });
-  const columns: TableColumns<TableExecutionRow> = [
-    {
-      key: "sourceTable",
-      title: "来源表",
-      minWidth: 220,
-      render: (_value, row) => <span className="break-all">{row.sourceTable}</span>,
-    },
-    {
-      key: "targetTable",
-      title: "去向表",
-      minWidth: 220,
-      render: (_value, row) => <span className="break-all">{row.targetTable}</span>,
-    },
-    {
-      key: "status",
-      title: "执行状态",
-      width: 90,
-      align: "center",
-      render: (_value, row) => <ExecutionStatusIcon status={row.status} realtime={realtime} />,
-    },
-    {
-      key: "readRows",
-      title: record.metricsReport ? "总读取" : "读取条数",
-      width: 110,
-      align: "right",
-      render: (_value, row) => rowCountText(row.readRows),
-    },
-    {
-      key: "writeRows",
-      title: "已提交条数",
-      width: 110,
-      align: "right",
-      render: (_value, row) => rowCountText(row.writeRows),
-    },
-    {
-      key: "startTime",
-      title: "开始时间",
-      width: 170,
-      render: (_value, row) => row.startTime || "-",
-    },
-    {
-      key: "finishTime",
-      title: "完成时间",
-      width: 170,
-      render: (_value, row) => row.finishTime || "-",
-    },
-    {
-      key: "duration",
-      title: "耗时",
-      width: 90,
-      render: (_value, row) => row.duration,
-    },
-  ];
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -288,22 +210,11 @@ export function DataSyncExecutionDetailContent({
       ) : null}
       <ExecutionProgressCard record={record} />
       <div className="min-w-0 pt-4">
-        {record.scope === "DATABASE" || record.executionReport ? (
-          <TableExecutionResults record={record} />
-        ) : (
-          <>
-            <Table<TableExecutionRow>
-              columns={columns}
-              dataSource={rows}
-              rowKey="id"
-              size="small"
-              scroll={{ x: 1180 }}
-              pagination={false}
-              emptyText="暂无表级执行数据"
-            />
-            <DataSyncMetricsPanel record={record} />
-          </>
-        )}
+        <TableExecutionResults
+          record={record}
+          statusIcon={<ExecutionStatusIcon status={record.status} realtime={realtime} />}
+          duration={dataSyncDurationText(record)}
+        />
       </div>
     </div>
   );
