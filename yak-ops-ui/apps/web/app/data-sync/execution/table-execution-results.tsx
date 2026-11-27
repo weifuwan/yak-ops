@@ -269,6 +269,7 @@ export function DataSyncMetricsPanel({ record }: { record: DataSyncInstanceRecor
 export function TableExecutionResults({ record }: { record: DataSyncInstanceRecord }) {
   const report = record.executionReport;
   const metricsReport = record.metricsReport;
+  const metricSnapshot = selectMetricsSnapshot(metricsReport);
   const stale = useObservationStale(record.status, report?.observedAt);
   const realtime = record.syncType === "REALTIME";
   const hasIncremental = report
@@ -384,7 +385,11 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
       render: (_value, row) =>
         row.metrics
           ? countText(row.metrics.readRecords)
-          : countText(realtime ? row.full?.readRows : (row.incremental || row.full)?.readRows),
+          : record.scope === "DATABASE" && metricsReport
+            ? countText(metricSnapshot?.readRecords)
+            : metricsReport
+              ? countText(null)
+              : countText(realtime ? row.full?.readRows : (row.incremental || row.full)?.readRows),
     },
     {
       key: "written",
@@ -394,9 +399,13 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
       render: (_value, row) =>
         row.metrics
           ? countText(row.metrics.committedRecords)
-          : countText(
-              realtime ? row.full?.committedRows : (row.incremental || row.full)?.committedRows,
-            ),
+          : record.scope === "DATABASE" && metricsReport
+            ? countText(metricSnapshot?.committedRecords)
+            : metricsReport
+              ? countText(null)
+              : countText(
+                  realtime ? row.full?.committedRows : (row.incremental || row.full)?.committedRows,
+                ),
     },
   );
   if (realtime) {
@@ -412,7 +421,13 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
         align: "right",
         render: (_value, row) => (
           <span title={scope}>
-            {countText(row.metrics ? row.metrics.incrementalRecords : row.incremental?.readRows)}
+            {row.metrics
+              ? countText(row.metrics.incrementalRecords)
+              : record.scope === "DATABASE" && metricsReport
+                ? countText(metricSnapshot?.incrementalRecords)
+                : metricsReport
+                  ? countText(null)
+                  : countText(row.incremental?.readRows)}
           </span>
         ),
       },
