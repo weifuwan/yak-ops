@@ -1,6 +1,6 @@
 ---
 name: data-sync-create
-description: 数据同步任务创建/修改的参数结构——MySQL→MySQL(JDBC) pipeline definition 的 source/sink/route/pipeline 骨架、启动模式与运行时模式矩阵、单表/多表/整库写法、字段取值规则与常见校验错误。新建或修改同步任务、项目内没有现成任务可抄时使用。
+description: 数据同步任务创建/修改的参数结构——MySQL CDC 与 JDBC BATCH Source → JDBC Sink 的 Pipeline definition、单表/多表路由、Transform 复用、数据源 ID 与常见校验错误。新建或修改同步任务、项目内没有现成任务可抄时使用。
 ---
 
 # 数据同步任务创建
@@ -29,7 +29,8 @@ description: 数据同步任务创建/修改的参数结构——MySQL→MySQL(J
 - `source` / `sink` / `route` / `pipeline` 都在 `definition` 内，不在 `parameters` 顶层，也不要再套 `pipeline.definition`。
 - `datasource-id` 必须是**字符串**（`"2"`，不是 `2`）。
 - 不允许写 `password` / `token` / `secret` 等凭据；连接信息由数据源 id 在运行时注入。
-- `source.type` 固定 `mysql`，`sink.type` 固定 `jdbc`（当前运行时只支持这一种组合）。
+- `source.type` 支持 `mysql`（CDC）或 `jdbc`（V1 全量离线读取），`sink.type` 固定 `jdbc`。
+- JDBC Source V1 仅支持 MySQL / PostgreSQL 数据源、显式单表或多表，不支持整库通配符、自定义 SQL、增量捕获。
 - `route` 必须与 `source.tables` 一一对应：每个源表恰好一条映射，`sink-table` 不能重复。
 
 ## 最小骨架（单表）
@@ -75,6 +76,52 @@ description: 数据同步任务创建/修改的参数结构——MySQL→MySQL(J
 
 两者不一致会被直接拒绝。
 
+## JDBC Source V1（全量离线同步）
+
+当用户选择仅全量同步时，使用 `source.type=jdbc`，运行模式必须为 `BATCH`。数据源连接信息仍只通过 `datasource-id` 在运行时注入，不允许在任务定义中写入 JDBC URL、用户名或密码。
+
+```json
+{
+  "definition": {
+    "source": {
+      "type": "jdbc",
+      "datasource-id": "2",
+      "tables": "public.orders,public.customers",
+      "scan.fetch-size": 1000,
+      "scan.split-size": 100000
+    },
+    "sink": {
+      "type": "jdbc",
+      "datasource-id": "3",
+      "exclude.schema.changes": ["drop.column", "truncate.table", "drop.table"]
+    },
+    "route": [
+      { "source-table": "public.orders", "sink-table": "ods.orders" },
+      { "source-table": "public.customers", "sink-table": "ods.customers" }
+    ],
+    "pipeline": {
+      "execution.runtime-mode": "BATCH",
+      "schema.change.behavior": "evolve",
+      "parallelism": 4
+    },
+    "transform": [
+      {
+        "source-table": "public.orders",
+        "projection": "id,customer_id,amount",
+        "filter": "amount > 0",
+        "primary-keys": "id"
+      }
+    ]
+  }
+}
+```
+
+- JDBC Source 使用 `scan.fetch-size`（默认 1000）和 `scan.split-size`（默认 100000）。
+- 单列数值型主键自动范围分片；无主键、复合主键或非数值主键退化为单 Split。
+- 字段增减、过滤、主键声明全部复用现有 `transform.projection` / `transform.filter` / `transform.primary-keys`，不要在 Source 配置中重复声明字段映射。
+- JDBC Source 是 Bounded Source，不得配置 `scan.startup.mode`、CDC chunk key 或 Streaming runtime mode。
+- V1 不承诺多个 JDBC Connection 之间的全局一致性快照；失败恢复按 Split 级别 At-Least-Once 处理。
+
 ## 多表 / 整库
 
 **多表一个任务**：`source.tables` 用逗号分隔，`route` 为每张表各写一条：
@@ -93,7 +140,7 @@ description: 数据同步任务创建/修改的参数结构——MySQL→MySQL(J
 }
 ```
 
-**整库一个任务**（含未来新增表）：`source.tables` 用 Flink CDC 的整库正则 `database.\.*`（JSON 文本里反斜杠要转义成 `database.\\.*`），`route` 只能有一条且必须带 `replace-symbol`：
+**整库一个任务**（仅 MySQL CDC 模式，含未来新增表）：`source.tables` 用 Flink CDC 的整库正则 `database.\.*`（JSON 文本里反斜杠要转义成 `database.\\.*`），`route` 只能有一条且必须带 `replace-symbol`：
 
 ```json
 {
