@@ -69,7 +69,7 @@ public final class JdbcSplitEnumerator
         if (!enumerationCompleted) return;
         List<Integer> readers = new ArrayList<>(context.registeredReaders().keySet());
         Collections.sort(readers);
-        if (readers.isEmpty()) return;
+        if (readers.size() < context.currentParallelism()) return;
 
         int index = 0;
         while (!pending.isEmpty()) {
