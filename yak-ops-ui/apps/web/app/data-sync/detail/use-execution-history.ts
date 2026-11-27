@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
   getDataSyncInstance,
+  getDataSyncInstanceReport,
   listDataSyncInstances,
   type DataSyncInstanceSummary,
   type DataSyncInstanceStatus,
@@ -56,7 +57,13 @@ export function useExecutionHistory(
   const instancesLoading = instancesQuery.isPending;
   const selectedQuery = useQuery({
     queryKey: detailQueryKeys.instance(scope, taskId || "", executionId || ""),
-    queryFn: () => getDataSyncInstance(executionId!),
+    queryFn: async () => {
+      const [instance, metricsReport] = await Promise.all([
+        getDataSyncInstance(executionId!),
+        getDataSyncInstanceReport(executionId!).catch(() => undefined),
+      ]);
+      return { ...instance, metricsReport };
+    },
     enabled: enabled && Boolean(executionId),
     retry: false,
     refetchInterval: (query) =>
