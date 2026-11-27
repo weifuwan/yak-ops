@@ -1,4 +1,5 @@
-import type { TaskInstanceStatus } from "../task-execution/types";
+import type { TaskInstanceRecord, TaskInstanceStatus } from "../task-execution/types";
+import type { DataSyncWorkflowInstance } from "./workflow";
 
 export type DataSyncWriteMode = "UPSERT";
 
@@ -201,6 +202,12 @@ export interface PublishTaskRequest {
 
 
 export type DataSyncInstanceStatus = TaskInstanceStatus;
+
+export interface DataSyncTaskExecutionState {
+  taskCode: string;
+  workflow: DataSyncWorkflowInstance | null;
+  taskInstance: TaskInstanceRecord | null;
+}
 
 export interface DataSyncEndpointSnapshot {
   dataSourceId: string;

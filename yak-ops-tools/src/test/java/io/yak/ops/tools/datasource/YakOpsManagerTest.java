@@ -43,6 +43,7 @@ class YakOpsManagerTest {
         verify(schemaDao).initSchema();
         verify(schemaDao).ensureUserPreferenceSchema();
         verify(schemaDao).ensureInstanceStateCountIndexes();
+        verify(schemaDao).ensureDataSyncLatestInstanceIndexes();
     }
 
     @Test
@@ -54,6 +55,7 @@ class YakOpsManagerTest {
         verify(schemaDao, never()).initSchema();
         verify(schemaDao).ensureUserPreferenceSchema();
         verify(schemaDao).ensureInstanceStateCountIndexes();
+        verify(schemaDao).ensureDataSyncLatestInstanceIndexes();
     }
 
     @Test

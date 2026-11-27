@@ -1,12 +1,17 @@
 package io.yak.ops.dao.mapper;
 
+import io.yak.ops.common.enums.Flag;
+import io.yak.ops.common.enums.ReleaseState;
 import io.yak.ops.common.utils.JSONUtils;
 import io.yak.ops.dao.BaseDaoTest;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.entity.User;
+import io.yak.ops.dao.entity.WorkflowDefinition;
 import io.yak.ops.dao.entity.WorkflowTaskRelation;
+import io.yak.ops.dao.model.DataSyncTaskWorkflowRow;
 import io.yak.ops.dao.model.WorkflowDefinitionCountDto;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +27,9 @@ public class TaskDefinitionMapperTest extends BaseDaoTest {
 
     @Autowired
     private WorkflowTaskRelationMapper workflowTaskRelationMapper;
+
+    @Autowired
+    private WorkflowDefinitionMapper workflowDefinitionMapper;
 
     @Autowired
     private UserMapper userMapper;
@@ -87,6 +95,65 @@ public class TaskDefinitionMapperTest extends BaseDaoTest {
         TaskDefinition result = taskDefinitionMapper.queryByCode(taskDefinition.getCode());
         Assertions.assertNotNull(result);
 
+    }
+
+    @Test
+    public void testQueryDataSyncWorkflowCodesReturnsProjectScopedSingleTaskWorkflow() {
+        long taskCode = 889991L;
+        long workflowCode = 889992L;
+        Date now = new Date();
+
+        TaskDefinition task = new TaskDefinition();
+        task.setCode(taskCode);
+        task.setName("data_sync_test");
+        task.setProjectCode(1L);
+        task.setTaskType("DATA_SYNC");
+        task.setFlag(Flag.YES);
+        task.setUserId(99);
+        task.setResourceIds("1");
+        task.setWorkerGroup("default");
+        task.setEnvironmentCode(1L);
+        task.setVersion(1);
+        task.setCreateTime(now);
+        task.setUpdateTime(now);
+
+        WorkflowDefinition workflow = new WorkflowDefinition();
+        workflow.setCode(workflowCode);
+        workflow.setName("data_sync_" + taskCode);
+        workflow.setProjectCode(1L);
+        workflow.setFlag(Flag.YES);
+        workflow.setReleaseState(ReleaseState.OFFLINE);
+        workflow.setVersion(1);
+        workflow.setUserId(99);
+        workflow.setCreateTime(now);
+        workflow.setUpdateTime(now);
+
+        WorkflowTaskRelation relation = new WorkflowTaskRelation();
+        relation.setName("data sync relation");
+        relation.setProjectCode(1L);
+        relation.setWorkflowDefinitionCode(workflowCode);
+        relation.setWorkflowDefinitionVersion(1);
+        relation.setPreTaskCode(0L);
+        relation.setPreTaskVersion(0);
+        relation.setPostTaskCode(taskCode);
+        relation.setPostTaskVersion(1);
+        relation.setCreateTime(now);
+        relation.setUpdateTime(now);
+
+        taskDefinitionMapper.insert(task);
+        workflowDefinitionMapper.insert(workflow);
+        workflowTaskRelationMapper.insert(relation);
+        try {
+            List<DataSyncTaskWorkflowRow> result = taskDefinitionMapper.queryDataSyncWorkflowCodes(
+                    1L, "DATA_SYNC", Collections.singletonList(taskCode));
+            Assertions.assertEquals(1, result.size());
+            Assertions.assertEquals(taskCode, result.get(0).getTaskCode());
+            Assertions.assertEquals(workflowCode, result.get(0).getWorkflowCode());
+        } finally {
+            workflowTaskRelationMapper.deleteByWorkflowDefinitionCode(1L, workflowCode);
+            workflowDefinitionMapper.deleteByCode(workflowCode);
+            taskDefinitionMapper.deleteByCode(taskCode);
+        }
     }
 
     @Test

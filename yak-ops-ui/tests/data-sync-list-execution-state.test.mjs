@@ -6,6 +6,7 @@ import { test } from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../apps/web/app/data-sync/list");
 const queries = readFileSync(join(root, "use-list-queries.ts"), "utf8");
+const filters = readFileSync(join(root, "task-filters.tsx"), "utf8");
 const editor = readFileSync(join(root, "../editor/page.tsx"), "utf8");
 const detailActiveInstance = readFileSync(
   join(root, "../detail/use-active-task-instance.ts"),
@@ -33,24 +34,37 @@ const workflow = readFileSync(
   "utf8",
 );
 
-test("task list derives active instances from the single latest-instance request", () => {
+test("task list fetches task and workflow snapshots through one batch request", () => {
   assert.match(
     queries,
-    /queryFn: \(\{ signal \}\) => listLatestDataSyncTaskInstances\(ids, false, signal\)/,
+    /queryFn: \(\{ signal \}\) => listDataSyncTaskExecutionStates\(ids, signal\)/,
   );
-  assert.doesNotMatch(queries, /listLatestDataSyncTaskInstances\(ids, true/);
-  assert.match(queries, /filter\(\(item\) => isTaskInstanceActive\(item\.status\)\)/);
+  assert.match(queries, /enabled: Boolean\(scope\) && safeToAct && ids\.length > 0/);
+  assert.match(queries, /const latestByTask = useMemo/);
+  assert.match(queries, /const workflowsByTask = useMemo/);
+  assert.match(queries, /item\.taskInstance && isTaskInstanceActive/);
+  assert.doesNotMatch(queries, /useQueries|getLatestDataSyncWorkflow|refetchInterval/);
 });
 
-test("workflow state failures are isolated to the affected task", () => {
+test("task list never polls or refreshes on focus or reconnect and exposes manual refresh", () => {
+  assert.doesNotMatch(queries, /refetchInterval/);
+  assert.match(queries, /refetchOnWindowFocus: false/);
+  assert.match(queries, /refetchOnReconnect: false/);
+  assert.match(filters, /onRefresh/);
+  assert.match(filters, /刷新状态/);
+  assert.match(page, /onRefresh=\{instances\.refresh\}/);
+});
+
+test("batch state failures and refetches disable runtime operations until a fresh snapshot is ready", () => {
   assert.match(queries, /const stateReadyByTask = new Map/);
-  assert.match(queries, /workflowQueries\[index\]\?\.isSuccess === true/);
-  assert.match(queries, /const stateErrorByTask = new Set/);
-  assert.doesNotMatch(page, /instances\.ready/);
+  assert.match(queries, /safeToAct && query\.isSuccess && !query\.isFetching && stateByTask\.has\(record\.id\)/);
+  assert.match(page, /!isStateReadyForTask\(value\.task\.id\)/);
+  assert.match(taskTable, /disabled: stateReadyByTask\.get\(record\.id\) !== true \|\|/);
+  assert.match(page, /执行状态获取失败，当前页任务操作暂不可用/);
 });
 
-test("published tasks can be unpublished when state reads fail and backend validates running state", () => {
-  assert.match(lifecycle, /const canUnpublish = !workflowActive && !activeInstance/);
+test("published tasks require a successful state snapshot before unpublishing", () => {
+  assert.match(lifecycle, /const canUnpublish = instanceStateReady && !workflowActive && !activeInstance/);
   assert.match(lifecycle, /disabled: published \? !canUnpublish : !canManage/);
 });
 

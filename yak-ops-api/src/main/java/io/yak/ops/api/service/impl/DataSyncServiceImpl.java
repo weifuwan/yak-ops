@@ -17,6 +17,7 @@ import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncMetricsSnapshotVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
 import io.yak.ops.api.vo.DataSyncTableReportVO;
+import io.yak.ops.api.vo.DataSyncTaskExecutionStateVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
@@ -41,6 +42,7 @@ import io.yak.ops.dao.entity.WorkflowTaskRelationLog;
 import io.yak.ops.dao.model.DataSyncExecutionDailyRow;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
+import io.yak.ops.dao.model.DataSyncTaskWorkflowRow;
 import io.yak.ops.dao.repository.DataSourceDao;
 import io.yak.ops.dao.repository.TaskDefinitionDao;
 import io.yak.ops.dao.repository.TaskInstanceDao;
@@ -68,6 +70,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -91,6 +94,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncService {
 
     private static final String TASK_TYPE = "DATA_SYNC";
+    private static final int MAX_EXECUTION_STATE_TASK_CODES = 100;
     private final ProjectService projectService;
     private final DataSourceDao dataSourceDao;
     private final TaskDefinitionDao taskDefinitionDao;
@@ -507,6 +511,66 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 TaskExecutionStatus.NEED_FAULT_TOLERANCE.getCode()} : null;
         return toInstanceVOs(taskInstanceDao.queryLatestByTaskCodes(
                 projectCode, TASK_TYPE, new ArrayList<>(requested), states));
+    }
+
+    @Override
+    public List<DataSyncTaskExecutionStateVO> latestExecutionStates(User user, long projectCode,
+                                                                    List<Long> taskCodes) {
+        authorizeRead(user, projectCode);
+        if (taskCodes == null || taskCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Long> requested = new LinkedHashSet<>(taskCodes);
+        if (requested.contains(null) || requested.size() > MAX_EXECUTION_STATE_TASK_CODES) {
+            throw new ServiceException(Status.REQUEST_PARAMS_NOT_VALID_ERROR, "taskCodes");
+        }
+        List<Long> requestedCodes = new ArrayList<>(requested);
+
+        // Resolve and validate the task-to-workflow relationship in one project-scoped query.
+        List<DataSyncTaskWorkflowRow> mappings =
+                taskDefinitionDao.queryDataSyncWorkflowCodes(projectCode, TASK_TYPE, requestedCodes);
+        Map<Long, Long> workflowCodeByTask = new LinkedHashMap<>();
+        for (DataSyncTaskWorkflowRow mapping : mappings) {
+            if (mapping == null || mapping.getTaskCode() == null || mapping.getWorkflowCode() == null
+                    || !requested.contains(mapping.getTaskCode())
+                    || workflowCodeByTask.putIfAbsent(mapping.getTaskCode(), mapping.getWorkflowCode()) != null) {
+                throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+            }
+        }
+        if (workflowCodeByTask.size() != requested.size()) {
+            throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
+        }
+
+        List<Long> workflowCodes = new ArrayList<>(new LinkedHashSet<>(workflowCodeByTask.values()));
+        List<TaskInstance> latestTaskInstances = taskInstanceDao.queryLatestByTaskCodes(
+                projectCode, TASK_TYPE, requestedCodes, null);
+        Map<Long, DataSyncInstanceVO> taskInstancesByCode = latestTaskInstances.stream()
+                .collect(Collectors.toMap(TaskInstance::getTaskCode, instance -> toInstanceVO(instance, null)));
+
+        List<WorkflowInstance> latestWorkflows =
+                workflowInstanceDao.queryLatestByWorkflowDefinitionCodes(projectCode, workflowCodes);
+        Map<Long, DataSyncTaskExecutionStateVO.WorkflowState> workflowsByCode = latestWorkflows.stream()
+                .collect(Collectors.toMap(
+                        WorkflowInstance::getWorkflowDefinitionCode,
+                        workflow -> DataSyncTaskExecutionStateVO.WorkflowState.builder()
+                                .id(workflow.getId())
+                                .workflowDefinitionCode(workflow.getWorkflowDefinitionCode())
+                                .state(workflow.getState())
+                                .startTime(workflow.getStartTime())
+                                .endTime(workflow.getEndTime())
+                                .build()));
+
+        List<DataSyncTaskExecutionStateVO> result = new ArrayList<>(requestedCodes.size());
+        for (Long taskCode : requestedCodes) {
+            Long workflowCode = workflowCodeByTask.get(taskCode);
+            result.add(DataSyncTaskExecutionStateVO.builder()
+                    .taskCode(String.valueOf(taskCode))
+                    .workflow(workflowsByCode.get(workflowCode))
+                    .taskInstance(taskInstancesByCode.get(taskCode))
+                    .build());
+        }
+        return result;
     }
 
     @Override

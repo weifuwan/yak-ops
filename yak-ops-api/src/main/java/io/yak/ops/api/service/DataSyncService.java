@@ -10,6 +10,7 @@ import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
+import io.yak.ops.api.vo.DataSyncTaskExecutionStateVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.enums.ReleaseState;
@@ -52,6 +53,9 @@ public interface DataSyncService {
 
     List<DataSyncInstanceVO> latestInstances(User user, long projectCode,
                                              List<Long> taskCodes, boolean activeOnly);
+
+    List<DataSyncTaskExecutionStateVO> latestExecutionStates(User user, long projectCode,
+                                                             List<Long> taskCodes);
 
     DataSyncInstanceVO getInstance(User user, long projectCode, int instanceId);
 

@@ -14,6 +14,7 @@ import io.yak.ops.api.vo.DataSyncExecutionReportVO;
 import io.yak.ops.api.vo.DataSyncExecutionStatsVO;
 import io.yak.ops.api.vo.DataSyncInstanceVO;
 import io.yak.ops.api.vo.DataSyncOverviewVO;
+import io.yak.ops.api.vo.DataSyncTaskExecutionStateVO;
 import io.yak.ops.api.vo.DataSyncTaskVO;
 import io.yak.ops.api.vo.DataSyncTaskVersionVO;
 import io.yak.ops.common.constants.Constants;
@@ -163,6 +164,14 @@ public class DataSyncController extends BaseController {
                                                    @RequestParam List<Long> taskCodes,
                                                    @RequestParam(defaultValue = "false") boolean activeOnly) {
         return Result.success(dataSyncService.latestInstances(user, projectCode, taskCodes, activeOnly));
+    }
+
+    @GetMapping("/execution-states/latest")
+    public Result<List<DataSyncTaskExecutionStateVO>> latestExecutionStates(
+            @RequestAttribute(Constants.SESSION_USER) User user,
+            @PathVariable long projectCode,
+            @RequestParam List<Long> taskCodes) {
+        return Result.success(dataSyncService.latestExecutionStates(user, projectCode, taskCodes));
     }
 
     @GetMapping("/instances/{id}")

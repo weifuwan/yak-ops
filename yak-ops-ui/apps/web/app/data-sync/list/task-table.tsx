@@ -331,13 +331,13 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
                 ? "text-[var(--yak-components-danger-text)]"
                 : "text-[var(--yak-color-primary)]",
               loading: actionKey === `${record.id}:run` || actionKey === `${record.id}:stop`,
-              disabled: workflowActive(record)
+              disabled: stateReadyByTask.get(record.id) !== true || (workflowActive(record)
                 ? awaitingSubmission(record) ||
                   !workflowFor(record) ||
                   !canStopWorkflow(workflowFor(record)!.state)
                 : activeByTask.has(record.id)
                   ? !canCancelTaskInstance(activeByTask.get(record.id)!.status)
-                  : record.status !== "ONLINE",
+                  : record.status !== "ONLINE"),
               onClick: () => {
                 const workflow = workflowFor(record);
                 const active = activeByTask.get(record.id);

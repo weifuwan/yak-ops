@@ -108,7 +108,7 @@ export function DataSyncTaskLifecycleActions({
 }: DataSyncTaskLifecycleActionsProps) {
   const published = isPublishedTask(record);
   const canManage = !workflowActive && canManageTaskDefinition(instanceStateReady, activeInstance);
-  const canUnpublish = !workflowActive && !activeInstance;
+  const canUnpublish = instanceStateReady && !workflowActive && !activeInstance;
   const lifecycleAction = published ? "unpublish" : "publish";
   const actions: LifecycleAction[] = [
     {

@@ -114,6 +114,9 @@ public interface WorkflowInstanceDao extends IDao<WorkflowInstance> {
                                                                       Date endTime,
                                                                       String businessType);
 
+    List<WorkflowInstance> queryLatestByWorkflowDefinitionCodes(long projectCode,
+                                                                 List<Long> workflowDefinitionCodes);
+
     List<WorkflowInstanceSummaryDto> queryByWorkflowDefinitionCodeAndStatus(Long workflowDefinitionCode, int[] states);
 
     List<WorkflowInstanceSummaryDto> queryByWorkflowDefinitionCode(Long workflowDefinitionCode, int size);

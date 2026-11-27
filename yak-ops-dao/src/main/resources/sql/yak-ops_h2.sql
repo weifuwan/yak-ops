@@ -923,7 +923,8 @@ CREATE TABLE t_yak_ops_task_instance
     cpu_quota               int(11) DEFAULT '-1' NOT NULL,
     memory_max              int(11) DEFAULT '-1' NOT NULL,
     PRIMARY KEY (id),
-    INDEX idx_project_submit_time_state (project_code, submit_time, state)
+    INDEX idx_project_submit_time_state (project_code, submit_time, state),
+    INDEX idx_data_sync_latest_task (project_code, task_type, flag, task_code, id)
 );
 
 -- ----------------------------

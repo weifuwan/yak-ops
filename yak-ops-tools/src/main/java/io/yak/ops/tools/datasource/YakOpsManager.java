@@ -38,6 +38,7 @@ public class YakOpsManager {
             schemaDao.ensureUserPreferenceSchema();
             schemaDao.ensureModelingSchema();
             schemaDao.ensureInstanceStateCountIndexes();
+            schemaDao.ensureDataSyncLatestInstanceIndexes();
             log.info("Database schema is already initialized at version {}", SchemaUtils.getSoftVersion());
             return;
         }
@@ -56,6 +57,7 @@ public class YakOpsManager {
         schemaDao.ensureUserPreferenceSchema();
         schemaDao.ensureModelingSchema();
         schemaDao.ensureInstanceStateCountIndexes();
+        schemaDao.ensureDataSyncLatestInstanceIndexes();
         log.info("Database schema initialization finished");
     }
 

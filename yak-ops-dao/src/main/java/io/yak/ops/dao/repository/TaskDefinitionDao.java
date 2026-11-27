@@ -4,6 +4,7 @@ import io.yak.ops.common.enums.TaskExecuteType;
 import io.yak.ops.dao.entity.TaskDefinition;
 import io.yak.ops.dao.model.DataSyncOverviewTaskRow;
 import io.yak.ops.dao.model.DataSyncTaskPageRow;
+import io.yak.ops.dao.model.DataSyncTaskWorkflowRow;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
@@ -50,6 +51,9 @@ public interface TaskDefinitionDao extends IDao<TaskDefinition> {
     IPage<DataSyncTaskPageRow> queryDataSyncPage(IPage<DataSyncTaskPageRow> page, long projectCode,
                                              String taskType, String keyword, Long taskCode,
                                              Integer releaseState, List<Long> taskCodes, TaskExecuteType taskExecuteType);
+
+    List<DataSyncTaskWorkflowRow> queryDataSyncWorkflowCodes(long projectCode, String taskType,
+                                                             List<Long> taskCodes);
 
     List<DataSyncOverviewTaskRow> queryDataSyncOverview(long projectCode);
 

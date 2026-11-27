@@ -64,6 +64,7 @@ export function DataSyncPage() {
 
   const canRun = (task: DataSyncTaskRecord) =>
     page.safeToAct &&
+    isStateReadyForTask(task.id) &&
     task.status === "ONLINE" &&
     !isWorkflowActiveForTask(task.id) &&
     !instances.activeByTask.has(task.id);
@@ -77,7 +78,7 @@ export function DataSyncPage() {
     );
 
   const command = (value: TaskCommand) => {
-    if (!scope || commands.pending || !page.safeToAct) return;
+    if (!scope || commands.pending || !page.safeToAct || !isStateReadyForTask(value.task.id)) return;
     if (value.kind === "stop") {
       const workflow = instances.workflowsByTask.get(value.task.id);
       const active = instances.activeByTask.get(value.task.id);
@@ -127,6 +128,9 @@ export function DataSyncPage() {
               onKeywordChange={filters.setKeywordInput}
               onFilterChange={filters.update}
               onCreate={() => setCreateOpen(true)}
+              onRefresh={instances.refresh}
+              refreshing={instances.refreshing}
+              refreshDisabled={!page.safeToAct || page.validRecords.length === 0}
             />
             {page.error ? (
               <div className="mt-3 flex items-center gap-2 text-sm text-[var(--yak-components-danger-text)]">
@@ -137,8 +141,11 @@ export function DataSyncPage() {
               </div>
             ) : null}
             {instances.error ? (
-              <div className="mt-3 text-sm text-[var(--yak-components-danger-text)]">
-                部分任务执行状态获取失败，其他任务仍可正常操作
+              <div className="mt-3 flex items-center gap-2 text-sm text-[var(--yak-components-danger-text)]">
+                执行状态获取失败，当前页任务操作暂不可用
+                <Button variant="secondary" size="sm" onClick={instances.refresh}>
+                  重试
+                </Button>
               </div>
             ) : null}
             {page.invalidCount > 0 ? (

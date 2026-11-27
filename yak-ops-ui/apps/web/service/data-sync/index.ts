@@ -20,6 +20,7 @@ import type {
   DataSyncInstanceRecord,
   DataSyncMetricsExecutionReport,
   DataSyncInstanceSummary,
+  DataSyncTaskExecutionState,
   DataSyncTaskPageParams,
   DataSyncTaskListRecord,
   DataSyncTaskRecord,
@@ -219,6 +220,17 @@ export const listLatestDataSyncTaskInstances = async (
   if (taskIds.length === 0) return [];
   return HttpUtils.getData<TaskInstanceRecord[]>(
     url("/instances/latest?" + qp({ taskCodes: taskIds.join(","), activeOnly })),
+    { signal },
+  );
+};
+
+export const listDataSyncTaskExecutionStates = async (
+  taskIds: string[],
+  signal?: AbortSignal,
+): Promise<DataSyncTaskExecutionState[]> => {
+  if (taskIds.length === 0) return [];
+  return HttpUtils.getData<DataSyncTaskExecutionState[]>(
+    url("/execution-states/latest?" + qp({ taskCodes: taskIds.join(",") })),
     { signal },
   );
 };
