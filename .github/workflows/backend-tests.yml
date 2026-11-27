@@ -214,7 +214,7 @@ jobs:
         shell: bash
         run: |
           mvn -B -ntp -T 2 -pl :yak-ops-task-data-sync -am \
-            '-Dtest=DataSyncParametersTest,DataSyncPipelineBuilderTest,DataSyncJobRunnerTest,MiniClusterDataSyncExecutionServiceTest,DataSyncExecutionCoordinatorTest,AbstractDataSyncMetricsServiceTest,FlinkRestDataSyncMetricsServiceTest,FlinkRestDataSyncMetricsServiceMiniClusterTest,RpcDataSyncReportPublisherTest' \
+            '-Dtest=DataSyncParametersTest,DataSyncPipelineBuilderTest,DataSyncJobRunnerTest,MiniClusterDataSyncExecutionServiceTest,DataSyncExecutionCoordinatorTest,AbstractDataSyncMetricsServiceTest,MySqlSourceReaderMetricsTest,FlinkRestDataSyncMetricsServiceTest,FlinkRestDataSyncMetricsServiceMiniClusterTest,RpcDataSyncReportPublisherTest' \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
       - name: Require executed Data Sync plugin tests
