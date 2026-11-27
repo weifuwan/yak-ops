@@ -52,17 +52,34 @@ public final class DataSyncPipelineValidator {
 
         DataSyncParameters.datasourceId(source);
         DataSyncParameters.datasourceId(sink);
-        require(source, "type", "mysql", "source.type");
-        require(sink, "type", "jdbc", "sink.type");
-        String startupMode = text(source, "scan.startup.mode").toLowerCase(Locale.ROOT);
-        String runtimeMode = text(pipeline, "execution.runtime-mode").toUpperCase(Locale.ROOT);
-        if (!Set.of("initial", "snapshot", "latest-offset").contains(startupMode)) {
-            throw new IllegalArgumentException("source.scan.startup.mode: unsupported value");
+        String sourceType = text(source, "type").toLowerCase(Locale.ROOT);
+        boolean jdbcSource = "jdbc".equals(sourceType);
+        if (!jdbcSource && !"mysql".equals(sourceType)) {
+            throw new IllegalArgumentException("source.type: unsupported value");
         }
-        if (("snapshot".equals(startupMode) && !"BATCH".equals(runtimeMode))
-                || (!"snapshot".equals(startupMode) && !"STREAMING".equals(runtimeMode))) {
-            throw new IllegalArgumentException(
-                    "pipeline.execution.runtime-mode does not match source.scan.startup.mode");
+        require(sink, "type", "jdbc", "sink.type");
+        String runtimeMode = text(pipeline, "execution.runtime-mode").toUpperCase(Locale.ROOT);
+        if (jdbcSource) {
+            if (!"BATCH".equals(runtimeMode)) {
+                throw new IllegalArgumentException(
+                        "JDBC source only supports pipeline.execution.runtime-mode=BATCH");
+            }
+            if (!source.path("scan.startup.mode").isMissingNode()) {
+                throw new IllegalArgumentException(
+                        "source.scan.startup.mode is only supported by MySQL CDC");
+            }
+            validatePositiveInteger(source, "scan.fetch-size");
+            validatePositiveInteger(source, "scan.split-size");
+        } else {
+            String startupMode = text(source, "scan.startup.mode").toLowerCase(Locale.ROOT);
+            if (!Set.of("initial", "snapshot", "latest-offset").contains(startupMode)) {
+                throw new IllegalArgumentException("source.scan.startup.mode: unsupported value");
+            }
+            if (("snapshot".equals(startupMode) && !"BATCH".equals(runtimeMode))
+                    || (!"snapshot".equals(startupMode) && !"STREAMING".equals(runtimeMode))) {
+                throw new IllegalArgumentException(
+                        "pipeline.execution.runtime-mode does not match source.scan.startup.mode");
+            }
         }
 
         String tables = text(source, "tables");
@@ -71,6 +88,10 @@ public final class DataSyncPipelineValidator {
                 .filter(value -> !value.isEmpty())
                 .collect(Collectors.toList());
         boolean databaseScope = sourceTables.size() == 1 && isDatabasePattern(sourceTables.get(0));
+        if (jdbcSource && databaseScope) {
+            throw new IllegalArgumentException(
+                    "JDBC source V1 requires explicit tables and does not support database-wide patterns");
+        }
         if (!databaseScope
                 && (sourceTables.isEmpty()
                         || sourceTables.stream().anyMatch(value -> !isTablePath(value))
@@ -164,6 +185,10 @@ public final class DataSyncPipelineValidator {
 
         JsonNode chunkKeyColumn =
                 source.path("scan.incremental.snapshot.chunk.key-column");
+        if (jdbcSource && !chunkKeyColumn.isMissingNode()) {
+            throw new IllegalArgumentException(
+                    "source.scan.incremental.snapshot.chunk.key-column is only supported by MySQL CDC");
+        }
         if (databaseScope && !chunkKeyColumn.isMissingNode()) {
             throw new IllegalArgumentException(
                     "source.scan.incremental.snapshot.chunk.key-column: unsupported for database sync");
@@ -234,6 +259,21 @@ public final class DataSyncPipelineValidator {
                 throw new IllegalArgumentException("Invalid Flink CDC Pipeline YAML", e);
             }
             throw new IllegalArgumentException("Invalid Flink CDC Pipeline YAML: " + reason, e);
+        }
+    }
+
+    private static void validatePositiveInteger(JsonNode object, String key) {
+        JsonNode value = object.path(key);
+        if (value.isMissingNode()) {
+            return;
+        }
+        try {
+            int parsed = value.isNumber() ? value.asInt() : Integer.parseInt(value.asText());
+            if (parsed < 1) {
+                throw new IllegalArgumentException("source." + key + " must be greater than zero");
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("source." + key + " must be a positive integer", e);
         }
     }
 
