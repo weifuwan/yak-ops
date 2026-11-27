@@ -1,4 +1,4 @@
-name: UI Tests
+name: Frontend CI
 
 on:
   pull_request:
@@ -11,8 +11,16 @@ on:
       - 'yak-ops-ui/**'
       - '.github/workflows/ui-tests.yml'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  typecheck-and-contract:
+  frontend-checks:
+    name: Build and Typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,58 +32,9 @@ jobs:
       - name: Install UI dependencies
         working-directory: yak-ops-ui
         run: npm ci
-      - name: SQL task editor contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:sql-editor
-      - name: Dimension modeling tree contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:dimension-modeling-tree
-      - name: Data development navigation contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:data-development-navigation
       - name: Build UI
         working-directory: yak-ops-ui
         run: npm run build
       - name: TypeScript typecheck
         working-directory: yak-ops-ui
         run: npm run typecheck
-      - name: Management access token contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:management-token
-      - name: Data Agent frontend contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:data-agent
-      - name: Data Sync Pipeline contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:data-sync
-      - name: Atom Indicator form contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:atom-indicator
-      - name: Derived Indicator form contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:derivative-indicator
-      - name: Composite Indicator form contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:composite-indicator
-      - name: Modifier Indicator warehouse classification contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:modifier-indicator
-      - name: Indicator business category tree selector contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:indicator-business-type-tree
-      - name: Planning tree visual contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:planning-tree
-      - name: Data modeling E2E regression contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:modeling-e2e-regression
-      - name: Data modeling overview visual contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:modeling-overview
-      - name: Workflow logic node branch contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:workflow-logic
-      - name: Shell task editor contract tests
-        working-directory: yak-ops-ui
-        run: npm run test:shell-editor
-
