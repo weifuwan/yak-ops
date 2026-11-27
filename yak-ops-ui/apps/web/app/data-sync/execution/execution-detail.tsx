@@ -2,6 +2,7 @@ import { Button, Skeleton, type BadgeProps } from "@yak-ops/yak-ui";
 import type { ReactNode } from "react";
 
 import { formatScheduleTime } from "@/app/schedule/schedule-presentation";
+import { ExecutionStatusIndicator } from "@/app/components/execution-status-indicator";
 import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
 
@@ -40,6 +41,24 @@ export const dataSyncInstanceStatusMeta = (
       return { label: realtime ? "已停止" : "已取消", tone: "neutral" };
   }
 };
+
+export function ExecutionStatusIcon({
+  status,
+  realtime,
+}: {
+  status: DataSyncInstanceStatus;
+  realtime: boolean;
+}) {
+  const { label } = dataSyncInstanceStatusMeta(status, realtime);
+  return (
+    <ExecutionStatusIndicator
+      status={status}
+      label={label}
+      size={14}
+      showLabel={false}
+    />
+  );
+}
 
 export const dataSyncTriggerText = (triggerType?: string) => {
   if (triggerType === "START_PROCESS") return "手动";
@@ -89,7 +108,6 @@ function ExecutionProgressCard({ record }: DetailProps) {
 const TABLE_SKELETON_WIDTHS = [
   "72%",
   "72%",
-  16,
   28,
   28,
   28,
@@ -107,12 +125,7 @@ const TABLE_SKELETON_WIDTHS = [
 export function DataSyncExecutionDetailSkeleton({ controls }: { controls?: ReactNode }) {
   return (
     <div className="space-y-4" role="status" aria-label="加载执行详情" aria-busy="true">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5">
-          <Skeleton width={56} height={12} />
-          <Skeleton width={14} height={14} className="rounded-full" />
-          <Skeleton width={42} height={12} />
-        </div>
+      <div className="flex justify-end">
         {controls ? <div className="flex items-center gap-3">{controls}</div> : null}
       </div>
 
@@ -128,8 +141,8 @@ export function DataSyncExecutionDetailSkeleton({ controls }: { controls?: React
       </div>
 
       <div className="min-w-0 overflow-x-auto pt-4">
-        <div className="min-w-[1640px]">
-          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_75px_90px_90px_90px_75px_75px_75px_90px_70px_160px_160px_80px] items-center gap-3 bg-[#f2f4f7] px-3 py-2">
+        <div className="min-w-[1565px]">
+          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_90px_90px_90px_75px_75px_75px_90px_70px_160px_160px_80px] items-center gap-3 bg-[#f2f4f7] px-3 py-2">
             {TABLE_SKELETON_WIDTHS.map((width, index) => (
               <div key={index} className="min-w-0">
                 <Skeleton width={width} height={12} />
