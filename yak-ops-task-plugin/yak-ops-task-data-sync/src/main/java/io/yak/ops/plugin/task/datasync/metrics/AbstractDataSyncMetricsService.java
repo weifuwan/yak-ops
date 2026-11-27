@@ -24,7 +24,8 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
     private static final String ERRORS = "numRecordsInErrors";
 
     @Override
-    public final DataSyncExecutionSnapshot collect(DataSyncExecutionHandle handle) throws Exception {
+    public final DataSyncExecutionSnapshot collect(DataSyncExecutionHandle handle)
+            throws Exception {
         Map<String, Long> metrics = collectRawMetrics(handle);
         List<DataSyncTableMapping> mappings = handle == null || handle.getTableMappings() == null
                 ? Collections.emptyList()
@@ -32,7 +33,8 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
         return aggregate(metrics, System.currentTimeMillis(), mappings);
     }
 
-    protected abstract Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) throws Exception;
+    protected abstract Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle)
+            throws Exception;
 
     private DataSyncExecutionSnapshot aggregate(
             Map<String, Long> metrics, long collectedAt, List<DataSyncTableMapping> mappings) {
@@ -75,8 +77,11 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
         Long errorRecords = firstNonNull(
                 summary.value(ERRORS), sumTableValues(sourceCounters, ERRORS));
 
-        List<DataSyncTableMetrics> tables = buildTableMetrics(sourceCounters, sinkCounters, mappings);
-        String state = snapshotRecords == null || committedRecords == null ? "PARTIAL" : "AVAILABLE";
+        List<DataSyncTableMetrics> tables =
+                buildTableMetrics(sourceCounters, sinkCounters, mappings);
+        String state = snapshotRecords == null || committedRecords == null
+                ? "PARTIAL"
+                : "AVAILABLE";
         if (availableMetrics.isEmpty()) {
             state = "UNAVAILABLE";
         }
