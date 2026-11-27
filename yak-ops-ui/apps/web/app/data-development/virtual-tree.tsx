@@ -95,13 +95,24 @@ export function VirtualTree<T extends VirtualTreeNode>({
     const selected = items.find((item) => item.selected);
     if (selected) {
       setActiveId(selected.id);
+      const selectedIndex = itemIndex.get(selected.id);
+      const viewport = viewportRef.current;
+      if (selectedIndex !== undefined && viewport) {
+        const rowTop = selectedIndex * rowHeight;
+        const rowBottom = rowTop + rowHeight;
+        if (rowTop < viewport.scrollTop) {
+          viewport.scrollTop = rowTop;
+        } else if (rowBottom > viewport.scrollTop + viewport.clientHeight) {
+          viewport.scrollTop = rowBottom - viewport.clientHeight;
+        }
+      }
       return;
     }
 
     setActiveId((current) =>
       current && itemIndex.has(current) ? current : (items[0]?.id ?? null),
     );
-  }, [itemIndex, items]);
+  }, [itemIndex, items, rowHeight]);
 
   const visibleRange = useMemo(() => {
     if (items.length === 0) return { start: 0, end: 0 };
