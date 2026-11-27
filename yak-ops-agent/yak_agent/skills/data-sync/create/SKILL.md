@@ -30,7 +30,7 @@ description: 数据同步任务创建/修改的参数结构——MySQL CDC 与 J
 - `datasource-id` 必须是**字符串**（`"2"`，不是 `2`）。
 - 不允许写 `password` / `token` / `secret` 等凭据；连接信息由数据源 id 在运行时注入。
 - `source.type` 支持 `mysql`（CDC）或 `jdbc`（V1 全量离线读取），`sink.type` 固定 `jdbc`。
-- JDBC Source V1 仅支持 MySQL / PostgreSQL 数据源、显式单表或多表，不支持整库通配符、自定义 SQL、增量捕获。
+- JDBC Source V1 使用一个通用 JDBC Source，支持已安装的 JDBC 数据源插件（不含 SSH）、显式单表或多表，不支持整库通配符、自定义 SQL、增量捕获。
 - `route` 必须与 `source.tables` 一一对应：每个源表恰好一条映射，`sink-table` 不能重复。
 
 ## 最小骨架（单表）
