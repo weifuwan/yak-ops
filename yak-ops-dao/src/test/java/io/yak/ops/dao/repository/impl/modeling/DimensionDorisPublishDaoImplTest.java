@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.yak.ops.common.context.ProjectCodeContext;
 import io.yak.ops.dao.BaseDaoTest;
 import io.yak.ops.dao.entity.DimensionDorisPublishPO;
+import io.yak.ops.dao.entity.enums.DorisPublishStatusEnum;
 import io.yak.ops.dao.repository.modeling.DimensionDorisPublishDao;
 import java.sql.Timestamp;
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +37,7 @@ class DimensionDorisPublishDaoImplTest extends BaseDaoTest {
                         + "datasource_id integer NOT NULL, "
                         + "target_database varchar(255) NOT NULL, "
                         + "target_table varchar(255) NOT NULL, "
+                        + "ddl_content text NULL, "
                         + "status varchar(32) NOT NULL, "
                         + "create_time timestamp NULL)");
         jdbcTemplate.update(
@@ -46,6 +48,24 @@ class DimensionDorisPublishDaoImplTest extends BaseDaoTest {
     @AfterEach
     void clearProjectContext() {
         ProjectCodeContext.clear();
+    }
+
+    @Test
+    void shouldInsertAndReadDdlThroughDdlContentColumn() {
+        ProjectCodeContext.setProjectCode(1001L);
+        DimensionDorisPublishPO publish = new DimensionDorisPublishPO();
+        publish.setTableId(TABLE_ID);
+        publish.setDatasourceId(100);
+        publish.setTargetDatabase("warehouse");
+        publish.setTargetTable("dwd_order_detail");
+        publish.setDdl("CREATE TABLE dwd_order_detail (id BIGINT)");
+        publish.setStatus(DorisPublishStatusEnum.RUNNING);
+
+        assertEquals(1, dimensionDorisPublishDao.insert(publish));
+
+        DimensionDorisPublishPO stored = dimensionDorisPublishDao.queryById(publish.getId());
+        assertNotNull(stored);
+        assertEquals(publish.getDdl(), stored.getDdl());
     }
 
     @Test
