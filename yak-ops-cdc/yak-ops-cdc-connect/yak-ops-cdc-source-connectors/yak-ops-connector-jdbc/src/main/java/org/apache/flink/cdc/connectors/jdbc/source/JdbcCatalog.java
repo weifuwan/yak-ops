@@ -7,19 +7,14 @@ import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.types.DataTypes;
 import org.apache.flink.cdc.common.types.DecimalType;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.TreeMap;
 
 /** JDBC metadata access and bounded table split planning. */
 public final class JdbcCatalog {
@@ -65,9 +60,13 @@ public final class JdbcCatalog {
                 TableId tableId = TableId.parse(name);
                 Schema schema = getTableSchema(connection, dialect, tableId);
                 result.addAll(
-                        generateSplits(
-                                connection, dialect, tableId, schema,
-                                config.getSplitSize(), config.getParallelism()));
+                        JdbcSplitGenerator.generate(
+                                connection,
+                                dialect,
+                                tableId,
+                                schema,
+                                config.getSplitSize(),
+                                config.getParallelism()));
             }
         }
         return result;
@@ -203,92 +202,4 @@ public final class JdbcCatalog {
         }
     }
 
-    static boolean isNumericSplitType(DataType type) {
-        switch (type.getTypeRoot()) {
-            case TINYINT:
-            case SMALLINT:
-            case INTEGER:
-            case BIGINT:
-            case DECIMAL:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    static List<JdbcSourceSplit> generateSplits(
-            Connection connection,
-            JdbcDialect dialect,
-            TableId tableId,
-            Schema schema,
-            int splitSize,
-            int parallelism) throws SQLException {
-        if (schema.primaryKeys().size() != 1) return singleSplit(tableId, schema);
-        String key = schema.primaryKeys().get(0);
-        DataType keyType = schema.getColumn(key).map(Column::getType).orElse(null);
-        if (keyType == null || !isNumericSplitType(keyType)) return singleSplit(tableId, schema);
-
-        String currentSchema = null;
-        try { currentSchema = connection.getSchema(); } catch (SQLException ignored) {}
-        String table = dialect.qualifiedTable(tableId, connection.getCatalog(), currentSchema);
-        String sql = "SELECT MIN(" + dialect.quoteIdentifier(key) + "), MAX("
-                + dialect.quoteIdentifier(key) + "), COUNT(*) FROM " + table;
-        try (PreparedStatement statement = connection.prepareStatement(sql);
-                ResultSet rs = statement.executeQuery()) {
-            if (!rs.next()) return singleSplit(tableId, schema);
-            BigDecimal min = rs.getBigDecimal(1);
-            BigDecimal max = rs.getBigDecimal(2);
-            long count = rs.getLong(3);
-            if (count == 0 || min == null || max == null) {
-                return Collections.singletonList(
-                        new JdbcSourceSplit(tableId.identifier() + "-0", tableId, schema,
-                                key, null, null, false, null));
-            }
-            return createRangeSplits(
-                    tableId, schema, key, min, max, count, splitSize, parallelism);
-        }
-    }
-
-    static List<JdbcSourceSplit> createRangeSplits(
-            TableId tableId, Schema schema, String key, BigDecimal min, BigDecimal max,
-            long rowCount, int splitSize, int parallelism) {
-        if (rowCount <= 0 || min == null || max == null || min.compareTo(max) == 0) {
-            return Collections.singletonList(
-                    new JdbcSourceSplit(tableId.identifier() + "-0", tableId, schema,
-                            key, min, max, true, null));
-        }
-        int count = (int) Math.max(1, Math.min(
-                Math.max(1, parallelism) * 4L,
-                Math.max(1, (rowCount + splitSize - 1L) / splitSize)));
-        if (count == 1) {
-            return Collections.singletonList(
-                    new JdbcSourceSplit(tableId.identifier() + "-0", tableId, schema,
-                            key, min, max, true, null));
-        }
-        int scale = Math.max(8, Math.max(min.scale(), max.scale()) + 4);
-        BigDecimal width = max.subtract(min)
-                .divide(BigDecimal.valueOf(count), scale, RoundingMode.DOWN);
-        if (width.signum() <= 0) {
-            return Collections.singletonList(
-                    new JdbcSourceSplit(tableId.identifier() + "-0", tableId, schema,
-                            key, min, max, true, null));
-        }
-        List<JdbcSourceSplit> splits = new ArrayList<>(count);
-        for (int index = 0; index < count; index++) {
-            BigDecimal lower = min.add(width.multiply(BigDecimal.valueOf(index)));
-            boolean last = index == count - 1;
-            BigDecimal upper = last
-                    ? max : min.add(width.multiply(BigDecimal.valueOf(index + 1L)));
-            splits.add(
-                    new JdbcSourceSplit(tableId.identifier() + "-" + index, tableId, schema,
-                            key, lower, upper, last, null));
-        }
-        return splits;
-    }
-
-    private static List<JdbcSourceSplit> singleSplit(TableId tableId, Schema schema) {
-        return Collections.singletonList(
-                new JdbcSourceSplit(tableId.identifier() + "-0", tableId, schema,
-                        null, null, null, false, null));
-    }
 }
