@@ -88,7 +88,10 @@ class DimensionDorisServiceImplTest {
 
         assertEquals("warehouse", preview.getTargetDatabase());
         assertEquals("dwd_order_detail", preview.getTargetTable());
-        assertEquals("CREATE TABLE ddl", preview.getDdl());
+        assertEquals("CREATE TABLE ddl", preview.getDdlContent());
+        com.fasterxml.jackson.databind.JsonNode response = objectMapper.valueToTree(preview);
+        assertEquals("CREATE TABLE ddl", response.get("ddl_content").asText());
+        assertNull(response.get("ddl"));
         assertEquals(64, preview.getDdlHash().length());
         assertFalse(Boolean.TRUE.equals(preview.getNoChanges()));
         verify(dimensionDorisPublishDao).queryLatestSuccessful(
