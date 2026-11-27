@@ -39,6 +39,55 @@ class DataSyncParametersTest {
     }
 
     @Test
+    void acceptsBoundedJdbcSourceAndReusesPipelineTransforms() {
+        DataSyncParameters parameters = valid();
+        ObjectNode definition = (ObjectNode) parameters.getDefinition();
+        ObjectNode source = (ObjectNode) definition.path("source");
+        source.put("type", "jdbc");
+        source.remove("scan.startup.mode");
+        source.put("scan.fetch-size", 500);
+        source.put("scan.split-size", 50000);
+        ((ObjectNode) definition.path("pipeline")).put("execution.runtime-mode", "BATCH");
+        definition.putArray("transform")
+                .addObject()
+                .put("source-table", "src_db.orders")
+                .put("projection", "id,amount")
+                .put("filter", "id > 0")
+                .put("primary-keys", "id");
+
+        assertTrue(parameters.checkParameters());
+
+        ((ObjectNode) definition.path("pipeline")).put("execution.runtime-mode", "STREAMING");
+        assertFalse(parameters.checkParameters());
+    }
+
+    @Test
+    void jdbcSourceRejectsDatabasePatternsAndCdcOnlyOptions() {
+        DataSyncParameters parameters = valid();
+        ObjectNode definition = (ObjectNode) parameters.getDefinition();
+        ObjectNode source = (ObjectNode) definition.path("source");
+        source.put("type", "jdbc");
+        source.remove("scan.startup.mode");
+        source.put("tables", "src_db.\\.*");
+        ((ObjectNode) definition.path("pipeline")).put("execution.runtime-mode", "BATCH");
+        ((com.fasterxml.jackson.databind.node.ArrayNode) definition.path("route")).removeAll()
+                .addObject()
+                .put("source-table", "src_db.\\.*")
+                .put("sink-table", "dst_db.<>")
+                .put("replace-symbol", "<>");
+
+        assertFalse(parameters.checkParameters());
+
+        source.put("tables", "src_db.orders");
+        source.put("scan.incremental.snapshot.chunk.key-column", "src_db.orders:id");
+        definition.putArray("route")
+                .addObject()
+                .put("source-table", "src_db.orders")
+                .put("sink-table", "dst_db.orders");
+        assertFalse(parameters.checkParameters());
+    }
+
+    @Test
     void acceptsAdditionalFlinkConnectorOptions() {
         DataSyncParameters parameters = valid();
         ((ObjectNode) parameters.getDefinition().path("source"))
