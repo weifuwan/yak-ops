@@ -10,4 +10,11 @@
     </parent>
     <artifactId>yak-ops-connector-jdbc</artifactId>
     <name>Yak Ops JDBC Source</name>
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
