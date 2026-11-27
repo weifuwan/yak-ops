@@ -45,7 +45,7 @@ final class DataSyncJobRunner {
         FlinkPipelineComposer composer =
                 FlinkPipelineComposer.ofMiniCluster(flinkConfig, Collections.emptyList());
         FlinkPipelineExecution execution = (FlinkPipelineExecution) composer.compose(pipeline);
-        coordinator.execute(execution);
+        coordinator.execute(execution, parameters.getTableMappings());
         log.info("DATA_SYNC completed, taskInstanceId={}, cancelled={}",
                 context.getTaskInstanceId(), coordinator.isCancellationConfirmed());
     }
