@@ -117,6 +117,44 @@ public class SchemaDao {
     }
 
     /**
+     * Validate the current DataSync and user-preference columns without attempting an
+     * automatic migration of an existing database.
+     */
+    public void validateDataSyncSchema() {
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            requireColumns(metadata, connection, "t_yak_ops_user_preference",
+                    "scene", "item_key", "favorite", "sort_order", "use_count");
+            requireColumns(metadata, connection, "t_yak_ops_data_sync_execution_report",
+                    "submitted_at", "latest_sequence", "latest_snapshot_json",
+                    "final_sequence", "final_snapshot_json", "finalized");
+            requireColumns(metadata, connection, "t_yak_ops_data_sync_table_report",
+                    "table_key", "latest_metrics_json", "final_metrics_json", "latest_sequence");
+            requireColumns(metadata, connection, "t_yak_ops_data_sync_recovery_point",
+                    "recovery_point_id", "checkpoint_id", "completed_at",
+                    "used_by_workflow_instance_id", "used_by_instance_id");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Failed to validate DataSync database schema", ex);
+        }
+    }
+
+    private void requireColumns(
+            DatabaseMetaData metadata,
+            Connection connection,
+            String tableName,
+            String... columnNames) throws SQLException {
+        if (!tableExists(metadata, connection, tableName)) {
+            throw new IllegalStateException("Required database table is missing: " + tableName);
+        }
+        for (String columnName : columnNames) {
+            if (!columnExists(metadata, connection, tableName, columnName)) {
+                throw new IllegalStateException(
+                        "Database schema is missing required column " + tableName + "." + columnName);
+            }
+        }
+    }
+
+    /**
      * Cover the project and time columns of the operations overview state counts so the
      * aggregations can be served from the index instead of looking up every matching row.
      */
