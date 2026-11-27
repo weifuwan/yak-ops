@@ -179,6 +179,50 @@ class DataSyncExecutionReportServiceImplTest {
                 org.mockito.ArgumentMatchers.eq(false));
     }
 
+
+    @Test
+    void advancesExistingTableReportSequenceWhenSnapshotContainsNoTableMetrics() {
+        when(taskInstanceDao.queryByIdForUpdate(42))
+                .thenReturn(TaskInstance.builder().id(42).taskType("DATA_SYNC").build());
+        when(executionReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(DataSyncExecutionReport.builder()
+                        .id(1L)
+                        .executionId("execution-1")
+                        .taskInstanceId(42)
+                        .jobId("job-1")
+                        .latestSequence(1L)
+                        .finalized(false)
+                        .build());
+        when(tableReportDao.queryByExecutionId("execution-1"))
+                .thenReturn(java.util.Collections.singletonList(DataSyncTableReport.builder()
+                        .id(9L)
+                        .executionId("execution-1")
+                        .tableKey("orders")
+                        .latestMetricsJson("{\\"sourceTable\\":\\"db.orders\\",\\"readRecords\\":10}")
+                        .build()));
+        when(tableReportDao.clearSnapshotFields(
+                org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.Date.class),
+                org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(1);
+
+        DataSyncReportRequest request = request(2L, "SNAPSHOT");
+        request.setTables(java.util.Collections.emptyList());
+        DataSyncReportAck ack = service.acceptReport(request);
+
+        assertTrue(ack.isAccepted());
+        verify(tableReportDao).clearSnapshotFields(
+                org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.eq(2L),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(java.util.Date.class),
+                org.mockito.ArgumentMatchers.eq(false));
+        verify(tableReportDao, never()).insert(any());
+        verify(tableReportDao, never()).updateById(any());
+    }
+
     @Test
     void clearsFinalTableValuesForTablesMissingFromFinalSnapshot() {
         when(taskInstanceDao.queryByIdForUpdate(42))
