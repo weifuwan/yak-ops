@@ -44,7 +44,6 @@ import {
   WORKFLOW_STATE_ITEMS,
   durationText,
   triggerText,
-  workflowStateText,
 } from "../presentation";
 
 const PAGE_SIZE = 20;
@@ -274,7 +273,7 @@ export function WorkflowInstancesOperationsPage() {
       title: "实例状态",
       width: 110,
       render: (_v, r) => (
-        <ExecutionStatusIndicator status={r.state} label={workflowStateText(r.state)} />
+        <ExecutionStatusIndicator status={r.state} />
       ),
     },
     {
@@ -359,7 +358,7 @@ export function WorkflowInstancesOperationsPage() {
       title: "状态",
       width: 110,
       render: (_v, r) => (
-        <ExecutionStatusIndicator status={r.state} label={workflowStateText(r.state)} />
+        <ExecutionStatusIndicator status={r.state} />
       ),
     },
     { key: "duration", title: "耗时", width: 100, render: (_v, r) => r.duration || durationText(r.startTime, r.endTime) },
@@ -374,77 +373,77 @@ export function WorkflowInstancesOperationsPage() {
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-        <SelectField
-          value={businessType}
-          items={BUSINESS_ITEMS}
-          className="w-[150px] shrink-0"
-          onChange={(value) => {
-            setBusinessType(value || "ALL");
-            setPageNo(1);
-          }}
-        />
-        <SelectField
-          value={state}
-          items={WORKFLOW_STATE_ITEMS as unknown as Record<string, string>}
-          className="w-[150px] shrink-0"
-          onChange={(value) => {
-            setState(value || "ALL");
-            setPageNo(1);
-          }}
-        />
-        <div className="w-[150px] shrink-0">
-          <Input
-            size="small"
-            variant="outlined"
-            className="w-full"
-            placeholder="执行人"
-            value={executorInput}
-            onChange={(event) => setExecutorInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                setExecutorName(executorInput.trim());
-                setKeyword(keywordInput.trim());
-                setPageNo(1);
-              }
+          <SelectField
+            value={businessType}
+            items={BUSINESS_ITEMS}
+            className="w-[150px] shrink-0"
+            onChange={(value) => {
+              setBusinessType(value || "ALL");
+              setPageNo(1);
             }}
           />
-        </div>
-        <WorkflowInstanceDateRangePicker
-          value={dateRange}
-          onChange={(next) => {
-            setDateRange(next);
-            setPageNo(1);
-          }}
-        />
-        <div className="w-[280px] max-w-full shrink-0">
-          <Input
-            size="small"
-            variant="outlined"
-            className="w-full"
-            placeholder="工作流名称 / 实例名称"
-            value={keywordInput}
-            onChange={(event) => setKeywordInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                setKeyword(keywordInput.trim());
-                setExecutorName(executorInput.trim());
-                setPageNo(1);
-              }
+          <SelectField
+            value={state}
+            items={WORKFLOW_STATE_ITEMS as unknown as Record<string, string>}
+            className="w-[150px] shrink-0"
+            onChange={(value) => {
+              setState(value || "ALL");
+              setPageNo(1);
             }}
           />
-        </div>
-        <Button
-          size="sm"
-          variant="secondary"
-          className="shrink-0"
-          onClick={() => {
-            setKeyword(keywordInput.trim());
-            setExecutorName(executorInput.trim());
-            setPageNo(1);
-          }}
-        >
-          搜索
-        </Button>
+          <div className="w-[150px] shrink-0">
+            <Input
+              size="small"
+              variant="outlined"
+              className="w-full"
+              placeholder="执行人"
+              value={executorInput}
+              onChange={(event) => setExecutorInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  setExecutorName(executorInput.trim());
+                  setKeyword(keywordInput.trim());
+                  setPageNo(1);
+                }
+              }}
+            />
+          </div>
+          <WorkflowInstanceDateRangePicker
+            value={dateRange}
+            onChange={(next) => {
+              setDateRange(next);
+              setPageNo(1);
+            }}
+          />
+          <div className="w-[280px] max-w-full shrink-0">
+            <Input
+              size="small"
+              variant="outlined"
+              className="w-full"
+              placeholder="工作流名称 / 实例名称"
+              value={keywordInput}
+              onChange={(event) => setKeywordInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  setKeyword(keywordInput.trim());
+                  setExecutorName(executorInput.trim());
+                  setPageNo(1);
+                }
+              }}
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shrink-0"
+            onClick={() => {
+              setKeyword(keywordInput.trim());
+              setExecutorName(executorInput.trim());
+              setPageNo(1);
+            }}
+          >
+            搜索
+          </Button>
         </div>
         <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-[var(--yak-components-muted-text)]">
           <span>自动刷新</span>
