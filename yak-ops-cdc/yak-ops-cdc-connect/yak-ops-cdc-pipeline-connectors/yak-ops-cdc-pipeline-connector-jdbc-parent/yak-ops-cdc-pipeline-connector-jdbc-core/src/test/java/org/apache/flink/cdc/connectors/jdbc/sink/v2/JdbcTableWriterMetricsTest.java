@@ -1,6 +1,7 @@
 package org.apache.flink.cdc.connectors.jdbc.sink.v2;
 
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -73,7 +74,7 @@ class JdbcTableWriterMetricsTest {
         when(tableMetricGroup.addGroup(org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString())).thenReturn(tableMetricGroup);
         when(tableMetricGroup.counter("numCommittedRecords")).thenReturn(tableCounter);
-        when(outputFormat.flush()).thenThrow(new IOException("commit failed"));
+        doThrow(new IOException("commit failed")).when(outputFormat).flush();
 
         JdbcTableWriter writer =
                 new JdbcTableWriter(tableId, schema, builder, metricGroup, executionCounter);
