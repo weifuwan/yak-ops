@@ -5,12 +5,16 @@ import io.yak.ops.extract.master.transportor.DataSyncReportAck;
 import io.yak.ops.extract.master.transportor.DataSyncReportRequest;
 import io.yak.ops.extract.master.transportor.DataSyncTableMetrics;
 import io.yak.ops.plugin.task.api.TaskExecutionContext;
+import io.yak.ops.plugin.task.datasync.DataSyncTableMapping;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncExecutionSnapshot;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncMetricsService;
 import io.yak.ops.plugin.task.datasync.report.DataSyncReportPublisher;
 
 import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -63,6 +67,11 @@ public class DataSyncExecutionCoordinator {
     }
 
     public void execute(FlinkPipelineExecution execution) throws Exception {
+        execute(execution, Collections.emptyList());
+    }
+
+    public void execute(
+            FlinkPipelineExecution execution, List<DataSyncTableMapping> tableMappings) throws Exception {
         if (cancelRequested.get()) {
             cancellationConfirmed = true;
             return;
@@ -85,6 +94,9 @@ public class DataSyncExecutionCoordinator {
         activeExecutionService = executionService;
         try {
             handle = executionService.submit(execution, executionId, context.getTaskInstanceId());
+            handle.setTableMappings(tableMappings == null
+                    ? Collections.emptyList()
+                    : new ArrayList<>(tableMappings));
             if (cancelRequested.get()) {
                 dispatchCancellation();
             }
