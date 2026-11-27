@@ -73,7 +73,7 @@ export function useTaskEditorController(
         : "单表同步";
   const modeLabel =
     hasFull && hasIncremental ? "全量 + 增量" : hasFull ? "全量" : "增量";
-  const syncPlan = `MySQL · ${scopeLabel} · ${modeLabel}`;
+  const syncPlan = `${definition.source.type === "jdbc" ? "JDBC 离线" : "MySQL CDC"} · ${scopeLabel} · ${modeLabel}`;
 
   const sourceId = definition.source["datasource-id"];
   const sinkId = definition.sink["datasource-id"];
@@ -188,8 +188,12 @@ export function useTaskEditorController(
       openProperties();
       return;
     }
-    if (sourceType !== "MYSQL" || sinkType !== "MYSQL") {
-      setError("当前 Runtime 仅支持 MySQL 来源和 MySQL 目标");
+    const jdbcSource = definition.source.type === "jdbc";
+    const supportedSourceType = jdbcSource
+      ? ["MYSQL", "POSTGRE_SQL", "POSTGRESQL"].includes(sourceType)
+      : sourceType === "MYSQL";
+    if (!supportedSourceType || sinkType !== "MYSQL") {
+      setError("当前 Runtime 支持 MySQL CDC 或 MySQL/PostgreSQL JDBC 离线来源，目标为 MySQL");
       return;
     }
     try {
