@@ -8,9 +8,10 @@ import org.apache.flink.cdc.connectors.mysql.source.metrics.MySqlSourceReaderMet
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.MetricGroup;
 
+import org.junit.jupiter.api.Test;
+
 import io.debezium.data.Envelope;
 import io.debezium.relational.TableId;
-import org.junit.jupiter.api.Test;
 
 class MySqlSourceReaderMetricsTest {
 
