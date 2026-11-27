@@ -279,6 +279,7 @@ export interface DataSyncMetricsExecutionReport {
 export interface DataSyncInstanceRecord {
   executionReport?: DataSyncExecutionReport;
   metricsReport?: DataSyncMetricsExecutionReport | null;
+  metricsReportError?: string;
   workflowInstanceId?: number;
   id: string;
   scope: DataSyncScope;
