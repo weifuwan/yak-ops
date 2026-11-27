@@ -29,10 +29,21 @@ public final class DataSyncConnectorRegistry {
 
     public DataSyncSourceProvider source(DbType type, String connector) {
         DataSyncSourceProvider provider = sources.get(key(type, connector));
-        if (provider == null) {
-            throw new IllegalArgumentException("No DATA_SYNC source provider for " + key(type, connector));
+        if (provider != null) {
+            return provider;
         }
-        return provider;
+        java.util.List<DataSyncSourceProvider> matches =
+                sources.values().stream()
+                        .filter(candidate -> candidate.supports(type, connector))
+                        .collect(java.util.stream.Collectors.toList());
+        if (matches.size() == 1) {
+            return matches.get(0);
+        }
+        if (matches.size() > 1) {
+            throw new IllegalStateException(
+                    "Ambiguous DATA_SYNC source providers for " + key(type, connector));
+        }
+        throw new IllegalArgumentException("No DATA_SYNC source provider for " + key(type, connector));
     }
 
     public DataSyncSinkProvider sink(DbType type, String connector) {
