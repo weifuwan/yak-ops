@@ -33,7 +33,15 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const previous = useRef(readNativeDraft(key));
   const [sourceType, setSourceType] = useState(previous.current?.sourceType || "");
   const [targetType, setTargetType] = useState(previous.current?.targetType || "");
-  const [scope, setScope] = useState<DataSyncScope>(previous.current?.scope || "DATABASE");
+  const previousHasIncremental = previous.current?.steps?.includes("INCREMENTAL") ?? true;
+  const previousScope = previous.current?.scope || "DATABASE";
+  const initialScope =
+    previousScope === "DATABASE" &&
+    previous.current &&
+    (previous.current.sourceType !== "MYSQL" || !previousHasIncremental)
+      ? "MULTI_TABLE"
+      : previousScope;
+  const [scope, setScope] = useState<DataSyncScope>(initialScope);
   const [steps, setSteps] = useState<DataSyncStep[]>(
     previous.current?.steps || ["SCHEMA", "FULL", "INCREMENTAL"],
   );
