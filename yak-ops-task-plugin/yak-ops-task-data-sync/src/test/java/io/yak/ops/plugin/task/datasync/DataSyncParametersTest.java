@@ -1,5 +1,6 @@
 package io.yak.ops.plugin.task.datasync;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -124,6 +125,19 @@ class DataSyncParametersTest {
         DataSyncParameters parameters = valid();
         ((ObjectNode) parameters.getDefinition().path("route").get(0)).put("source-table", "src_db.other");
         assertFalse(parameters.checkParameters());
+    }
+
+
+    @Test
+    void exposesValidatedSourceAndSinkTableMappings() {
+        DataSyncParameters parameters = valid();
+
+        List<DataSyncTableMapping> mappings = parameters.getTableMappings();
+
+        assertEquals(1, mappings.size());
+        assertEquals("src_db.orders", mappings.get(0).getSourceTable());
+        assertEquals("dst_db.orders", mappings.get(0).getSinkTable());
+        assertFalse(mappings.get(0).isDatabaseScope());
     }
 
     @Test
