@@ -193,7 +193,7 @@ export function useTaskEditorController(
       ? Boolean(sourceType) && sourceType !== "SSH"
       : sourceType === "MYSQL";
     if (!supportedSourceType || sinkType !== "MYSQL") {
-      setError("当前 Runtime 支持 MySQL CDC 或 MySQL/PostgreSQL JDBC 离线来源，目标为 MySQL");
+      setError("当前 Runtime 支持 MySQL CDC 或已安装 JDBC 数据源的全量离线来源，目标为 MySQL");
       return;
     }
     try {
