@@ -207,7 +207,12 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
     metricsReport?.finalized && metricsReport.finalSnapshot
       ? metricsReport.finalSnapshot
       : metricsReport?.latestSnapshot;
-  const metricRows = (metricsReport?.tables || []).map((metrics, index) => {
+  const metricRows: Array<{
+    id: string;
+    source: string;
+    target: string;
+    metrics: DataSyncMetricsTableReport;
+  }> = (metricsReport?.tables || []).map((metrics, index) => {
     const mapping = mappings.find((candidate) =>
       (metrics.sourceTable &&
         normalizePath(pathText(candidate.source)) === normalizePath(metrics.sourceTable)) ||
@@ -320,7 +325,10 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
             <div className="text-[11px] text-[#667085]">
               {metricsStateText(metricsReport.metricsState)}
               {" · "}
-              采集序号 {metricsReport.finalized ? metricsReport.finalSequence ?? "—" : metricsReport.latestSequence ?? "—"}
+              采集序号{" "}
+              {metricsReport.finalized
+                ? metricsReport.finalSequence ?? "—"
+                : metricsReport.latestSequence ?? "—"}
               {" · "}
               {collectedAt ? new Date(collectedAt).toLocaleString("zh-CN") : "尚无采集时间"}
             </div>
