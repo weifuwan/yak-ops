@@ -89,6 +89,65 @@ class DataSyncExecutionCoordinatorTest {
     }
 
     @Test
+    void attachesThreeStageSummaryToRealtimeExecutionReports() throws Exception {
+        TaskExecutionContext context = new TaskExecutionContext();
+        context.setTaskInstanceId(42);
+
+        DataSyncExecutionService executionService = mock(DataSyncExecutionService.class);
+        DataSyncMetricsService metricsService = mock(DataSyncMetricsService.class);
+        DataSyncReportPublisher reportPublisher = mock(DataSyncReportPublisher.class);
+        FlinkPipelineExecution pipeline = mock(FlinkPipelineExecution.class);
+
+        DataSyncExecutionHandle handle = DataSyncExecutionHandle.builder()
+                .executionId("execution-realtime")
+                .taskInstanceId(42)
+                .jobId("job-realtime")
+                .deploymentMode("LOCAL_MINICLUSTER")
+                .submittedAt(100L)
+                .build();
+        DataSyncExecutionSnapshot snapshot = DataSyncExecutionSnapshot.builder()
+                .snapshotRecords(12L)
+                .incrementalRecords(3L)
+                .committedRecords(15L)
+                .metricsState("AVAILABLE")
+                .collectedAt(200L)
+                .streamReading(true)
+                .schemaTablesPrepared(1)
+                .schemaPreparedTables(Collections.singletonList("target_db.orders_target"))
+                .tables(Collections.singletonList(DataSyncTableMetrics.builder()
+                        .sourceTable("source_db.orders")
+                        .sinkTable("target_db.orders_target")
+                        .snapshotRecords(12L)
+                        .incrementalRecords(3L)
+                        .committedRecords(15L)
+                        .build()))
+                .build();
+        DataSyncTableMapping mapping = DataSyncTableMapping.builder()
+                .sourceTable("source_db.orders")
+                .sinkTable("target_db.orders_target")
+                .build();
+
+        when(executionService.submit(any(), any(), org.mockito.ArgumentMatchers.eq(42), isNull()))
+                .thenReturn(handle);
+        when(executionService.queryState(handle)).thenReturn(DataSyncExecutionState.FINISHED);
+        when(metricsService.collect(handle)).thenReturn(snapshot);
+        when(reportPublisher.publish(any()))
+                .thenReturn(DataSyncReportAck.accepted("ACCEPTED", 1L));
+
+        DataSyncExecutionCoordinator coordinator = new DataSyncExecutionCoordinator(
+                context, () -> executionService, metricsService, reportPublisher);
+        coordinator.execute(pipeline, Collections.singletonList(mapping), null, null, true);
+
+        ArgumentCaptor<DataSyncReportRequest> reports =
+                ArgumentCaptor.forClass(DataSyncReportRequest.class);
+        verify(reportPublisher, times(2)).publish(reports.capture());
+        DataSyncReportRequest finalReport = reports.getAllValues().get(1);
+        assertEquals(3, finalReport.getSummary().getExecutionSummary().getStages().size());
+        assertEquals("STREAMING", finalReport.getSummary().getExecutionSummary().getPhase());
+        assertEquals("FINISHED", finalReport.getSummary().getExecutionSummary().getStages().get(2).getStatus());
+    }
+
+    @Test
     void publishesCheckpointAndRecoveryLineageWithTheFinalReport() throws Exception {
         TaskExecutionContext context = new TaskExecutionContext();
         context.setTaskInstanceId(42);

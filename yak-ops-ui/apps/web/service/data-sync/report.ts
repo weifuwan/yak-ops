@@ -136,10 +136,11 @@ function validStages(stages: unknown): stages is DataSyncStageResult[] {
           stage.progressPercent >= 0 &&
           stage.progressPercent <= 100)) &&
       (index === 0 ||
-        (stage.progressPercent === null &&
-          stage.plannedSplits === null &&
+        (stage.plannedSplits === null &&
           stage.completedSplits === null &&
-          stage.status !== "FINISHED")) &&
+          (stage.status === "FINISHED"
+            ? stage.progressPercent === 100
+            : stage.progressPercent === null))) &&
       (stage.status !== "FINISHED" || stage.progressPercent === 100) &&
       (stage.failureCode === null || ["READ_FAILED", "WRITE_FAILED"].includes(stage.failureCode)),
   );

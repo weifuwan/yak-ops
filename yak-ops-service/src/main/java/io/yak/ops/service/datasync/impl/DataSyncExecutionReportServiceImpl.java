@@ -21,9 +21,14 @@ import io.yak.ops.service.datasync.model.DataSyncExecutionReportDetail;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -167,6 +172,43 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
                         report.getFinalSnapshotJson(), DataSyncExecutionMetrics.class))
                 .tables(tables)
                 .build();
+    }
+
+    @Override
+    public Map<Integer, String> getLatestExecutionReports(List<Integer> taskInstanceIds) {
+        if (taskInstanceIds == null || taskInstanceIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Integer> requestedIds = taskInstanceIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+        if (requestedIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Integer, String> reports = new LinkedHashMap<>();
+        Set<Integer> seenTaskInstances = new HashSet<>();
+        for (DataSyncExecutionReport report : executionReportDao.queryLatestByTaskInstanceIds(requestedIds)) {
+            if (report == null || report.getTaskInstanceId() == null
+                    || !seenTaskInstances.add(report.getTaskInstanceId())) {
+                continue;
+            }
+            String snapshotJson = StringUtils.isNotBlank(report.getLatestSnapshotJson())
+                    ? report.getLatestSnapshotJson()
+                    : report.getFinalSnapshotJson();
+            if (StringUtils.isBlank(snapshotJson)) {
+                continue;
+            }
+            DataSyncExecutionMetrics snapshot =
+                    JSONUtils.parseObject(snapshotJson, DataSyncExecutionMetrics.class);
+            if (snapshot != null && snapshot.getExecutionSummary() != null) {
+                reports.put(
+                        report.getTaskInstanceId(),
+                        JSONUtils.toJsonString(snapshot.getExecutionSummary()));
+            }
+        }
+        return reports;
     }
 
     private void persistRecoveryPoint(DataSyncReportRequest request, TaskInstance taskInstance, Date now) {

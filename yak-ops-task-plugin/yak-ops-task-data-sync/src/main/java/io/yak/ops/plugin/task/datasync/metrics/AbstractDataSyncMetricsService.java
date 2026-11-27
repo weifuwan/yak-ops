@@ -22,6 +22,9 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
     private static final String DDL = "numDDLRecords";
     private static final String COMMITTED = "numCommittedRecords";
     private static final String ERRORS = "numRecordsInErrors";
+    private static final String SNAPSHOT_SPLITS_PROCESSED = "numSnapshotSplitsProcessed";
+    private static final String SNAPSHOT_SPLITS_REMAINING = "numSnapshotSplitsRemaining";
+    private static final String SNAPSHOT_SPLITS_FINISHED = "numSnapshotSplitsFinished";
 
     @Override
     public final DataSyncExecutionSnapshot collect(DataSyncExecutionHandle handle) throws Exception {
@@ -41,22 +44,61 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
         CounterSet summary = new CounterSet();
         Map<String, CounterSet> sourceCounters = new LinkedHashMap<>();
         Map<String, CounterSet> sinkCounters = new LinkedHashMap<>();
+        Map<String, SplitCounterSet> splitCounters = new LinkedHashMap<>();
+        Set<String> schemaPreparedTables = new LinkedHashSet<>();
+        Long snapshottingMetric = null;
+        Long streamReadingMetric = null;
+        Long sourceTablesSnapshotted = null;
+        Long sourceTablesRemaining = null;
+        Long schemaTablesPreparedMetric = null;
 
         for (Map.Entry<String, Long> entry : availableMetrics.entrySet()) {
             String metricId = entry.getKey();
-            if (metricId == null) {
+            Long value = entry.getValue();
+            if (metricId == null || value == null) {
                 continue;
             }
             String metricName = metricId.substring(metricId.lastIndexOf('.') + 1);
             String tableId = extractTableIdentifier(metricId);
+            if (tableId != null && "schemaPrepared".equals(metricName)) {
+                if (value > 0L) {
+                    schemaPreparedTables.add(tableId);
+                }
+                continue;
+            }
+            if (tableId != null && isSnapshotSplitMetric(metricName)) {
+                splitCounters.computeIfAbsent(tableId, ignored -> new SplitCounterSet())
+                        .add(metricName, value);
+                continue;
+            }
             if (tableId == null) {
-                summary.add(metricName, entry.getValue());
-            } else if (COMMITTED.equals(metricName)) {
+                switch (metricName) {
+                    case "isSnapshotting":
+                        snapshottingMetric = max(snapshottingMetric, value);
+                        continue;
+                    case "isStreamReading":
+                        streamReadingMetric = max(streamReadingMetric, value);
+                        continue;
+                    case "numTablesSnapshotted":
+                        sourceTablesSnapshotted = max(sourceTablesSnapshotted, value);
+                        continue;
+                    case "numTablesRemaining":
+                        sourceTablesRemaining = max(sourceTablesRemaining, value);
+                        continue;
+                    case "numSchemaTablesPrepared":
+                        schemaTablesPreparedMetric = max(schemaTablesPreparedMetric, value);
+                        continue;
+                    default:
+                        summary.add(metricName, value);
+                        continue;
+                }
+            }
+            if (COMMITTED.equals(metricName)) {
                 sinkCounters.computeIfAbsent(tableId, ignored -> new CounterSet())
-                        .add(metricName, entry.getValue());
+                        .add(metricName, value);
             } else if (isSourceMetric(metricName)) {
                 sourceCounters.computeIfAbsent(tableId, ignored -> new CounterSet())
-                        .add(metricName, entry.getValue());
+                        .add(metricName, value);
             }
         }
 
@@ -78,6 +120,13 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
 
         List<DataSyncTableMetrics> tables =
                 buildTableMetrics(sourceCounters, sinkCounters, mappings);
+        List<DataSyncTableSplitMetrics> tableSplits = buildTableSplitMetrics(splitCounters);
+        Integer sourceTablesTotal = sourceTablesSnapshotted == null || sourceTablesRemaining == null
+                ? null
+                : safeCount(sourceTablesSnapshotted + sourceTablesRemaining);
+        Integer schemaTablesPrepared = schemaTablesPreparedMetric == null
+                ? schemaPreparedTables.size()
+                : safeCount(schemaTablesPreparedMetric);
         String state = snapshotRecords == null || committedRecords == null
                 ? "PARTIAL"
                 : "AVAILABLE";
@@ -97,6 +146,12 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
                 .errorRecords(errorRecords)
                 .collectedAt(collectedAt)
                 .metricsState(state)
+                .snapshotting(toBoolean(snapshottingMetric))
+                .streamReading(toBoolean(streamReadingMetric))
+                .sourceTablesTotal(sourceTablesTotal)
+                .schemaTablesPrepared(schemaTablesPrepared)
+                .schemaPreparedTables(new ArrayList<>(schemaPreparedTables))
+                .tableSplits(tableSplits)
                 .tables(tables)
                 .build();
     }
@@ -231,6 +286,47 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
                 || DELETE.equals(name) || DDL.equals(name) || ERRORS.equals(name);
     }
 
+    private static boolean isSnapshotSplitMetric(String name) {
+        return SNAPSHOT_SPLITS_PROCESSED.equals(name)
+                || SNAPSHOT_SPLITS_REMAINING.equals(name)
+                || SNAPSHOT_SPLITS_FINISHED.equals(name);
+    }
+
+    private static List<DataSyncTableSplitMetrics> buildTableSplitMetrics(
+            Map<String, SplitCounterSet> countersByTable) {
+        List<DataSyncTableSplitMetrics> result = new ArrayList<>();
+        for (Map.Entry<String, SplitCounterSet> entry : countersByTable.entrySet()) {
+            SplitCounterSet counters = entry.getValue();
+            Long processed = counters.value(SNAPSHOT_SPLITS_PROCESSED);
+            Long remaining = counters.value(SNAPSHOT_SPLITS_REMAINING);
+            Long planned = processed == null && remaining == null
+                    ? null
+                    : valueOrZero(processed) + valueOrZero(remaining);
+            result.add(DataSyncTableSplitMetrics.builder()
+                    .tableIdentifier(entry.getKey())
+                    .plannedSplits(planned)
+                    .completedSplits(counters.value(SNAPSHOT_SPLITS_FINISHED))
+                    .build());
+        }
+        return result;
+    }
+
+    private static Boolean toBoolean(Long value) {
+        return value == null ? null : value > 0L;
+    }
+
+    private static Long max(Long left, Long right) {
+        return left == null ? right : Math.max(left, right);
+    }
+
+    private static long valueOrZero(Long value) {
+        return value == null ? 0L : value;
+    }
+
+    private static Integer safeCount(long value) {
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, value));
+    }
+
     private static Long firstNonNull(Long value, Long fallback) {
         return value == null ? fallback : value;
     }
@@ -289,6 +385,21 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
             parts.add(table);
         }
         return parts.isEmpty() ? null : String.join(".", parts);
+    }
+
+    private static final class SplitCounterSet {
+
+        private final Map<String, Long> values = new HashMap<>();
+
+        private void add(String name, Long value) {
+            if (isSnapshotSplitMetric(name) && value != null) {
+                values.put(name, value);
+            }
+        }
+
+        private Long value(String name) {
+            return values.get(name);
+        }
     }
 
     private static final class CounterSet {

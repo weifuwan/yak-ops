@@ -29,4 +29,7 @@ public class DataSyncExecutionMetrics {
     private Long ddlEvents;
 
     private Long errorRecords;
+
+    /** Optional stage observation; stored with the existing latest/final snapshot JSON. */
+    private DataSyncExecutionSummary executionSummary;
 }

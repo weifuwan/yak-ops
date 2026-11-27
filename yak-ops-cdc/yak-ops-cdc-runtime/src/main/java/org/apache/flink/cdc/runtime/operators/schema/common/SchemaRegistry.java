@@ -20,6 +20,8 @@ import org.apache.flink.cdc.runtime.operators.schema.common.event.GetOriginalSch
 import org.apache.flink.cdc.runtime.operators.schema.common.event.GetOriginalSchemaResponse;
 import org.apache.flink.cdc.runtime.operators.schema.common.event.SinkWriterRegisterEvent;
 import org.apache.flink.cdc.runtime.operators.sink.SchemaEvolutionClient;
+import org.apache.flink.metrics.Gauge;
+import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.operators.coordination.CoordinationRequest;
 import org.apache.flink.runtime.operators.coordination.CoordinationRequestHandler;
 import org.apache.flink.runtime.operators.coordination.CoordinationResponse;
@@ -46,6 +48,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 
 import static org.apache.flink.cdc.runtime.operators.schema.common.CoordinationResponseUtils.wrap;
@@ -92,6 +95,9 @@ public abstract class SchemaRegistry implements OperatorCoordinator, Coordinatio
     protected transient TableIdRouter router;
     protected transient ExistingTableSchemaExpander existingTableSchemaExpander;
 
+    private transient Map<TableId, AtomicBoolean> preparedSchemaTables;
+    private transient MetricGroup schemaMetricGroup;
+
     private final Object lifecycleLock = new Object();
     private volatile boolean resetting;
     private volatile long generation;
@@ -133,6 +139,17 @@ public abstract class SchemaRegistry implements OperatorCoordinator, Coordinatio
         this.currentParallelism = context.currentParallelism();
         this.activeSinkWriters = ConcurrentHashMap.newKeySet();
         this.failedReasons = new ConcurrentHashMap<>();
+        if (preparedSchemaTables == null) {
+            preparedSchemaTables = new ConcurrentHashMap<>();
+        }
+        if (schemaMetricGroup == null && context.metricGroup() != null) {
+            schemaMetricGroup = context.metricGroup().addGroup("yakOpsSchema");
+            schemaMetricGroup.gauge(
+                    "numSchemaTablesPrepared",
+                    (Gauge<Integer>) () -> (int) preparedSchemaTables.values().stream()
+                            .filter(AtomicBoolean::get)
+                            .count());
+        }
         if (this.schemaManager == null) {
             this.schemaManager = new SchemaManager();
         }
@@ -190,6 +207,30 @@ public abstract class SchemaRegistry implements OperatorCoordinator, Coordinatio
                     (CreateTableEvent) schemaChangeEvent);
         }
         return true;
+    }
+
+    /** Records a target table only after its initial schema has been accepted by the sink. */
+    protected void recordSchemaTablePrepared(SchemaChangeEvent schemaChangeEvent) {
+        if (!(schemaChangeEvent instanceof CreateTableEvent) || preparedSchemaTables == null) {
+            return;
+        }
+        TableId tableId = schemaChangeEvent.tableId();
+        AtomicBoolean prepared = preparedSchemaTables.computeIfAbsent(tableId, id -> {
+            AtomicBoolean state = new AtomicBoolean();
+            if (schemaMetricGroup != null) {
+                schemaMetricGroup
+                        .addGroup("namespace", metricGroupValue(id.getNamespace()))
+                        .addGroup("schema", metricGroupValue(id.getSchemaName()))
+                        .addGroup("table", metricGroupValue(id.getTableName()))
+                        .gauge("schemaPrepared", (Gauge<Integer>) () -> state.get() ? 1 : 0);
+            }
+            return state;
+        });
+        prepared.set(true);
+    }
+
+    private static String metricGroupValue(String value) {
+        return value == null ? "" : value;
     }
 
     @Override
@@ -405,6 +446,9 @@ public abstract class SchemaRegistry implements OperatorCoordinator, Coordinatio
         shutdown();
         if (checkpointData == null) {
             schemaManager = new SchemaManager();
+            if (preparedSchemaTables != null) {
+                preparedSchemaTables.values().forEach(prepared -> prepared.set(false));
+            }
         } else {
             restore(checkpointData);
         }

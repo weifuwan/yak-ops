@@ -15,4 +15,17 @@ public interface DataSyncExecutionReportMapper extends BaseMapper<DataSyncExecut
     @Select("SELECT * FROM t_yak_ops_data_sync_execution_report "
             + "WHERE task_instance_id = #{taskInstanceId} ORDER BY submitted_at DESC, create_time DESC, id DESC LIMIT 1")
     DataSyncExecutionReport queryLatestByTaskInstanceId(@Param("taskInstanceId") int taskInstanceId);
+
+    @Select({
+            "<script>",
+            "SELECT * FROM t_yak_ops_data_sync_execution_report",
+            "WHERE task_instance_id IN",
+            "<foreach collection='taskInstanceIds' item='taskInstanceId' open='(' separator=',' close=')'>",
+            "#{taskInstanceId}",
+            "</foreach>",
+            "ORDER BY task_instance_id ASC, submitted_at DESC, create_time DESC, id DESC",
+            "</script>"
+    })
+    java.util.List<DataSyncExecutionReport> queryLatestByTaskInstanceIds(
+            @Param("taskInstanceIds") java.util.List<Integer> taskInstanceIds);
 }

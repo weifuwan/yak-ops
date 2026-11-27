@@ -545,6 +545,7 @@ public class SchemaCoordinator extends SchemaRegistry {
                 metadataApplier.applySchemaChange(schemaChangeEvent);
             }
             schemaManager.applyEvolvedSchemaChange(schemaChangeEvent);
+            recordSchemaTablePrepared(schemaChangeEvent);
             LOG.info(
                     "Successfully applied schema change event {} to external system.",
                     schemaChangeEvent);

@@ -1,6 +1,7 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.extract.master.transportor.DataSyncExecutionMetrics;
+import io.yak.ops.extract.master.transportor.DataSyncExecutionSummary;
 import io.yak.ops.extract.master.transportor.DataSyncRecoveryPointReport;
 import io.yak.ops.extract.master.transportor.DataSyncReportAck;
 import io.yak.ops.extract.master.transportor.DataSyncReportRequest;
@@ -9,6 +10,7 @@ import io.yak.ops.plugin.task.api.TaskExecutionContext;
 import io.yak.ops.plugin.task.datasync.DataSyncTableMapping;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncExecutionSnapshot;
 import io.yak.ops.plugin.task.datasync.metrics.DataSyncMetricsService;
+import io.yak.ops.plugin.task.datasync.report.DataSyncExecutionSummaryTracker;
 import io.yak.ops.plugin.task.datasync.report.DataSyncReportPublisher;
 
 import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
@@ -69,22 +71,22 @@ public class DataSyncExecutionCoordinator {
     }
 
     public void execute(FlinkPipelineExecution execution) throws Exception {
-        execute(execution, Collections.emptyList(), null, null);
+        execute(execution, Collections.emptyList(), null, null, false);
     }
 
     public void execute(
                         FlinkPipelineExecution execution, List<DataSyncTableMapping> tableMappings) throws Exception {
-        execute(execution, tableMappings, null, null);
+        execute(execution, tableMappings, null, null, false);
     }
 
     public void execute(FlinkPipelineExecution execution, String restorePath) throws Exception {
-        execute(execution, Collections.emptyList(), restorePath, null);
+        execute(execution, Collections.emptyList(), restorePath, null, false);
     }
 
     public void execute(
                         FlinkPipelineExecution execution, String restorePath, String recoveredFromRecoveryPointId)
             throws Exception {
-        execute(execution, Collections.emptyList(), restorePath, recoveredFromRecoveryPointId);
+        execute(execution, Collections.emptyList(), restorePath, recoveredFromRecoveryPointId, false);
     }
 
     public void execute(
@@ -92,6 +94,15 @@ public class DataSyncExecutionCoordinator {
                         List<DataSyncTableMapping> tableMappings,
                         String restorePath,
                         String recoveredFromRecoveryPointId) throws Exception {
+        execute(execution, tableMappings, restorePath, recoveredFromRecoveryPointId, false);
+    }
+
+    public void execute(
+                        FlinkPipelineExecution execution,
+                        List<DataSyncTableMapping> tableMappings,
+                        String restorePath,
+                        String recoveredFromRecoveryPointId,
+                        boolean realtime) throws Exception {
         if (cancelRequested.get()) {
             cancellationConfirmed = true;
             return;
@@ -118,6 +129,12 @@ public class DataSyncExecutionCoordinator {
             handle.setTableMappings(tableMappings == null
                     ? Collections.emptyList()
                     : new ArrayList<>(tableMappings));
+            DataSyncExecutionSummaryTracker summaryTracker = realtime
+                    && handle.getTableMappings() != null
+                    && !handle.getTableMappings().isEmpty()
+                    ? new DataSyncExecutionSummaryTracker(
+                            handle.getTableMappings(), restorePath != null && !restorePath.trim().isEmpty())
+                    : null;
             if (cancelRequested.get()) {
                 dispatchCancellation();
             }
@@ -130,7 +147,7 @@ public class DataSyncExecutionCoordinator {
                     latestRecoveryPoint = collectLatestCheckpointOrReuse(
                             executionService, handle, latestRecoveryPoint);
                     publish(handle, ++sequence, "SNAPSHOT", finalState, latestSnapshot,
-                            latestRecoveryPoint, recoveredFromRecoveryPointId);
+                            latestRecoveryPoint, recoveredFromRecoveryPointId, summaryTracker);
                     nextMetricsTime = now + METRICS_POLL_INTERVAL_MILLIS;
                 }
 
@@ -139,7 +156,7 @@ public class DataSyncExecutionCoordinator {
                     latestRecoveryPoint = collectLatestCheckpointOrReuse(
                             executionService, handle, latestRecoveryPoint);
                     publish(handle, ++sequence, "FINAL", finalState, finalSnapshot,
-                            latestRecoveryPoint, recoveredFromRecoveryPointId);
+                            latestRecoveryPoint, recoveredFromRecoveryPointId, summaryTracker);
                     if (finalState == DataSyncExecutionState.CANCELED) {
                         cancellationConfirmed = true;
                     }
@@ -313,7 +330,17 @@ public class DataSyncExecutionCoordinator {
                          DataSyncExecutionState state,
                          DataSyncExecutionSnapshot snapshot,
                          DataSyncRecoveryPointSnapshot recoveryPoint,
-                         String recoveredFromRecoveryPointId) {
+                         String recoveredFromRecoveryPointId,
+                         DataSyncExecutionSummaryTracker summaryTracker) {
+        DataSyncExecutionSummary executionSummary = null;
+        if (summaryTracker != null) {
+            try {
+                executionSummary = summaryTracker.update(snapshot, state, recoveryPoint);
+            } catch (RuntimeException exception) {
+                log.warn("Failed to build CDC execution stage summary, executionId={}",
+                        current.getExecutionId(), exception);
+            }
+        }
         DataSyncExecutionMetrics summary = DataSyncExecutionMetrics.builder()
                 .readRecords(snapshot.getReadRecords())
                 .snapshotRecords(snapshot.getSnapshotRecords())
@@ -324,6 +351,7 @@ public class DataSyncExecutionCoordinator {
                 .committedRecords(snapshot.getCommittedRecords())
                 .ddlEvents(snapshot.getDdlEvents())
                 .errorRecords(snapshot.getErrorRecords())
+                .executionSummary(executionSummary)
                 .build();
 
         java.util.List<DataSyncTableMetrics> tables = snapshot.getTables().stream()

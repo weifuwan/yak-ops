@@ -557,8 +557,21 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         List<Long> workflowCodes = new ArrayList<>(new LinkedHashSet<>(workflowCodeByTask.values()));
         List<TaskInstance> latestTaskInstances = taskInstanceDao.queryLatestByTaskCodes(
                 projectCode, TASK_TYPE, requestedCodes, null);
+        List<Integer> latestInstanceIds = latestTaskInstances.stream()
+                .map(TaskInstance::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        Map<Integer, String> executionReports = dataSyncExecutionReportService
+                .getLatestExecutionReports(latestInstanceIds);
+        if (executionReports == null) {
+            executionReports = Collections.emptyMap();
+        }
+        final Map<Integer, String> executionReportByInstance = executionReports;
         Map<Long, DataSyncInstanceVO> taskInstancesByCode = latestTaskInstances.stream()
-                .collect(Collectors.toMap(TaskInstance::getTaskCode, instance -> toInstanceVO(instance, null, null)));
+                .collect(Collectors.toMap(
+                        TaskInstance::getTaskCode,
+                        instance -> toInstanceVO(
+                                instance, null, null, executionReportByInstance.get(instance.getId()))));
 
         List<WorkflowInstance> latestWorkflows =
                 workflowInstanceDao.queryLatestByWorkflowDefinitionCodes(projectCode, workflowCodes);
@@ -1012,17 +1025,27 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 }
             });
         }
+        Map<Integer, String> executionReports = dataSyncExecutionReportService
+                .getLatestExecutionReports(instanceIds);
+        if (executionReports == null) {
+            executionReports = Collections.emptyMap();
+        }
+        final Map<Integer, String> executionReportByInstance = executionReports;
 
         return instances.stream()
                 .map(instance -> toInstanceVO(
                         instance,
                         workflows.get(instance.getWorkflowInstanceId()),
-                        recoveryPoints.get(instance.getId())))
+                        recoveryPoints.get(instance.getId()),
+                        executionReportByInstance.get(instance.getId())))
                 .collect(Collectors.toList());
     }
 
     private DataSyncInstanceVO toInstanceVO(
-            TaskInstance instance, WorkflowInstance workflow, DataSyncRecoveryPoint recoveryPoint) {
+            TaskInstance instance,
+            WorkflowInstance workflow,
+            DataSyncRecoveryPoint recoveryPoint,
+            String executionReport) {
         boolean stream = instance.getTaskExecuteType() == TaskExecuteType.STREAM;
         boolean recoveryRequired = stream && (instance.getState() == TaskExecutionStatus.KILL
                 || instance.getState() == TaskExecutionStatus.PAUSE
@@ -1053,6 +1076,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
                 .recoveryPointUsedByInstanceId(recoveryPoint == null
                         ? null : recoveryPoint.getUsedByInstanceId())
                 .recoveryUnavailableReason(recoveryUnavailableReason(recoveryRequired, recoveryPoint))
+                .executionReport(executionReport)
                 .createTime(instance.getFirstSubmitTime())
                 .startTime(instance.getStartTime())
                 .endTime(instance.getEndTime())

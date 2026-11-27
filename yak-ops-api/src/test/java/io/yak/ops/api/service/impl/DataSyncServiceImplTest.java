@@ -222,6 +222,9 @@ class DataSyncServiceImplTest {
         when(workflowInstanceDao.queryLatestByWorkflowDefinitionCodes(eq(PROJECT_CODE),
                 eq(Arrays.asList(501L, 502L))))
                 .thenReturn(Collections.singletonList(workflow));
+        String executionReport = "{\\"version\\":3}";
+        when(dataSyncExecutionReportService.getLatestExecutionReports(eq(Collections.singletonList(42))))
+                .thenReturn(Collections.singletonMap(42, executionReport));
 
         List<DataSyncTaskExecutionStateVO> result =
                 service.latestExecutionStates(user, PROJECT_CODE, Arrays.asList(99L, 100L));
@@ -231,6 +234,7 @@ class DataSyncServiceImplTest {
         assertEquals(200, result.get(0).getWorkflow().getId());
         assertEquals(501L, result.get(0).getWorkflow().getWorkflowDefinitionCode());
         assertEquals("42", result.get(0).getTaskInstance().getId());
+        assertEquals(executionReport, result.get(0).getTaskInstance().getExecutionReport());
         assertEquals("100", result.get(1).getTaskCode());
         assertNull(result.get(1).getWorkflow());
         assertNull(result.get(1).getTaskInstance());
@@ -242,6 +246,8 @@ class DataSyncServiceImplTest {
                 eq(Arrays.asList(99L, 100L)), isNull());
         verify(workflowInstanceDao).queryLatestByWorkflowDefinitionCodes(eq(PROJECT_CODE),
                 eq(Arrays.asList(501L, 502L)));
+        verify(dataSyncExecutionReportService)
+                .getLatestExecutionReports(eq(Collections.singletonList(42)));
     }
 
     private static DataSyncExecutionDailyRow dailyRow(String day, int executeType, int state, long count) {

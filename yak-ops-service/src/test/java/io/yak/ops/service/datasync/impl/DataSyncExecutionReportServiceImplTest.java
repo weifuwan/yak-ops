@@ -373,6 +373,41 @@ class DataSyncExecutionReportServiceImplTest {
                 org.mockito.ArgumentMatchers.eq(true));
     }
 
+    @Test
+    void returnsLatestStageObservationsInOneBatchWithoutFallingBackToOlderReports() {
+        String summaryJson = "{\\"executionSummary\\":{"
+                + "\\"version\\":3,"
+                + "\\"observedAt\\":\\"2026-11-27T09:00:00Z\\","
+                + "\\"generation\\":0,"
+                + "\\"restored\\":false,"
+                + "\\"counterScope\\":\\"GENERATION\\","
+                + "\\"phase\\":\\"SNAPSHOT\\","
+                + "\\"checkpoints\\":{\\"handoffId\\":null,\\"completedId\\":null},"
+                + "\\"stages\\":[],\\"tables\\":[]}}";
+        when(executionReportDao.queryLatestByTaskInstanceIds(java.util.List.of(42, 43)))
+                .thenReturn(java.util.List.of(
+                        DataSyncExecutionReport.builder()
+                                .taskInstanceId(42)
+                                .latestSnapshotJson(summaryJson)
+                                .build(),
+                        DataSyncExecutionReport.builder()
+                                .taskInstanceId(43)
+                                .latestSnapshotJson("{\\"readRecords\\":10}")
+                                .build(),
+                        DataSyncExecutionReport.builder()
+                                .taskInstanceId(43)
+                                .latestSnapshotJson(summaryJson)
+                                .build()));
+
+        java.util.Map<Integer, String> reports =
+                service.getLatestExecutionReports(java.util.List.of(42, 43));
+
+        assertTrue(reports.containsKey(42));
+        assertTrue(reports.get(42).contains("SNAPSHOT"));
+        assertFalse(reports.containsKey(43));
+        verify(executionReportDao).queryLatestByTaskInstanceIds(java.util.List.of(42, 43));
+    }
+
     private static DataSyncReportRequest request(long sequence, String reportType) {
         return DataSyncReportRequest.builder()
                 .protocolVersion(1)

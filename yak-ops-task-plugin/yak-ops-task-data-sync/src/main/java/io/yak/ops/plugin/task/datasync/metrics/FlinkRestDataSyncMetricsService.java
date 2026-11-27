@@ -35,6 +35,17 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
             "numCommittedRecords",
             "numRecordsInErrors");
 
+    private static final List<String> COORDINATOR_METRIC_NAMES = List.of(
+            "isSnapshotting",
+            "isStreamReading",
+            "numTablesSnapshotted",
+            "numTablesRemaining",
+            "numSnapshotSplitsProcessed",
+            "numSnapshotSplitsRemaining",
+            "numSnapshotSplitsFinished",
+            "numSchemaTablesPrepared",
+            "schemaPrepared");
+
     private final HttpClient httpClient;
 
     public FlinkRestDataSyncMetricsService() {
@@ -68,7 +79,13 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
             for (int subtask = 0; subtask < parallelism; subtask++) {
                 String metricPath = "/jobs/" + handle.getJobId() + "/vertices/" + vertexId
                         + "/subtasks/" + subtask + "/metrics";
-                JsonNode availableMetrics = getJson(baseUrl + metricPath);
+                JsonNode availableMetrics;
+                try {
+                    availableMetrics = getJson(baseUrl + metricPath);
+                } catch (IOException ignored) {
+                    // A vertex can still be initializing while its JobManager metrics are available.
+                    continue;
+                }
                 List<String> metricIds = new ArrayList<>();
                 if (availableMetrics.isArray()) {
                     for (JsonNode metric : availableMetrics) {
@@ -85,7 +102,12 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
                 String requestedMetrics = metricIds.stream()
                         .map(value -> URLEncoder.encode(value, StandardCharsets.UTF_8))
                         .collect(Collectors.joining(","));
-                JsonNode values = getJson(baseUrl + metricPath + "?get=" + requestedMetrics);
+                JsonNode values;
+                try {
+                    values = getJson(baseUrl + metricPath + "?get=" + requestedMetrics);
+                } catch (IOException ignored) {
+                    continue;
+                }
                 if (values.isArray()) {
                     for (JsonNode metric : values) {
                         String metricId = metric.path("id").asText();
@@ -100,8 +122,58 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
                     }
                 }
             }
+            collectCoordinatorMetrics(baseUrl, handle.getJobId(), vertexId, result);
         }
         return result;
+    }
+
+    private void collectCoordinatorMetrics(
+            String baseUrl, String jobId, String vertexId, Map<String, Long> result)
+            throws InterruptedException {
+        String metricPath = "/jobs/" + jobId + "/vertices/" + vertexId + "/jm-operator-metrics";
+        JsonNode availableMetrics;
+        try {
+            availableMetrics = getJson(baseUrl + metricPath);
+        } catch (IOException ignored) {
+            // Vertices without a JobManager operator coordinator expose no coordinator metrics.
+            return;
+        }
+        if (!availableMetrics.isArray()) {
+            return;
+        }
+
+        List<String> metricIds = new ArrayList<>();
+        for (JsonNode metric : availableMetrics) {
+            String metricId = metric.path("id").asText();
+            if (isSupportedCoordinatorMetric(metricId)) {
+                metricIds.add(metricId);
+            }
+        }
+        if (metricIds.isEmpty()) {
+            return;
+        }
+
+        String requestedMetrics = metricIds.stream()
+                .map(value -> URLEncoder.encode(value, StandardCharsets.UTF_8))
+                .collect(Collectors.joining(","));
+        JsonNode values;
+        try {
+            values = getJson(baseUrl + metricPath + "?get=" + requestedMetrics);
+        } catch (IOException ignored) {
+            return;
+        }
+        if (!values.isArray()) {
+            return;
+        }
+        for (JsonNode metric : values) {
+            String metricId = metric.path("id").asText();
+            String value = metric.path("value").asText();
+            try {
+                result.put(vertexId + ".coordinator." + metricId, Long.parseLong(value));
+            } catch (NumberFormatException ignored) {
+                // Phase and split gauges are expected to be numeric.
+            }
+        }
     }
 
     private JsonNode getJson(String url) throws IOException, InterruptedException {
@@ -132,6 +204,15 @@ public class FlinkRestDataSyncMetricsService extends AbstractDataSyncMetricsServ
 
     private static boolean isSupportedMetric(String metricId) {
         for (String metricName : METRIC_NAMES) {
+            if (metricId.equals(metricName) || metricId.endsWith("." + metricName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isSupportedCoordinatorMetric(String metricId) {
+        for (String metricName : COORDINATOR_METRIC_NAMES) {
             if (metricId.equals(metricName) || metricId.endsWith("." + metricName)) {
                 return true;
             }

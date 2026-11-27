@@ -39,6 +39,20 @@ public class DataSyncExecutionSnapshot {
 
     private String errorMessage;
 
+    private Boolean snapshotting;
+
+    private Boolean streamReading;
+
+    private Integer sourceTablesTotal;
+
+    private Integer schemaTablesPrepared;
+
+    @Builder.Default
+    private List<String> schemaPreparedTables = Collections.emptyList();
+
+    @Builder.Default
+    private List<DataSyncTableSplitMetrics> tableSplits = Collections.emptyList();
+
     @Builder.Default
     private List<DataSyncTableMetrics> tables = Collections.emptyList();
 }
