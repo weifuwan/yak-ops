@@ -245,7 +245,24 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+      - name: Check if JDBC connector metrics changed
+        id: changed
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          if git diff --name-only "$BASE_SHA" HEAD | grep -Eq '^yak-ops-cdc/.*/yak-ops-cdc-pipeline-connector-jdbc-core/'; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_tests=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run JDBC table writer metrics regression tests
+        if: steps.changed.outputs.run_tests == 'true'
         shell: bash
         run: |
           mvn -B -ntp -T 2 -pl :yak-ops-cdc-pipeline-connector-jdbc-core -am \
@@ -253,7 +270,7 @@ jobs:
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipUT=false -Dspotless.skip=true -Djacoco.skip=true -Danalyze.skip=true test
       - name: Require JDBC metrics regression tests
-        if: always()
+        if: always() && steps.changed.outputs.run_tests == 'true'
         shell: bash
         run: |
           python3 - <<'PY'
