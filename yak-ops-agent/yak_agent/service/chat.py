@@ -171,6 +171,7 @@ async def run_turn(
             },
         )
         if memory is not None:
+            memory.remember(text)
             pre_ids = await _inject_memory(memory, state, text, pre_ids)
         msg: Any = UserMsg(name="user", content=text)
         while True:
