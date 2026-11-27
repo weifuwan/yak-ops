@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Button,
   Modal,
@@ -123,13 +123,15 @@ function OperationsDataSyncInstancesPage({ syncType }: { syncType: DataSyncType 
       width: "30%",
       render: (_v, r) => (
         <div className="flex min-w-0 flex-col gap-1">
-          <div className="truncate text-sm font-medium text-[var(--yak-components-panel-text)]">
+          <Link
+            to={`/operations/${syncType === "REALTIME" ? "realtime" : "offline"}/tasks?keyword=${encodeURIComponent(r.taskName || String(r.taskId))}`}
+            className="truncate text-sm font-medium text-[var(--yak-color-primary)] hover:underline"
+            title={r.taskName || `同步任务 #${r.taskId}`}
+          >
             {r.taskName || `同步任务 #${r.taskId}`}
-          </div>
+          </Link>
           <div className="truncate text-xs leading-4 text-[var(--yak-components-muted-text)]">
-            <span>实例 #{r.id}</span>
-            <span className="mx-1.5">·</span>
-            <span>任务 #{r.taskId}</span>
+            实例 #{r.id}
           </div>
         </div>
       ),
