@@ -27,7 +27,7 @@ class JdbcSplitGeneratorTest {
                         .build();
 
         List<JdbcSourceSplit> splits =
-                JdbcCatalog.createRangeSplits(
+                JdbcSplitGenerator.createRangeSplits(
                         tableId,
                         schema,
                         "id",
