@@ -12,6 +12,7 @@
     <modules>
         <module>yak-ops-cdc-pipeline-connector-jdbc-core</module>
         <module>yak-ops-cdc-pipeline-connector-jdbc-mysql</module>
+        <module>yak-ops-cdc-pipeline-connector-jdbc-source</module>
         <module>yak-ops-cdc-pipeline-connector-jdbc</module>
     </modules>
 
