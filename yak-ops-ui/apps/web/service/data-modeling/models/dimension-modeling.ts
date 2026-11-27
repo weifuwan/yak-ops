@@ -112,7 +112,7 @@ export type DorisPublishRecord = {
   tableModel?: DorisTableModel;
   publishMode?: DorisPublishMode;
   publishRemark?: string;
-  ddl?: string;
+  ddl_content?: string;
   ddlHash?: string;
   physicalSchema?: string;
   noChanges?: boolean;
