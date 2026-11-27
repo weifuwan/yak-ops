@@ -30,6 +30,7 @@ import {
 import { stopWorkflowInstance } from "@/service/workflow/execution";
 import type { TaskInstanceRecord } from "@/service/task-execution/types";
 import { OperationsPageShell } from "../components/operations-page-shell";
+import { OperationsTableActions } from "../components/table-actions";
 import { ACTIVE_INSTANCE_STATES, instanceStatusText, scopeText } from "../presentation";
 
 const PAGE_SIZE = 20;
@@ -198,24 +199,38 @@ function OperationsDataSyncTasksPage({ syncType }: { syncType: DataSyncType }) {
       align: "center",
       render: (_v, r) => {
         if (!isValidTask(r)) {
-          return <Button size="sm" variant="ghost" onClick={() => navigate(`/data-sync/${r.id}/edit`)}>查看</Button>;
+          return (
+            <OperationsTableActions
+              actions={[
+                {
+                  key: "view",
+                  label: "查看",
+                  onClick: () => navigate(`/data-sync/${r.id}/edit`),
+                },
+              ]}
+            />
+          );
         }
         const latest = latestByTask.get(r.id);
         const active = Boolean(latest && ACTIVE_INSTANCE_STATES.has(latest.status));
         return (
-          <div className="flex items-center justify-center gap-1">
-            <Button size="sm" variant="ghost" onClick={() => navigate(`/data-sync/${r.id}/detail`)}>详情</Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className={active ? "text-[var(--yak-color-danger)]" : "text-[var(--yak-color-primary)]"}
-              isDisabled={!active && r.status !== "ONLINE"}
-              isPending={actionMutation.isPending}
-              onClick={() => actionMutation.mutate({ task: r, stop: active })}
-            >
-              {active ? "停止" : syncType === "REALTIME" ? "启动" : "运行"}
-            </Button>
-          </div>
+          <OperationsTableActions
+            actions={[
+              {
+                key: "detail",
+                label: "详情",
+                onClick: () => navigate(`/data-sync/${r.id}/detail`),
+              },
+              {
+                key: "runtime",
+                label: active ? "停止" : syncType === "REALTIME" ? "启动" : "运行",
+                tone: active ? "danger" : "primary",
+                disabled: !active && r.status !== "ONLINE",
+                loading: actionMutation.isPending,
+                onClick: () => actionMutation.mutate({ task: r, stop: active }),
+              },
+            ]}
+          />
         );
       },
     },
