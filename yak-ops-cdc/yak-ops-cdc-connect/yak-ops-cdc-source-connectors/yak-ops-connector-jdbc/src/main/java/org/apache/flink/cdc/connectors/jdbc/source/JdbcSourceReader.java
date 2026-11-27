@@ -61,7 +61,8 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
 
     public JdbcSourceReader(JdbcSourceConfig config) {
         this.config = config;
-        this.outputQueue = new ArrayBlockingQueue<>(Math.max(64, config.getFetchSize() * 2));
+        this.outputQueue =
+                new ArrayBlockingQueue<>(Math.max(64, Math.min(10000, config.getFetchSize() * 2)));
     }
 
     @Override
