@@ -22,6 +22,7 @@ public class DataSyncTaskExecutionStateVO {
     @Data
     @Builder
     public static class WorkflowState {
+
         private Integer id;
         private Long workflowDefinitionCode;
         private WorkflowExecutionStatus state;

@@ -168,9 +168,9 @@ public class DataSyncController extends BaseController {
 
     @GetMapping("/execution-states/latest")
     public Result<List<DataSyncTaskExecutionStateVO>> latestExecutionStates(
-            @RequestAttribute(Constants.SESSION_USER) User user,
-            @PathVariable long projectCode,
-            @RequestParam List<Long> taskCodes) {
+                                                                            @RequestAttribute(Constants.SESSION_USER) User user,
+                                                                            @PathVariable long projectCode,
+                                                                            @RequestParam List<Long> taskCodes) {
         return Result.success(dataSyncService.latestExecutionStates(user, projectCode, taskCodes));
     }
 
