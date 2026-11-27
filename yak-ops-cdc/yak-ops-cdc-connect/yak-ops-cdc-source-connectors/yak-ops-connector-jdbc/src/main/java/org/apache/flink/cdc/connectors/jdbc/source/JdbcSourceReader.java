@@ -222,7 +222,9 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
                     predicates.add(key + " > ?");
                     parameters.add(split.getLastReadValue());
                 }
-                sql.append(" WHERE ").append(String.join(" AND ", predicates));
+                if (!predicates.isEmpty()) {
+                    sql.append(" WHERE ").append(String.join(" AND ", predicates));
+                }
                 sql.append(" ORDER BY ").append(key);
             }
 
