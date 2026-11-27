@@ -39,7 +39,7 @@ public class DataSyncTableMapping {
             if (source.trim().isEmpty() || sink.trim().isEmpty()) {
                 continue;
             }
-            boolean databaseScope = source.endsWith(".*") && sink.endsWith(".<>");
+            boolean databaseScope = source.endsWith(".\\.*") && sink.endsWith(".<>");
             mappings.add(DataSyncTableMapping.builder()
                     .sourceTable(source)
                     .sinkTable(sink)
@@ -51,7 +51,7 @@ public class DataSyncTableMapping {
 
     public boolean matchesSourceTable(String actualTable) {
         return databaseScope
-                ? matchesDatabasePattern(actualTable, sourceTable, ".*")
+                ? matchesDatabasePattern(actualTable, sourceTable, ".\\.*")
                 : sameTable(actualTable, sourceTable);
     }
 
@@ -72,7 +72,7 @@ public class DataSyncTableMapping {
         if (!databaseScope) {
             return sourceTable;
         }
-        return databaseName(sourceTable, ".*") + "." + tableName(actualSinkTable);
+        return databaseName(sourceTable, ".\\.*") + "." + tableName(actualSinkTable);
     }
 
     private static boolean matchesDatabasePattern(
