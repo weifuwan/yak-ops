@@ -24,8 +24,7 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
     private static final String ERRORS = "numRecordsInErrors";
 
     @Override
-    public final DataSyncExecutionSnapshot collect(DataSyncExecutionHandle handle)
-            throws Exception {
+    public final DataSyncExecutionSnapshot collect(DataSyncExecutionHandle handle) throws Exception {
         Map<String, Long> metrics = collectRawMetrics(handle);
         List<DataSyncTableMapping> mappings = handle == null || handle.getTableMappings() == null
                 ? Collections.emptyList()
@@ -33,11 +32,11 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
         return aggregate(metrics, System.currentTimeMillis(), mappings);
     }
 
-    protected abstract Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle)
-            throws Exception;
+    protected abstract Map<String, Long> collectRawMetrics(DataSyncExecutionHandle handle) throws Exception;
 
     private DataSyncExecutionSnapshot aggregate(
-            Map<String, Long> metrics, long collectedAt, List<DataSyncTableMapping> mappings) {
+                                                Map<String, Long> metrics, long collectedAt,
+                                                List<DataSyncTableMapping> mappings) {
         Map<String, Long> availableMetrics = metrics == null ? Collections.emptyMap() : metrics;
         CounterSet summary = new CounterSet();
         Map<String, CounterSet> sourceCounters = new LinkedHashMap<>();
@@ -103,9 +102,9 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
     }
 
     private static List<DataSyncTableMetrics> buildTableMetrics(
-            Map<String, CounterSet> sourceCounters,
-            Map<String, CounterSet> sinkCounters,
-            List<DataSyncTableMapping> mappings) {
+                                                                Map<String, CounterSet> sourceCounters,
+                                                                Map<String, CounterSet> sinkCounters,
+                                                                List<DataSyncTableMapping> mappings) {
         List<DataSyncTableMetrics> tables = new ArrayList<>();
         if (mappings != null && !mappings.isEmpty()) {
             for (DataSyncTableMapping mapping : mappings) {
@@ -161,7 +160,8 @@ public abstract class AbstractDataSyncMetricsService implements DataSyncMetricsS
     }
 
     private static DataSyncTableMetrics toTableMetrics(
-            String sourceTable, String sinkTable, CounterSet source, CounterSet sink) {
+                                                       String sourceTable, String sinkTable, CounterSet source,
+                                                       CounterSet sink) {
         Long tableSnapshot = source == null ? null : source.value(SNAPSHOT);
         Long tableInsert = source == null ? null : source.value(INSERT);
         Long tableUpdate = source == null ? null : source.value(UPDATE);
