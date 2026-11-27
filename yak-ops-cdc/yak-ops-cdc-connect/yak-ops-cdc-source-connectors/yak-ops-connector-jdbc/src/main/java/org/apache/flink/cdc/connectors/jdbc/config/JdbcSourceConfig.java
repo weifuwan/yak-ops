@@ -37,14 +37,14 @@ public final class JdbcSourceConfig implements Serializable {
         if (tables == null || tables.isEmpty()) {
             throw new IllegalArgumentException("JDBC source requires at least one table");
         }
-        if (fetchSize < 1 || fetchSize > 100000) {
-            throw new IllegalArgumentException("scan.fetch-size must be between 1 and 100000");
+        if (fetchSize < 0) {
+            throw new IllegalArgumentException("scan.fetch-size must not be negative");
         }
-        if (splitSize < 1 || splitSize > 10000000) {
-            throw new IllegalArgumentException("scan.split-size must be between 1 and 10000000");
+        if (splitSize < 1) {
+            throw new IllegalArgumentException("scan.split-size must be positive");
         }
-        if (parallelism < 1 || parallelism > 128) {
-            throw new IllegalArgumentException("pipeline.parallelism must be between 1 and 128");
+        if (parallelism < 1) {
+            throw new IllegalArgumentException("pipeline.parallelism must be positive");
         }
         this.url = url.trim();
         this.driverName = driverName.trim();

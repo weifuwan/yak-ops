@@ -136,6 +136,9 @@ public final class JdbcSplitEnumerator
         if (context.registeredReaders().containsKey(subtaskId)) {
             assignReturnedSplits(subtaskId);
         }
+        if (started) {
+            assignPending();
+        }
     }
 
     @Override
@@ -154,7 +157,6 @@ public final class JdbcSplitEnumerator
         while (!returned.isEmpty()) {
             context.assignSplit(returned.remove(), subtaskId);
         }
-        context.signalNoMoreSplits(subtaskId);
     }
 
     @Override
