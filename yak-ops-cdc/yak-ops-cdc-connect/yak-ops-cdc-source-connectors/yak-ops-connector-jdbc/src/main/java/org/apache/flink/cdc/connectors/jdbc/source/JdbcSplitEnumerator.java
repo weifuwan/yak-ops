@@ -94,18 +94,24 @@ public final class JdbcSplitEnumerator
         pendingByReader
                 .computeIfAbsent(subtaskId, ignored -> new ArrayDeque<>())
                 .addAll(splits);
+        if (context.registeredReaders().containsKey(subtaskId)) {
+            assignReturnedSplits(subtaskId);
+        }
     }
 
     @Override
     public void addReader(int subtaskId) {
-        Queue<JdbcSourceSplit> returned = pendingByReader.remove(subtaskId);
-        if (returned != null && !returned.isEmpty()) {
-            while (!returned.isEmpty()) {
-                context.assignSplit(returned.remove(), subtaskId);
-            }
-            context.signalNoMoreSplits(subtaskId);
-        }
+        assignReturnedSplits(subtaskId);
         if (started) assignPending();
+    }
+
+    private void assignReturnedSplits(int subtaskId) {
+        Queue<JdbcSourceSplit> returned = pendingByReader.remove(subtaskId);
+        if (returned == null || returned.isEmpty()) return;
+        while (!returned.isEmpty()) {
+            context.assignSplit(returned.remove(), subtaskId);
+        }
+        context.signalNoMoreSplits(subtaskId);
     }
 
     @Override
