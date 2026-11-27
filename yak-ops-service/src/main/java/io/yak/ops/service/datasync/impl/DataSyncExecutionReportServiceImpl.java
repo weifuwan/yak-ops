@@ -165,46 +165,67 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
 
     private void upsertTableReports(
             DataSyncReportRequest request, long collectedAt, Date now, boolean finalReport) {
-        // A report is a complete table-level snapshot. Clear previous values first so
-        // tables missing from this collection are not presented as current or final data.
-        for (DataSyncTableReport existing : tableReportDao.queryByExecutionId(request.getExecutionId())) {
-            tableReportDao.clearSnapshotFields(
+        List<DataSyncTableReport> existingReports =
+                tableReportDao.queryByExecutionId(request.getExecutionId());
+        int clearedCount = 0;
+        for (DataSyncTableReport existing : existingReports) {
+            clearedCount += tableReportDao.clearSnapshotFields(
                     existing.getId(), request.getSequence(), collectedAt, now, finalReport);
         }
-        if (request.getTables() == null) {
-            return;
+
+        int upsertedCount = 0;
+        List<DataSyncTableMetrics> incomingTables = request.getTables();
+        if (incomingTables != null) {
+            for (DataSyncTableMetrics metrics : incomingTables) {
+                if (metrics == null || (StringUtils.isBlank(metrics.getSourceTable())
+                        && StringUtils.isBlank(metrics.getSinkTable()))) {
+                    continue;
+                }
+                String tableKey = tableKey(metrics.getSourceTable(), metrics.getSinkTable());
+                DataSyncTableReport report = tableReportDao.queryByExecutionIdAndTableKey(
+                        request.getExecutionId(), tableKey);
+                if (report == null) {
+                    report = DataSyncTableReport.builder()
+                            .executionId(request.getExecutionId())
+                            .tableKey(tableKey)
+                            .sourceTable(metrics.getSourceTable())
+                            .sinkTable(metrics.getSinkTable())
+                            .createTime(now)
+                            .build();
+                } else {
+                    // Route metadata is authoritative; it can fill names that were previously
+                    // absent when older collectors only reported the Sink metric group.
+                    report.setSourceTable(metrics.getSourceTable());
+                    report.setSinkTable(metrics.getSinkTable());
+                    report.setTableKey(tableKey);
+                }
+                report.setLatestMetricsJson(JSONUtils.toJsonString(metrics));
+                report.setLatestSequence(request.getSequence());
+                report.setLatestCollectedAt(collectedAt);
+                report.setUpdateTime(now);
+                if (finalReport) {
+                    report.setFinalMetricsJson(JSONUtils.toJsonString(metrics));
+                    report.setFinalCollectedAt(collectedAt);
+                }
+                if (report.getId() == null) {
+                    tableReportDao.insert(report);
+                } else {
+                    tableReportDao.updateById(report);
+                }
+                upsertedCount++;
+            }
         }
-        for (DataSyncTableMetrics metrics : request.getTables()) {
-            if (metrics == null || (StringUtils.isBlank(metrics.getSourceTable())
-                    && StringUtils.isBlank(metrics.getSinkTable()))) {
-                continue;
-            }
-            String tableKey = tableKey(metrics.getSourceTable(), metrics.getSinkTable());
-            DataSyncTableReport report = tableReportDao.queryByExecutionIdAndTableKey(
-                    request.getExecutionId(), tableKey);
-            if (report == null) {
-                report = DataSyncTableReport.builder()
-                        .executionId(request.getExecutionId())
-                        .tableKey(tableKey)
-                        .sourceTable(metrics.getSourceTable())
-                        .sinkTable(metrics.getSinkTable())
-                        .createTime(now)
-                        .build();
-            }
-            report.setLatestMetricsJson(JSONUtils.toJsonString(metrics));
-            report.setLatestSequence(request.getSequence());
-            report.setLatestCollectedAt(collectedAt);
-            report.setUpdateTime(now);
-            if (finalReport) {
-                report.setFinalMetricsJson(JSONUtils.toJsonString(metrics));
-                report.setFinalCollectedAt(collectedAt);
-            }
-            if (report.getId() == null) {
-                tableReportDao.insert(report);
-            } else {
-                tableReportDao.updateById(report);
-            }
-        }
+
+        log.info(
+                "Persisted CDC table report snapshot, executionId={}, sequence={}, reportType={}, "
+                        + "incomingTables={}, existingTables={}, clearedTables={}, upsertedTables={}",
+                request.getExecutionId(),
+                request.getSequence(),
+                request.getReportType(),
+                incomingTables == null ? 0 : incomingTables.size(),
+                existingReports.size(),
+                clearedCount,
+                upsertedCount);
     }
 
     private static String validate(DataSyncReportRequest request) {
