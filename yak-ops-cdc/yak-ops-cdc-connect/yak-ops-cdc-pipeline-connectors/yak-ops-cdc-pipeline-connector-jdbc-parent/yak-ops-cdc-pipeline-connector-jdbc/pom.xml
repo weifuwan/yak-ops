@@ -26,6 +26,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-cdc-pipeline-connector-jdbc-source</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>
