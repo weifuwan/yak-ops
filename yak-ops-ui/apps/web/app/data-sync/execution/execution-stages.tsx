@@ -79,7 +79,7 @@ function resolveSummaryStages(
   const activeIndex = steps.indexOf(target.step);
   if (activeIndex < 0) return summary.stages;
 
-  const observedByStep = new Map(summary.stages.map((stage) => [stage.step, stage]));
+  const observedByStep = new Map(summary.stages.map((stage) => [stage.step, stage] as const));
   return steps.map((step, index) => {
     const observed = observedByStep.get(step);
     if (index < activeIndex) {
@@ -117,9 +117,10 @@ function aggregateStatus(tables: DataSyncTableResult[]): StageStatus {
 
 function aggregateProgress(tables: DataSyncTableResult[], status: StageStatus): number | null {
   if (status === "FINISHED") return 100;
+  const hasCompletePlan = tables.length > 0 && tables.every((table) => table.plannedSplits !== null);
   const planned = tables.reduce((sum, table) => sum + (table.plannedSplits ?? 0), 0);
   const completed = tables.reduce((sum, table) => sum + table.completedSplits, 0);
-  if (planned > 0) return Math.min(99, Math.floor((completed * 100) / planned));
+  if (hasCompletePlan && planned > 0) return Math.min(99, Math.floor((completed * 100) / planned));
   const percentages = tables
     .map((table) => table.progressPercent)
     .filter((value): value is number => value !== null);
@@ -130,9 +131,9 @@ function aggregateProgress(tables: DataSyncTableResult[], status: StageStatus): 
 
 function resolveBatchStages(report: DataSyncBatchReport, steps: DataSyncStep[]): DataSyncStageResult[] {
   const tables = report.tables;
-  const fullComplete = tables.every(
-    (table) => table.step === "INCREMENTAL" || table.status === "FINISHED",
-  );
+  const fullComplete =
+    tables.length > 0 &&
+    tables.every((table) => table.step === "INCREMENTAL" || table.status === "FINISHED");
   const fullTables = tables.filter((table) => table.step === "FULL");
   const incrementalTables = tables.filter((table) => table.step === "INCREMENTAL");
   const stages: DataSyncStageResult[] = [];
@@ -264,7 +265,7 @@ export function ExecutionStages({
   compact?: boolean;
   steps?: DataSyncStep[];
 }) {
-  const stageSteps =
+  const stageSteps: DataSyncStep[] =
     steps ??
     summary?.stages.map((stage) => stage.step) ??
     ["FULL", "INCREMENTAL"];
