@@ -290,8 +290,16 @@ public final class JdbcSourceReader implements SourceReader<Event, JdbcSourceSpl
     private static GenericRecordData convert(ResultSet resultSet, Schema schema) throws SQLException {
         GenericRecordData row = new GenericRecordData(schema.getColumnCount());
         for (int i = 0; i < schema.getColumnCount(); i++) {
+            DataType columnType = schema.getColumnDataTypes().get(i);
+            if (columnType.getTypeRoot() == DataTypeRoot.CHAR
+                    || columnType.getTypeRoot() == DataTypeRoot.VARCHAR) {
+                String value = resultSet.getString(i + 1);
+                row.setField(
+                        i, value == null ? null : BinaryStringData.fromString(value));
+                continue;
+            }
             Object value = resultSet.getObject(i + 1);
-            row.setField(i, value == null ? null : convertValue(value, schema.getColumnDataTypes().get(i)));
+            row.setField(i, value == null ? null : convertValue(value, columnType));
         }
         return row;
     }
