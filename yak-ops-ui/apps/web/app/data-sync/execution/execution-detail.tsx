@@ -149,7 +149,7 @@ export function DataSyncExecutionDetailSkeleton({ controls }: { controls?: React
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_75px_90px_90px_90px_75px_75px_75px_90px_70px_160px_160px_80px] items-center gap-3 border-b border-[#eef0f3] px-3 py-3">
+          <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_90px_90px_90px_75px_75px_75px_90px_70px_160px_160px_80px] items-center gap-3 border-b border-[#eef0f3] px-3 py-3">
             {TABLE_SKELETON_WIDTHS.map((width, index) => (
               <div key={index} className="min-w-0">
                 <Skeleton width={width} height={12} />
