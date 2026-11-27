@@ -4,6 +4,8 @@ import io.yak.ops.plugin.task.api.enums.ResourceType;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.parameters.resource.ResourceParametersHelper;
 
+import java.util.List;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.Data;
@@ -19,6 +21,12 @@ public class DataSyncParameters extends AbstractParameters {
 
     public void validate() {
         new DataSyncPipelineValidator().validate(definition);
+    }
+
+    /** Returns the validated source-to-sink routes used to associate table metrics. */
+    public List<DataSyncTableMapping> getTableMappings() {
+        validate();
+        return DataSyncTableMapping.fromDefinition(definition);
     }
 
     @Override
