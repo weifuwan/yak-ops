@@ -7,6 +7,8 @@ import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionHandle;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionState;
 import io.yak.ops.plugin.task.datasync.execution.MiniClusterDataSyncExecutionService;
 
+import org.apache.flink.cdc.connectors.mysql.source.metrics.MySqlSourceReaderMetrics;
+
 import org.apache.flink.cdc.composer.flink.FlinkPipelineExecution;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
@@ -14,6 +16,9 @@ import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
+
+import io.debezium.data.Envelope;
+import io.debezium.relational.TableId;
 
 import java.util.concurrent.TimeUnit;
 
@@ -146,33 +151,21 @@ class FlinkRestDataSyncMetricsServiceMiniClusterTest {
         @Override
         public void run(SourceContext<Long> context) throws Exception {
             MetricGroup root = getRuntimeContext().getMetricGroup();
-            Counter snapshot = root.counter("numSnapshotRecords");
-            Counter inserts = root.counter("numInsertDMLRecords");
-            Counter updates = root.counter("numUpdateDMLRecords");
-            Counter deletes = root.counter("numDeleteDMLRecords");
-            MetricGroup table = root.addGroup("namespace", "db")
-                    .addGroup("schema", "")
-                    .addGroup("table", "orders");
-            Counter tableSnapshot = table.counter("numSnapshotRecords");
-            Counter tableInserts = table.counter("numInsertDMLRecords");
-            Counter tableUpdates = table.counter("numUpdateDMLRecords");
-            Counter tableDeletes = table.counter("numDeleteDMLRecords");
+            MySqlSourceReaderMetrics sourceMetrics = new MySqlSourceReaderMetrics(root);
+            sourceMetrics.registerMetrics();
+            TableId tableId = new TableId("db", null, "orders");
 
             for (long record = 0; record < 7L && running; record++) {
                 synchronized (context.getCheckpointLock()) {
                     context.collect(record);
                     if (record < 3L) {
-                        snapshot.inc();
-                        tableSnapshot.inc();
+                        sourceMetrics.recordDataChange(tableId, Envelope.Operation.READ);
                     } else if (record < 5L) {
-                        inserts.inc();
-                        tableInserts.inc();
+                        sourceMetrics.recordDataChange(tableId, Envelope.Operation.CREATE);
                     } else if (record == 5L) {
-                        updates.inc();
-                        tableUpdates.inc();
+                        sourceMetrics.recordDataChange(tableId, Envelope.Operation.UPDATE);
                     } else {
-                        deletes.inc();
-                        tableDeletes.inc();
+                        sourceMetrics.recordDataChange(tableId, Envelope.Operation.DELETE);
                     }
                 }
             }
