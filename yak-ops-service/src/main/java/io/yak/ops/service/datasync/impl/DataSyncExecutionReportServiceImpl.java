@@ -185,6 +185,10 @@ public class DataSyncExecutionReportServiceImpl extends BaseServiceImpl
                 DataSyncTableReport report = tableReportDao.queryByExecutionIdAndTableKey(
                         request.getExecutionId(), tableKey);
                 if (report == null) {
+                    report = tableReportDao.queryByExecutionIdAndPartialTableMapping(
+                            request.getExecutionId(), metrics.getSourceTable(), metrics.getSinkTable());
+                }
+                if (report == null) {
                     report = DataSyncTableReport.builder()
                             .executionId(request.getExecutionId())
                             .tableKey(tableKey)
