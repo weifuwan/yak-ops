@@ -206,9 +206,9 @@ export function DorisPublishModal({
   const previewError = previewQuery.isError ? errorMessage(previewQuery.error) : "";
 
   const copyDdl = async () => {
-    if (!preview?.ddl) return;
+    if (!preview?.ddl_content) return;
     try {
-      await navigator.clipboard.writeText(preview.ddl);
+      await navigator.clipboard.writeText(preview.ddl_content);
       toast.success("DDL 已复制");
     } catch {
       toast.warning("复制失败，请手动选择 DDL");
@@ -245,7 +245,7 @@ export function DorisPublishModal({
       setConfirmDropColumnsOpen(true);
       return;
     }
-    if (previewQuery.isFetching || previewQuery.isError || !preview?.ddl) {
+    if (previewQuery.isFetching || previewQuery.isError || !preview?.ddl_content) {
       toast.warning(previewError || "请等待 DDL 预览生成完成");
       return;
     }
@@ -305,7 +305,7 @@ export function DorisPublishModal({
     && physicalFields.length > 0
     && !previewQuery.isFetching
     && !previewQuery.isError
-    && Boolean(preview?.ddl);
+    && Boolean(preview?.ddl_content);
 
   const previewPlaceholder = !datasourceId || !tableModel || !publishMode
     ? "请选择 Doris 数据源，系统将自动生成 DDL"
@@ -494,7 +494,7 @@ export function DorisPublishModal({
               <Button
                 size="sm"
                 variant="ghost"
-                isDisabled={!preview?.ddl}
+                isDisabled={!preview?.ddl_content}
                 onClick={() => void copyDdl()}
               >
                 <Copy size={13} />
@@ -534,12 +534,12 @@ export function DorisPublishModal({
             ) : null}
             <div className="relative overflow-hidden rounded-md border border-[var(--yak-components-panel-border)] bg-white">
               <SqlCodeEditor
-                value={preview?.ddl || ""}
+                value={preview?.ddl_content || ""}
                 readOnly
                 onChange={() => undefined}
                 resizable={{ initialHeight: 300, minHeight: 220, maxHeight: 560 }}
               />
-              {!preview?.ddl ? (
+              {!preview?.ddl_content ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-xs text-[var(--yak-components-muted-text)]">
                   {previewPlaceholder}
                 </div>
@@ -551,7 +551,7 @@ export function DorisPublishModal({
               <p className="mb-0 mt-2 text-xs text-[var(--yak-components-muted-text)]">
                 当前目标表结构与模型一致，本次增量发布不会执行变更。
               </p>
-            ) : publishMode === "DROP_RECREATE" && preview?.ddl ? (
+            ) : publishMode === "DROP_RECREATE" && preview?.ddl_content ? (
               <p className="mb-0 mt-2 text-xs text-[var(--yak-components-danger-text)]">
                 删除重建会清空目标表现有数据，发布前需要再次确认。
               </p>
