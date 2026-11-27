@@ -41,7 +41,7 @@ class InitializeSchemaIT {
                         + "completed_at, used_by_workflow_instance_id, used_by_instance_id "
                         + "FROM t_yak_ops_data_sync_recovery_point WHERE 1 = 0").close();
         statement.executeQuery(
-                "SELECT table_model, publish_mode, publish_remark, key_fields "
+                "SELECT table_model, publish_mode, publish_remark, key_fields, ddl_content "
                         + "FROM t_yak_ops_dimension_table_publish WHERE 1 = 0").close();
     }
 
