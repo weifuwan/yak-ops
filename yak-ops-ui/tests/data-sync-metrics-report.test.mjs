@@ -106,7 +106,7 @@ test("the single table shows only per-table counters and hides runtime metadata"
     'title: "UPDATE"',
     'title: "DELETE"',
     'title: metricsReport ? "已提交条数"',
-    'title: metricsReport ? "已提交"',
+    'title: metricsReport ? "已提交条数"',
     'title: "DDL"',
     'title: "开始时间"',
     'title: "完成时间"',

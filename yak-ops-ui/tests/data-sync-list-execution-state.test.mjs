@@ -172,7 +172,7 @@ test("switching instances uses a layout-matched skeleton in the execution status
   )?.[0] ?? "";
   assert.match(executionDetail, /export function DataSyncExecutionDetailSkeleton/);
   assert.match(executionDetail, /aria-label="加载执行详情"/);
-  assert.ok(executionDetail.includes("min-w-[1820px]"));
+  assert.ok(executionDetail.includes("min-w-[1640px]"));
   assert.ok(statusPanel.includes("selectedLoading ? ("));
   assert.ok(statusPanel.includes("<DataSyncExecutionDetailSkeleton controls={controls} />"));
   assert.doesNotMatch(statusPanel, /Spinner/);
