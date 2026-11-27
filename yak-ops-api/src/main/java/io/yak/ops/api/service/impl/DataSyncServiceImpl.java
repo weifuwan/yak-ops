@@ -558,7 +558,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
         List<TaskInstance> latestTaskInstances = taskInstanceDao.queryLatestByTaskCodes(
                 projectCode, TASK_TYPE, requestedCodes, null);
         Map<Long, DataSyncInstanceVO> taskInstancesByCode = latestTaskInstances.stream()
-                .collect(Collectors.toMap(TaskInstance::getTaskCode, instance -> toInstanceVO(instance, null)));
+                .collect(Collectors.toMap(TaskInstance::getTaskCode, instance -> toInstanceVO(instance, null, null)));
 
         List<WorkflowInstance> latestWorkflows =
                 workflowInstanceDao.queryLatestByWorkflowDefinitionCodes(projectCode, workflowCodes);
@@ -603,7 +603,7 @@ public class DataSyncServiceImpl extends BaseServiceImpl implements DataSyncServ
 
         TaskInstance instance = taskInstanceDao.queryByIdForUpdate(instanceId);
         if (instance == null || instance.getProjectCode() != projectCode || !TASK_TYPE.equals(instance.getTaskType())
-                || instance.getTaskCode() == null) {
+                ) {
             throw new ServiceException(Status.RESOURCE_NOT_EXIST_OR_NO_PERMISSION);
         }
         TaskDefinition lockedDefinition = taskDefinitionDao.queryByCodeForUpdate(instance.getTaskCode());
