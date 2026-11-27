@@ -79,7 +79,14 @@ public class MySqlSourceReaderMetrics {
     public void updateRecordCounters(SourceRecord record) {
         catchAndWarnLogAllExceptions(() -> {
             if (isDataChangeRecord(record)) {
-                recordDataChange(getTableId(record), Envelope.operationFor(record));
+                Envelope.Operation operation = Envelope.operationFor(record);
+                TableId tableId = null;
+                try {
+                    tableId = getTableId(record);
+                } catch (Exception exception) {
+                    LOG.warn("Unable to resolve MySQL source table for CDC metrics", exception);
+                }
+                recordDataChange(tableId, operation);
             } else if (isSchemaChangeEvent(record)) {
                 // Preserve the execution-level DDL observation even if Debezium cannot resolve
                 // a physical table identifier for this schema event.
