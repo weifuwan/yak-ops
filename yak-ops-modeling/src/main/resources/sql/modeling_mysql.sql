@@ -517,7 +517,7 @@ CREATE TABLE IF NOT EXISTS t_yak_ops_dimension_table_publish (
   key_fields text NULL,
   target_database varchar(255) NOT NULL,
   target_table varchar(255) NOT NULL,
-  ddl longtext NULL,
+  ddl_content longtext NULL,
   ddl_hash varchar(64) NULL,
   physical_config longtext NULL,
   physical_schema longtext NULL,
