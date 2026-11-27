@@ -4,11 +4,12 @@ import type {
   DataSyncMetricsTableReport,
   DataSyncStageResult,
 } from "@/service/data-sync/types";
+import { formatMetricCount } from "@/service/data-sync/report";
 import { StageProgress, useObservationStale } from "./execution-stages";
 
 const pathText = (table: { database?: string; schema?: string; table?: string }) =>
   [table.database, table.schema, table.table].filter(Boolean).join(".");
-const countText = (value?: number | null) => value?.toLocaleString("zh-CN") ?? "—";
+const countText = formatMetricCount;
 const normalizePath = (value?: string | null) => value?.trim().toLowerCase() ?? "";
 
 function MetricsSummaryItem({ label, value }: { label: string; value?: number | null }) {
