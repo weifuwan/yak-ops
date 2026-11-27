@@ -113,8 +113,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             vo.setTableModel(dto.getTableModel());
             vo.setPublishMode(dto.getPublishMode());
             vo.setPublishRemark(StringUtils.trimToNull(dto.getPublishRemark()));
-            vo.setDdl(plan.getDdl());
-            vo.setDdlHash(sha256(plan.getDdl()));
+            vo.setDdlContent(plan.getDdlContent());
+            vo.setDdlHash(sha256(plan.getDdlContent()));
             vo.setNoChanges(plan.isNoChanges());
             ReplicationPlan replication = plan.getDetails(ReplicationPlan.class);
             vo.setReplicationNum(replication == null ? null : replication.getReplicationNum());
@@ -163,7 +163,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
                 throw new IllegalArgumentException("增量发布包含删除字段操作，需要二次确认");
             }
             if ((dto.getPublishMode() == DorisPublishModeEnum.DROP_RECREATE || plan.isRequiresConfirmation())
-                    && !StringUtils.equalsIgnoreCase(dto.getConfirmedDdlHash(), sha256(plan.getDdl()))) {
+                    && !StringUtils.equalsIgnoreCase(dto.getConfirmedDdlHash(), sha256(plan.getDdlContent()))) {
                 throw new IllegalArgumentException("目标物理表结构已变化，请刷新 DDL 预览并重新确认后再发布");
             }
             DimensionDorisPublishPO pending = createPublishRecord(
@@ -340,8 +340,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         publish.setPublishMode(dto.getPublishMode());
         publish.setPublishRemark(dto.getPublishRemark().trim());
         publish.setKeyFields(serializeKeyFields(plan.getKeyFields()));
-        publish.setDdl(plan.getDdl());
-        publish.setDdlHash(sha256(plan.getDdl()));
+        publish.setDdlContent(plan.getDdlContent());
+        publish.setDdlHash(sha256(plan.getDdlContent()));
         publish.setStatus(DorisPublishStatusEnum.PENDING);
         publish.setProjectCode(null);
         publish.initInsert();
@@ -385,7 +385,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         if (previous.getTableModel() != null) {
             return previous.getTableModel();
         }
-        return StringUtils.containsIgnoreCase(previous.getDdl(), "UNIQUE KEY")
+        return StringUtils.containsIgnoreCase(previous.getDdlContent(), "UNIQUE KEY")
                 ? DorisDataModelEnum.UNIQUE
                 : DorisDataModelEnum.DUPLICATE;
     }
@@ -409,10 +409,10 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             }
         }
 
-        String ddl = StringUtils.defaultString(previous.getDdl());
+        String ddlContent = StringUtils.defaultString(previous.getDdlContent());
         if (previousModel == DorisDataModelEnum.UNIQUE) {
             Matcher matcher = Pattern.compile("(?is)\\bUNIQUE\\s+KEY\\s*\\(([^)]*)\\)")
-                    .matcher(ddl);
+                    .matcher(ddlContent);
             if (!matcher.find()) {
                 throw new IllegalArgumentException("无法识别历史 UNIQUE KEY 定义，请使用“删除重建”。");
             }
@@ -427,7 +427,7 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
         }
 
         Matcher firstColumn = Pattern.compile("(?is)CREATE TABLE.*?\\(\\s*`([^`]+)`\\s+")
-                .matcher(ddl);
+                .matcher(ddlContent);
         if (!firstColumn.find()) {
             throw new IllegalArgumentException("无法识别历史 DUPLICATE 表的首列定义，请使用“删除重建”。");
         }
@@ -541,8 +541,8 @@ public class DimensionDorisServiceImpl implements DimensionDorisService {
             vo.setPhysicalSchema(null);
         }
         vo.setNoChanges(
-                StringUtils.startsWith(publish.getDdl(), "-- 当前 Doris 物理表结构与模型一致")
-                        || StringUtils.startsWith(publish.getDdl(), "-- 当前目标表结构与模型一致"));
+                StringUtils.startsWith(publish.getDdlContent(), "-- 当前 Doris 物理表结构与模型一致")
+                        || StringUtils.startsWith(publish.getDdlContent(), "-- 当前目标表结构与模型一致"));
         return vo;
     }
 
