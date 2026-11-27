@@ -224,8 +224,54 @@ export interface DataSyncDefinitionSnapshot {
   target: DataSyncEndpointSnapshot;
 }
 
+
+export interface DataSyncMetricsSnapshot {
+  readRecords: number | null;
+  snapshotRecords: number | null;
+  incrementalRecords: number | null;
+  insertRecords: number | null;
+  updateRecords: number | null;
+  deleteRecords: number | null;
+  committedRecords: number | null;
+  ddlEvents: number | null;
+  errorRecords: number | null;
+}
+
+export interface DataSyncMetricsTableReport {
+  sourceTable: string | null;
+  sinkTable: string | null;
+  metricsState: string;
+  readRecords: number | null;
+  snapshotRecords: number | null;
+  incrementalRecords: number | null;
+  insertRecords: number | null;
+  updateRecords: number | null;
+  deleteRecords: number | null;
+  committedRecords: number | null;
+  ddlEvents: number | null;
+}
+
+export interface DataSyncMetricsExecutionReport {
+  executionId: string;
+  jobId: string;
+  deploymentMode: string;
+  clusterId: string | null;
+  executionState: string;
+  metricsState: string;
+  latestSequence: number | null;
+  finalSequence: number | null;
+  latestCollectedAt: number | null;
+  finalCollectedAt: number | null;
+  finalized: boolean;
+  metricsError: string | null;
+  latestSnapshot: DataSyncMetricsSnapshot | null;
+  finalSnapshot: DataSyncMetricsSnapshot | null;
+  tables: DataSyncMetricsTableReport[];
+}
+
 export interface DataSyncInstanceRecord {
   executionReport?: DataSyncExecutionReport;
+  metricsReport?: DataSyncMetricsExecutionReport | null;
   workflowInstanceId?: number;
   id: string;
   scope: DataSyncScope;
