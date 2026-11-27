@@ -43,7 +43,7 @@ export function toSyncTaskRecord(task: TaskDefinitionRecord): DataSyncTaskRecord
     updateTime: task.updateTime,
     sourceConnector: pipeline.source.type,
     sinkConnector: pipeline.sink.type,
-    sourceProducesChangelog: true,
+    sourceProducesChangelog: pipeline.source.type !== "jdbc",
     sourceDataSourceId: pipeline.source["datasource-id"],
     targetDataSourceId: pipeline.sink["datasource-id"],
     sourceDatabase: source.database,
