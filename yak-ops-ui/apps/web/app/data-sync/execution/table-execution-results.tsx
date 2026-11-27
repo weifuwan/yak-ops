@@ -12,9 +12,17 @@ const pathText = (table: { database?: string; schema?: string; table?: string })
 const countText = formatMetricCount;
 const normalizePath = (value?: string | null) => value?.trim().toLowerCase() ?? "";
 
-function MetricsSummaryItem({ label, value }: { label: string; value?: number | null }) {
+function MetricsSummaryItem({
+  label,
+  value,
+  title,
+}: {
+  label: string;
+  value?: number | null;
+  title?: string;
+}) {
   return (
-    <div className="min-w-0 border border-[#eef0f3] bg-white px-3 py-2">
+    <div title={title} className="min-w-0 border border-[#eef0f3] bg-white px-3 py-2">
       <div className="text-[11px] text-[#667085]">{label}</div>
       <div className="mt-1 truncate text-sm font-semibold tabular-nums text-[#101828]">
         {countText(value)}
@@ -293,7 +301,11 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
       title: "已提交",
       width: 100,
       align: "right",
-      render: (_value, row) => countText(row.metrics.committedRecords),
+      render: (_value, row) => (
+        <span title="仅统计 JDBC Flush 成功后的记录；主键表可能等待 Checkpoint 或 Flush。">
+          {countText(row.metrics.committedRecords)}
+        </span>
+      ),
     },
     {
       key: "ddl",
@@ -338,7 +350,11 @@ export function TableExecutionResults({ record }: { record: DataSyncInstanceReco
             <MetricsSummaryItem label="总读取" value={metricSnapshot?.readRecords} />
             <MetricsSummaryItem label="全量读取" value={metricSnapshot?.snapshotRecords} />
             <MetricsSummaryItem label="增量读取" value={metricSnapshot?.incrementalRecords} />
-            <MetricsSummaryItem label="已提交" value={metricSnapshot?.committedRecords} />
+            <MetricsSummaryItem
+              label="已提交"
+              value={metricSnapshot?.committedRecords}
+              title="仅统计 JDBC Flush 成功后的记录；主键表可能等待 Checkpoint 或 Flush。"
+            />
           </div>
           {metricsReport.metricsError ? (
             <div className="text-xs text-[#b54708]" title={metricsReport.metricsError}>
