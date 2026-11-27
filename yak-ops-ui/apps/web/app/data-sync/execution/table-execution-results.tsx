@@ -24,7 +24,7 @@ type TableMetricValues = Pick<
   | "deleteRecords"
   | "committedRecords"
   | "ddlEvents"
-> & { errorRecords?: number | null };
+>;
 
 interface TableExecutionRow {
   id: string;
@@ -250,20 +250,13 @@ export function TableExecutionResults({
         align: "right",
         render: (_value, row) => countText(row.metrics?.deleteRecords),
       },
-      {
-        key: "errorRecords",
-        title: "错误记录",
-        width: 80,
-        align: "right",
-        render: (_value, row) => countText(row.metrics?.errorRecords),
-      },
     );
   }
 
   columns.push(
     {
       key: "committedRecords",
-      title: metricsReport ? "已提交" : realtime ? "全量提交" : "已提交条数",
+      title: metricsReport ? "已提交条数" : realtime ? "全量提交" : "已提交条数",
       width: 90,
       align: "right",
       render: (_value, row) => (
