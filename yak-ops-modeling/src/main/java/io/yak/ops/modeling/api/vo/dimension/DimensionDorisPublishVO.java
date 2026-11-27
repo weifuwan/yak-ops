@@ -1,5 +1,6 @@
 package io.yak.ops.modeling.api.vo.dimension;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.yak.ops.dao.entity.enums.DorisDataModelEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishModeEnum;
 import io.yak.ops.dao.entity.enums.DorisPublishStatusEnum;
@@ -20,7 +21,8 @@ public class DimensionDorisPublishVO {
     private String datasourceName;
     private String targetDatabase;
     private String targetTable;
-    private String ddl;
+    @JsonProperty("ddl_content")
+    private String ddlContent;
     private String ddlHash;
     /** Actual SHOW CREATE TABLE snapshot, including when post-DDL verification fails. */
     private String physicalSchema;
